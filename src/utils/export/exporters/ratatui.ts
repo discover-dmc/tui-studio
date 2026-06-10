@@ -5,14 +5,17 @@ export function exportToRatatui(root: ComponentNode): string {
   collectUsedWidgets(root, usedWidgets);
 
   const coreWidgets = buildWidgetImports(usedWidgets);
+  // B2: gate text::Line on actual usage (only multiline Text nodes need it)
+  const lineImport = usedWidgets.has('Line') ? '    text::Line,\n' : '';
 
-  return `use std::io;
+  return `// Requires: ratatui = "0.28"
+// Add to Cargo.toml: [dependencies] ratatui = { version = "0.28", features = ["crossterm"] }
+use std::io;
 use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::Line,
-    widgets::{${coreWidgets}},
+${lineImport}    widgets::{${coreWidgets}},
     Frame,
 };
 
@@ -94,14 +97,15 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
     let out = '';
     let targetArea = areaVar;
 
-    // F9 — Modal Rect::new float safety: wrap width/height in Math.round()
+    // F9 / N6 — Modal centering with saturating_add to avoid u16 overflow
     if (node.type === 'Modal') {
       const modalW = Math.round(typeof node.props.width === 'number' ? node.props.width : 40);
       const modalH = Math.round(typeof node.props.height === 'number' ? node.props.height : 12);
+      // N1: suffix modal var with the area to keep sibling Modals unique
       targetArea = `modal_${areaVar.replace(/[^a-zA-Z0-9_]/g, '_')}`;
       out += `${sp}let ${targetArea} = Rect::new(\n`;
-      out += `${sp}    ${areaVar}.x + (${areaVar}.width.saturating_sub(${modalW})) / 2,\n`;
-      out += `${sp}    ${areaVar}.y + (${areaVar}.height.saturating_sub(${modalH})) / 2,\n`;
+      out += `${sp}    ${areaVar}.x.saturating_add((${areaVar}.width.saturating_sub(${modalW})) / 2),\n`;
+      out += `${sp}    ${areaVar}.y.saturating_add((${areaVar}.height.saturating_sub(${modalH})) / 2),\n`;
       out += `${sp}    ${modalW},\n`;
       out += `${sp}    ${modalH},\n`;
       out += `${sp});\n`;
@@ -111,6 +115,7 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
     if (node.type !== 'Screen' && node.style.border) {
       const blockVar = `block_${targetArea.replace(/[^a-zA-Z0-9_]/g, '_')}`;
       const innerVar = `inner_${targetArea.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+      // N8: Block::new() — Block::default() is deprecated in ratatui 0.27+
       out += `${sp}let ${blockVar} = ${ratatuiBlock(node)};\n`;
       out += `${sp}let ${innerVar} = ${blockVar}.inner(${targetArea});\n`;
       out += `${sp}frame.render_widget(${blockVar}, ${targetArea});\n`;
@@ -133,10 +138,10 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
       return out;
     }
 
-    // Grid layout (from PR #9/#10/#11)
+    // Grid layout (from PR #9/#10/#11); N3: no (as any) cast — columns/rows are on LayoutProps
     if (node.type === 'Grid') {
-      const columns = Math.max(1, Number((node.layout as any).columns ?? 2));
-      const rows = Math.max(1, Number((node.layout as any).rows ?? Math.ceil(node.children.length / columns)));
+      const columns = Math.max(1, Number(node.layout.columns ?? 2));
+      const rows = Math.max(1, Number(node.layout.rows ?? Math.ceil(node.children.length / columns)));
       const rowChunks = `grid_rows_${targetArea.replace(/[^a-zA-Z0-9_]/g, '_')}`;
       out += `${sp}let ${rowChunks} = Layout::default()\n`;
       out += `${sp}    .direction(Direction::Vertical)\n`;
@@ -174,7 +179,6 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
     return out;
   }
 
-  // N4 — Spacer returns empty string (no comment noise)
   if (node.type === 'Spacer') return '';
 
   if (node.type === 'Text') {
@@ -219,9 +223,10 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
 
   if (node.type === 'List' || node.type === 'Menu' || node.type === 'Tree') {
     const items = ratatuiListItems(node);
+    // N5: omit .highlight_symbol() — it only works with render_stateful_widget;
+    // selection is already shown via the inline '▶' marker in item text.
     let widget = `List::new(vec![${items}]).style(${ratatuiStyle(node)})`;
     if (node.style.border) widget += `.block(${ratatuiBlock(node)})`;
-    widget += `.highlight_symbol(${escRust(ratatuiHighlightSymbol(node))})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
@@ -247,19 +252,20 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
 // F3 — map 'auto' to Constraint::Min(1) (not Min(0)) so children remain visible
+// N2: single default branch — no duplicate return
 function ratatuiConstraint(node: ComponentNode, axis: 'width' | 'height'): string {
   if (node.type === 'Spacer') return 'Constraint::Fill(1)';
   const value = node.props[axis];
   if (typeof value === 'number') return `Constraint::Length(${value})`;
   if (value === 'fill') return 'Constraint::Fill(1)';
-  if (value === 'auto') return 'Constraint::Min(1)';
   return 'Constraint::Min(1)';
 }
 
 // ── Block / style helpers ─────────────────────────────────────────────────────
 
+// N8: Block::new() — Block::default() is deprecated in ratatui 0.27+
 function ratatuiBlock(node: ComponentNode): string {
-  let block = 'Block::default().borders(Borders::ALL)';
+  let block = 'Block::new().borders(Borders::ALL)';
   block += `.border_type(${ratatuiBorderType(node.style.borderStyle as string | undefined)})`;
   if (node.name && node.name !== node.type) block += `.title(${escRust(node.name)})`;
   if (node.style.borderColor) block += `.border_style(Style::default().fg(${ratatuiColor(node.style.borderColor)}))`;
@@ -320,7 +326,7 @@ function ratatuiTextInputText(node: ComponentNode): string {
   const placeholder = (node.props.placeholder as string) || '';
   const value = (node.props.value as string) || '';
   const display = value || placeholder;
-  // Show cursor character to indicate editable field
+  // Trailing _ simulates a cursor for the static preview
   return `${display}_`;
 }
 
@@ -396,10 +402,6 @@ function ratatuiListItems(node: ComponentNode): string {
     return `ListItem::new(${escRust(label)})`;
   });
   return items.join(', ');
-}
-
-function ratatuiHighlightSymbol(node: ComponentNode): string {
-  return node.type === 'List' || node.type === 'Menu' ? '▶ ' : '';
 }
 
 function ratatuiTabTitles(node: ComponentNode): string[] {
