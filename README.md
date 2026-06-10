@@ -97,6 +97,7 @@ Projects are saved as `.tui` files (JSON):
 | [Textual](https://github.com/Textualize/textual)        | Python             |
 | [OpenTUI](https://opentui.js.org/)                      | TypeScript         |
 | [Tview](https://github.com/rivo/tview)                  | Go                 |
+| [Ratatui](https://ratatui.rs/)                          | Rust               |
 
 ## Tech Stack
 
