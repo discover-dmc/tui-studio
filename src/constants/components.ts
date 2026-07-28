@@ -285,7 +285,11 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
     description: 'Loading spinner',
     icon: 'Loader2',
     category: 'display',
-    defaultProps: {},
+    defaultProps: {
+      spinnerStyle: 'dots',
+      label: 'Loading...',
+      frame: 0,
+    },
     defaultLayout: {
       type: 'none',
     },
@@ -304,6 +308,8 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
       value: 0,
       max: 100,
       width: 20,
+      barStyle: 'blocks',
+      showPercent: true,
     },
     defaultLayout: {
       type: 'none',

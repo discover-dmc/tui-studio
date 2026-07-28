@@ -1,5 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escRust } from '../escape';
+import { SPINNER_PRESETS } from '../../../constants/assets';
 
 export function exportToRatatui(root: ComponentNode): string {
   const usedWidgets = new Set<string>();
@@ -360,9 +361,13 @@ function ratatuiInlineText(node: ComponentNode): string {
       const selected = options[idx] || options[0] || 'Select...';
       return `${selected} ▼`;
     }
-    case 'Spinner':
-      // F10 — read props.label instead of hardcoding 'Loading...'
-      return `⠋ ${(node.props.label as string) || 'Loading...'}`;
+    case 'Spinner': {
+      const preset =
+        SPINNER_PRESETS[(node.props.spinnerStyle as string) || 'dots'] || SPINNER_PRESETS.dots;
+      const idx = Math.max(0, Math.min(Number(node.props.frame ?? 0), preset.frames.length - 1));
+      const label = (node.props.label as string) ?? 'Loading...';
+      return label ? `${preset.frames[idx]} ${label}` : preset.frames[idx];
+    }
     case 'Breadcrumb': {
       const items = ((node.props.items as any[]) || []).map((i: any) =>
         typeof i === 'string' ? i : (i.label || '')

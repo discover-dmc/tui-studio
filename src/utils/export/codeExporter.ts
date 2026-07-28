@@ -4,6 +4,7 @@ import type { ComponentNode } from '../../types';
 import { exportToRatatui } from './exporters/ratatui';
 import { exportToTextual } from './exporters/textual';
 import { escJsx, escGo } from './escape';
+import { PROGRESSBAR_STYLES } from '../../constants/assets';
 
 /**
  * Export design to framework-specific code
@@ -141,17 +142,24 @@ function generateInkNode(node: ComponentNode, indent: number): string {
       return `${sp}<SelectInput items={[${items}]} onSelect={() => {}} />\n`;
     }
 
-    case 'Spinner':
-      return `${sp}<Text${inkTextProps(node)}><Spinner type="dots" /></Text>\n`;
+    case 'Spinner': {
+      // ink-spinner type names come from cli-spinners, same as SPINNER_PRESETS keys
+      const style = (node.props.spinnerStyle as string) || 'dots';
+      const label = (node.props.label as string) ?? 'Loading...';
+      return `${sp}<Text${inkTextProps(node)}><Spinner type="${style}" />${label ? ` ${escJsx(label)}` : ''}</Text>\n`;
+    }
 
     case 'ProgressBar': {
       const value = (node.props.value as number) ?? 0;
       const max = (node.props.max as number) ?? 100;
       const width = (node.props.width as number) ?? 20;
+      const style =
+        PROGRESSBAR_STYLES[(node.props.barStyle as string) || 'blocks'] || PROGRESSBAR_STYLES.blocks;
+      const showPercent = (node.props.showPercent as boolean) ?? true;
       return (
         `${sp}<Text${inkTextProps(node)}>\n` +
-        `${sp}  {'█'.repeat(Math.round(${value} / ${max} * ${width}))}` +
-        `{'░'.repeat(${width} - Math.round(${value} / ${max} * ${width}))} ${value}%\n` +
+        `${sp}  {${JSON.stringify(style.leftCap || '')}}{'${style.filled}'.repeat(Math.round(${value} / ${max} * ${width}))}` +
+        `{'${style.empty}'.repeat(${width} - Math.round(${value} / ${max} * ${width}))}{${JSON.stringify(style.rightCap || '')}}${showPercent ? ` ${Math.round((value / max) * 100)}%` : ''}\n` +
         `${sp}</Text>\n`
       );
     }

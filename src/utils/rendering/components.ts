@@ -5,6 +5,7 @@ import { CharCanvas } from './canvas';
 import { renderBox, getContentArea, BORDER_STYLES } from './borders';
 import { wrapText, alignText, padText, truncateText } from './text';
 import { generateAnsiCodes } from './ansi';
+import { SPINNER_PRESETS, renderBar } from '../../constants/assets';
 
 /**
  * Render a component to a character canvas
@@ -287,17 +288,15 @@ function renderSelect(node: ComponentNode, width: number, height: number): strin
 function renderProgressBar(node: ComponentNode, width: number, height: number): string[] {
   const value = (node.props.value as number) || 0;
   const max = (node.props.max as number) || 100;
+  const showPercent = (node.props.showPercent as boolean) ?? true;
   const contentArea = node.style.border
     ? getContentArea(width, height, { style: 'single' })
     : { width, height };
 
   const percentage = Math.min(100, Math.max(0, (value / max) * 100));
-  const barWidth = contentArea.width - 8; // Leave space for percentage
-  const filledWidth = Math.floor((barWidth * percentage) / 100);
-
-  const filled = '█'.repeat(filledWidth);
-  const empty = '░'.repeat(barWidth - filledWidth);
-  const text = `${filled}${empty} ${percentage.toFixed(0)}%`;
+  const barWidth = contentArea.width - (showPercent ? 5 : 0);
+  const bar = renderBar((node.props.barStyle as string) || 'blocks', barWidth, percentage);
+  const text = showPercent ? `${bar} ${percentage.toFixed(0)}%` : bar;
 
   const lines = [text.slice(0, contentArea.width).padEnd(contentArea.width)];
   while (lines.length < contentArea.height) {
@@ -311,10 +310,13 @@ function renderSpinner(node: ComponentNode, width: number, height: number): stri
   const contentArea = node.style.border
     ? getContentArea(width, height, { style: 'single' })
     : { width, height };
-  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  const frame = frames[0]; // Static frame for export
+  const preset =
+    SPINNER_PRESETS[(node.props.spinnerStyle as string) || 'dots'] || SPINNER_PRESETS.dots;
+  const frameIdx = Math.min(Number(node.props.frame ?? 0), preset.frames.length - 1);
+  const frame = preset.frames[Math.max(0, frameIdx)]; // Static frame for export
+  const label = (node.props.label as string) ?? 'Loading...';
 
-  const text = `${frame} Loading...`;
+  const text = label ? `${frame} ${label}` : frame;
   const truncated = truncateText(text, contentArea.width);
 
   const lines = [truncated.padEnd(contentArea.width)];

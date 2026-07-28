@@ -5,6 +5,7 @@ import { useCanvasStore, useComponentStore, useSelectionStore, useThemeStore } f
 import { layoutEngine } from '../../utils/layout';
 import { dragStore } from '../../hooks/useDragAndDrop';
 import { COMPONENT_LIBRARY, canHaveChildren } from '../../constants/components';
+import { SPINNER_PRESETS, renderBar } from '../../constants/assets';
 import { THEMES } from '../../stores/themeStore';
 import { interpolateGradientColor } from '../../utils/rendering/ansi';
 import { ComponentToolbar } from './ComponentToolbar';
@@ -564,11 +565,13 @@ const ComponentRenderer = memo(
         case 'ProgressBar': {
           const value = (node.props.value as number) || 0;
           const max = (node.props.max as number) || 100;
-          const percentage = Math.floor((value / max) * 20);
+          const pct = Math.min(100, Math.max(0, (value / max) * 100));
+          const showPercent = (node.props.showPercent as boolean) ?? true;
+          const bar = renderBar((node.props.barStyle as string) || 'blocks', 20, pct);
           return (
             <span className="font-mono">
-              [{'█'.repeat(percentage)}
-              {'░'.repeat(20 - percentage)}] {value}/{max}
+              {bar}
+              {showPercent ? ` ${pct.toFixed(0)}%` : ''}
             </span>
           );
         }
@@ -635,8 +638,21 @@ const ComponentRenderer = memo(
             </div>
           );
         }
-        case 'Spinner':
-          return <span className="font-mono">⣾ Loading...</span>;
+        case 'Spinner': {
+          const preset =
+            SPINNER_PRESETS[(node.props.spinnerStyle as string) || 'dots'] || SPINNER_PRESETS.dots;
+          const idx = Math.max(
+            0,
+            Math.min(Number(node.props.frame ?? 0), preset.frames.length - 1)
+          );
+          const label = (node.props.label as string) ?? 'Loading...';
+          return (
+            <span className="font-mono">
+              {preset.frames[idx]}
+              {label ? ` ${label}` : ''}
+            </span>
+          );
+        }
         case 'Tabs': {
           const tabs = (node.props.tabs as any[]) || [];
           const activeTab = (node.props.activeTab as number) || 0;
