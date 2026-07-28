@@ -186,8 +186,6 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   presets (terminal-safe subset) and 13 bar charsets incl. smooth eighth-block partials, in
   `src/constants/assets.ts`; wired through canvas, export renderer, PropertyPanel dropdowns,
   Ink (ink-spinner type passthrough) and Ratatui exporters.
-- [ ] Component wishlist (from skill's catalog, matching real TUI needs): Sparkline, Gauge
-  (labeled), Log/viewport, StatusBar/footer keybinding hints, Separator/Rule.
 - [x] Animate spinner preview on canvas (2026-07-28, commit dcdf514): `ComponentRenderer`
   ticks a local `spinnerFrame` state via `setInterval` at the preset's real interval,
   scoped per-instance. `node.props.frame` (the exporters' static frame) is untouched —
@@ -205,6 +203,61 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 - [ ] Add `.claude/launch.json` (dev server on 5173) for one-command preview
 - [ ] `npx update-browserslist-db` (build warning)
 - [ ] README: correct the export-framework claims to match reality (7 → what actually works)
+
+## P4 — Component wishlist (new component types)
+
+Extracted from P2 (2026-07-29) — bigger than a line item. Every new `ComponentType` touches
+all of: `types/` (union + prop types), `constants/components.ts` (`COMPONENT_LIBRARY` entry:
+defaultProps/defaultLayout/defaultStyle/defaultEvents), canvas rendering
+(`Canvas.tsx`'s `ComponentRenderer.renderComponent` switch + any layout-engine auto-size
+special case), property editing (`PropertyPanel`/`LayoutEditor`/`StyleEditor` — type-specific
+controls), and all 7 exporters (Ink, BubbleTea, Blessed, Textual, OpenTUI, Tview, Ratatui) —
+each needs real, verified support per this session's standing rule (check the actual
+framework API/docs, don't guess), plus export-fixture/CI coverage. That's ~10 touch points
+per component. Do one component fully — every touch point, CI-verified — before starting the
+next, matching the "finish a section before moving on" preference from this session.
+
+Suggested order (simplest/most-reusable first, to prove the full pipeline cheaply):
+
+- [ ] **Separator / Rule** — horizontal/vertical divider line. Smallest surface area, good
+  first template. Native support varies: Textual has `Rule`; Ratatui and Tview don't (draw a
+  bordered Block/Box with zero content instead); Blessed/OpenTUI/Ink/BubbleTea likely need a
+  hand-rolled line character repeated across width/height.
+- [ ] **Gauge (labeled)** — ProgressBar variant with a label and distinct framing. Ratatui has
+  a native `Gauge` widget; other frameworks likely map to a styled ProgressBar composition
+  rather than a distinct primitive — verify per-framework before assuming a 1:1 widget exists.
+- [ ] **Sparkline** — inline mini bar/line chart from a numeric array. Ratatui has a native
+  `Sparkline` widget; BubbleTea/Textual/Tview/Blessed/OpenTUI/Ink have no built-in equivalent
+  and would need hand-rolled Unicode block rendering (can likely reuse the existing
+  progress-bar block-character presets in `constants/assets.ts`).
+- [ ] **Log / viewport** — scrolling log/output panel. Real per-framework primitives differ a
+  lot: Textual has `RichLog`; BubbleTea has `bubbles/viewport`; Blessed has `log`/
+  `scrollablebox`; Ratatui/Tview have no built-in scrollback (hand-rolled `Paragraph`/TextView
+  + scroll offset). Needs static placeholder content in the canvas since there's no real log
+  stream at design time.
+- [ ] **StatusBar / footer keybinding hints** — bottom bar showing keybindings (e.g.
+  `^Q Quit  ^S Save`). Open design question before coding: does this need a real new
+  `ComponentType`, or is it already achievable today by composing existing Box+Text? Decide
+  that first — may turn out to need zero exporter work.
+
+## Wishlist — unscoped ideas
+
+Lower-confidence or exploratory ideas, not yet sized or committed to a priority tier.
+
+- [ ] **Expose TUIStudio to AI agents/LLMs for live co-creation** (raised 2026-07-29): let an
+  agent manipulate the design directly (add/edit/query components) alongside the human, not
+  just via one-shot export. Viable — the component tree is already a clean JSON structure
+  (`ComponentNode`) mutated through a small, well-defined action API on `componentStore`
+  (`addComponent`, `updateProps`, `updateLayout`, `moveComponent`, `removeComponent`, plus
+  existing undo/redo history as a safety net), and `.tui` save/open already round-trips the
+  whole tree. The natural shape: an MCP server whose tools map ~1:1 onto those existing store
+  actions, bridged to the live browser tab over a small local WebSocket (the app has no
+  backend today — this bridge would be the first one). Main open question, not a blocker:
+  MCP tool calls are pull/turn-based (agent asks, gets state, acts), not a push feed, so
+  "co-creation" in practice looks like turn-taking — the agent catches up on human edits by
+  calling a `get_tree`-style tool each turn, rather than seeing them the instant they happen.
+  Not sized or scoped yet; needs its own design pass (transport bridge, tool surface, and a
+  decision on how conflicting human/agent edits are surfaced) before estimating.
 
 ## Skill track — `skills/tui-design-mcpmarket`
 
