@@ -24,8 +24,9 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   all 20 component types mapped (ListView, DataTable, Tree, Tabs, ProgressBar, Checkbox,
   RadioButton, Switch, Select, OptionList, LoadingIndicator…), styles → TCSS in `App.CSS`,
   data widgets populated in `on_mount`. Verified: py_compile + live `run_test()` mount
-  under real textual. Remaining niceties: Tabs `activeTab` not applied, `gap` untranslated,
-  Modal renders as container (ModalScreen would be more idiomatic).
+  under real textual. Niceties done 2026-07-28 (commit 7d28e62): `activeTab` set in
+  on_mount, `gap` → child margins (`grid-gutter` on Grid), Modal → real `ModalScreen`
+  subclass pushed at startup — all runtime-verified.
 - [ ] **Rebuild BubbleTea exporter**: `generateBubbleTeaView` never recurses — whole tree
   becomes one string. Emit lipgloss styles + joined layout (`lipgloss.JoinVertical/
   Horizontal`), per-component view funcs, escaped strings.
@@ -80,8 +81,13 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 - [ ] **Code-split the bundle**: single 970 KB chunk; lazy-load ExportPanel + CommandPalette.
 - [ ] **Cross-window event cleanup**: custom `window` events (`toolbar-docked-changed`,
   `open-command-palette`) as ad-hoc bus — migrate to store state.
+- [x] Spinner + progress bar asset libraries (2026-07-28, commit 7e579fe): 46 cli-spinners
+  presets (terminal-safe subset) and 13 bar charsets incl. smooth eighth-block partials, in
+  `src/constants/assets.ts`; wired through canvas, export renderer, PropertyPanel dropdowns,
+  Ink (ink-spinner type passthrough) and Ratatui exporters.
 - [ ] Component wishlist (from skill's catalog, matching real TUI needs): Sparkline, Gauge
   (labeled), Log/viewport, StatusBar/footer keybinding hints, Separator/Rule.
+- [ ] Animate spinner preview on canvas (presets carry `interval`; currently static frame).
 
 ## P3 — Housekeeping
 
