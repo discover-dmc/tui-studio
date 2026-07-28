@@ -27,9 +27,11 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   under real textual. Niceties done 2026-07-28 (commit 7d28e62): `activeTab` set in
   on_mount, `gap` → child margins (`grid-gutter` on Grid), Modal → real `ModalScreen`
   subclass pushed at startup — all runtime-verified.
-- [ ] **Rebuild BubbleTea exporter**: `generateBubbleTeaView` never recurses — whole tree
-  becomes one string. Emit lipgloss styles + joined layout (`lipgloss.JoinVertical/
-  Horizontal`), per-component view funcs, escaped strings.
+- [x] **Rebuild BubbleTea exporter** (2026-07-28, commit c648716): new
+  `exporters/bubbletea.ts` — lipgloss JoinVertical/JoinHorizontal layout, Grid row
+  chunking, gap spacers, full style translation (hex + named-ANSI colors, borders,
+  padding), all 20 types, asset presets for spinner/bar, bubbles pointers in comments.
+  Verified: gofmt-clean, compiles against real bubbletea+lipgloss, go test executes View().
 - [ ] **Fix Blessed exporter**:
   - [ ] `safeIdent` + collision counter for variable names (root "Screen" currently
     redeclares `const screen` → SyntaxError on every export)
