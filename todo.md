@@ -11,15 +11,17 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 
 ## P0 — Correctness (broken today, user-visible)
 
-- [ ] **Adopt upstream PR #19** (`fix/export-type-alignment`, by upstream owner): aligns
-  `ExportFormatId` with runtime strings, adds shared `escape.ts` (escJs/escGo/escPy/escRust/
-  safeIdent), removes `type CodeFormat = any`, removes fictional `tview-go`, adds `html`.
-  Fetch branch from upstream, review, merge into fork. Solves deep_anal §2.2 wholesale.
-- [ ] **Adopt upstream PR #20** (`fix/ratatui-export-complete`): supersedes PRs #8–#11.
-  Review against our already-merged ratatui fix (commit 551319b) for overlap/conflicts.
+- [x] **Adopt upstream PR #19** (2026-07-28, merge 9baaa3d): `ExportFormatId` aligned with
+  runtime strings, shared `escape.ts` added and wired into Ink/BubbleTea/Textual/Ratatui,
+  `type CodeFormat = any` removed, fictional `tview-go` removed, `html` added.
+  Solves deep_anal §2.2 wholesale; Textual/BubbleTea now escape strings (structure bugs remain).
+- [x] **Adopt upstream PR #20** (2026-07-28, merge c9403f4): complete Ratatui exporter —
+  usage-gated imports, Grid layout, Modal centering (saturating u16 math), Spacer/auto
+  constraints, 3-digit hex, `Block::new()`, Cargo.toml hint. Also fixed the lint error.
+  Conflicts vs #19 resolved: shared `escRust` kept over local copy, README keeps no-Tview line.
 - [ ] **Rebuild Textual exporter** (task chip `task_5f523ab8` exists):
   - [ ] Fix indentation (compose body at 8 spaces)
-  - [ ] Escape all interpolated strings (use escape.ts from PR #19)
+  - [x] Escape all interpolated strings (escape.ts wired by PR #19, 2026-07-28)
   - [ ] Map containers → `Vertical`/`Horizontal`, preserve tree structure
   - [ ] Full widget coverage: Box, List (`ListView`), Table (`DataTable`), Tree, Tabs
     (`TabbedContent`), ProgressBar, Checkbox, RadioButton, Switch, Select, Label
@@ -42,8 +44,8 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 - [ ] **Gate broken exporters in the UI** until fixed: hide Textual/BubbleTea/Blessed/
   OpenTUI from the dropdown or badge them "experimental". Broken export is worse than none.
   (Cheap interim ship while the rebuilds land.)
-- [ ] **Fix lint failure**: empty `RatatuiExportSettings` interface in
-  [types/export.ts:56](src/types/export.ts) (PR #19 likely removes it; otherwise delete).
+- [x] **Fix lint failure**: resolved by PR #20's eslint-disable on `RatatuiExportSettings`
+  (2026-07-28). `npm run lint` is clean.
 - [ ] **Validate `.tui` file on open**: `openTuiFile` feeds parsed JSON straight into
   `setRoot` — malformed tree shape crashes the editor. Wire up the currently-unused
   [validation.ts](src/utils/validation.ts) (or a small shape check) at this boundary.
@@ -116,8 +118,8 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 
 - [x] Fork to `discover-dmc/tui-studio`, rewire `origin`, add `upstream` remote (2026-07-28)
 - [x] Push local main + todo/audit to fork (2026-07-28)
-- [ ] Triage remaining upstream PRs: #8–#11 (close as superseded by #20), #16 (cherry-pick
-  or redo), #19/#20 (adopt — see P0)
+- [ ] Triage remaining upstream PRs: #8–#11 superseded by adopted #20 (nothing to do on the
+  fork; closing them is upstream's call), #16 (cherry-pick or redo). #19/#20 adopted 2026-07-28.
 - [ ] Decide contribution posture: PR fixes back to upstream (inactive ~2 months) vs
   diverge on fork. Default: land on fork, offer upstream PRs opportunistically.
 - [ ] CI on fork: GitHub Action for `build + lint` (+ vitest once P1 tests exist)
