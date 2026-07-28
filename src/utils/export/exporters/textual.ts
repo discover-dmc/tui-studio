@@ -13,6 +13,8 @@ interface Ctx {
   css: string[];
   mount: string[];
   needsSpacerCss: boolean;
+  modals: { className: string; node: ComponentNode }[];
+  usedClassNames: Set<string>;
 }
 
 export function exportToTextual(root: ComponentNode): string {
@@ -24,6 +26,8 @@ export function exportToTextual(root: ComponentNode): string {
     css: [],
     mount: [],
     needsSpacerCss: false,
+    modals: [],
+    usedClassNames: new Set(),
   };
 
   const topNodes = root.type === 'Screen' ? root.children : [root];
@@ -36,6 +40,34 @@ export function exportToTextual(root: ComponentNode): string {
   for (const child of topNodes) body += genNode(child, ctx, 8);
   if (!body) body = `${' '.repeat(8)}yield Static("")\n`;
 
+  // Modal nodes hoist into ModalScreen subclasses with their own compose/on_mount.
+  const modalClasses: string[] = [];
+  for (const { className, node } of ctx.modals) {
+    const outerMount = ctx.mount;
+    ctx.mount = [];
+    const cls =
+      node.layout.type === 'grid' ? 'Grid' : node.layout.direction === 'row' ? 'Horizontal' : 'Vertical';
+    ctx.containers.add(cls);
+    const sizing: string[] = [];
+    if (node.props.width == null) sizing.push('width: auto;');
+    if (node.props.height == null) sizing.push('height: auto;');
+    const id = registerStyles(node, ctx, sizing, true)!;
+    ctx.css.push(`    ${className} {\n        align: center middle;\n    }`);
+    let modalBody = '';
+    for (const child of node.children) modalBody += genNode(child, ctx, 12);
+    const modalMount = ctx.mount.length
+      ? `\n    def on_mount(self) -> None:\n${ctx.mount.map((l) => `        ${l}`).join('\n')}\n`
+      : '';
+    ctx.mount = outerMount;
+    modalClasses.push(
+      `class ${className}(ModalScreen):\n` +
+        `    def compose(self) -> ComposeResult:\n` +
+        `        with ${cls}(id="${id}"):\n` +
+        (modalBody || `            pass\n`) +
+        modalMount
+    );
+  }
+
   if (ctx.needsSpacerCss) ctx.css.push('    .spacer {\n        width: 1fr;\n        height: 1fr;\n    }');
   ctx.widgets.add('Static');
 
@@ -44,6 +76,7 @@ export function exportToTextual(root: ComponentNode): string {
     ctx.containers.size
       ? `from textual.containers import ${[...ctx.containers].sort().join(', ')}`
       : '',
+    ctx.modals.length ? 'from textual.screen import ModalScreen' : '',
     `from textual.widgets import ${[...ctx.widgets].sort().join(', ')}`,
   ].filter(Boolean);
 
@@ -57,10 +90,12 @@ export function exportToTextual(root: ComponentNode): string {
     ? `\n    def on_button_pressed(self, event: Button.Pressed) -> None:\n        pass\n`
     : '';
 
+  const modalBlock = modalClasses.length ? `${modalClasses.join('\n\n')}\n\n` : '';
+
   return `${importLines.join('\n')}
 
 
-class MyApp(App):
+${modalBlock}class MyApp(App):
 ${cssBlock}    def compose(self) -> ComposeResult:
 ${body}${mountBlock}${buttonHandler}
 
@@ -74,10 +109,17 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
   const sp = ' '.repeat(indent);
 
   switch (node.type) {
+    case 'Modal': {
+      // Hoisted out of compose into a ModalScreen subclass, pushed in on_mount.
+      const className = allocClassName(node.name, ctx);
+      ctx.modals.push({ className, node });
+      ctx.mount.push(`self.push_screen(${className}())`);
+      return '';
+    }
+
     case 'Screen':
     case 'Box':
-    case 'Grid':
-    case 'Modal': {
+    case 'Grid': {
       const cls =
         node.type === 'Grid' ? 'Grid' : node.layout.direction === 'row' ? 'Horizontal' : 'Vertical';
       ctx.containers.add(cls);
@@ -86,10 +128,13 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
         const cols = Math.max(1, Number(node.layout.columns ?? 2));
         const rows = Math.max(1, Number(node.layout.rows ?? Math.ceil(node.children.length / cols)));
         extraCss.push(`grid-size: ${cols} ${rows};`);
+        const rowGap = Number(node.layout.rowGap ?? node.layout.gap ?? 0);
+        const colGap = Number(node.layout.columnGap ?? node.layout.gap ?? 0);
+        if (rowGap || colGap) extraCss.push(`grid-gutter: ${rowGap} ${colGap};`);
       }
-      const id = registerStyles(node, ctx, extraCss);
-      const comment = node.type === 'Modal' ? '  # Modal: consider textual.screen.ModalScreen' : '';
-      const out = `${sp}with ${cls}(${idArg(id, true)}):${comment}\n`;
+      const id = registerStyles(node, ctx, extraCss, gapNeedsId(node));
+      emitGapCss(node, id, ctx);
+      const out = `${sp}with ${cls}(${idArg(id, true)}):\n`;
       const children = node.children.map((c) => genNode(c, ctx, indent + 4)).join('');
       return out + (children || `${sp}    pass\n`);
     }
@@ -212,11 +257,14 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
 
     case 'Tabs': {
       ctx.widgets.add('Tabs');
-      const id = registerStyles(node, ctx);
+      const active = Number(node.props.activeTab ?? 0);
+      const id = registerStyles(node, ctx, [], active > 0);
       const labels = ((node.props.tabs as unknown[]) || []).map((tab) => {
         const t = tab as { label?: string };
         return escPyStr(typeof tab === 'string' ? tab : t.label || 'Tab');
       });
+      // Textual auto-assigns tab ids "tab-1", "tab-2", ...
+      if (active > 0) ctx.mount.push(`self.query_one("#${id}", Tabs).active = "tab-${active + 1}"`);
       return `${sp}yield Tabs(${labels.join(', ')}${idArg(id)})\n`;
     }
 
@@ -289,6 +337,30 @@ function tcssRules(node: ComponentNode, isScreen: boolean): string[] {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function gapNeedsId(node: ComponentNode): boolean {
+  return node.type === 'Box' && Number(node.layout.gap ?? 0) > 0 && node.children.length > 1;
+}
+
+/** Textual has no flex gap; approximate with margin on direct children. */
+function emitGapCss(node: ComponentNode, id: string | null, ctx: Ctx): void {
+  if (!id || !gapNeedsId(node)) return;
+  const gap = Number(node.layout.gap);
+  const prop = node.layout.direction === 'row' ? 'margin-right' : 'margin-bottom';
+  ctx.css.push(`    #${id} > * {\n        ${prop}: ${gap};\n    }`);
+}
+
+function allocClassName(name: string, ctx: Ctx): string {
+  let base = name.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+  if (!base || /^[0-9]/.test(base)) base = `Screen${base}`;
+  if (!base.endsWith('Modal')) base += 'Modal';
+  let cls = base;
+  let n = 2;
+  while (ctx.usedClassNames.has(cls)) cls = `${base}${n++}`;
+  ctx.usedClassNames.add(cls);
+  return cls;
+}
 
 function allocId(node: ComponentNode, ctx: Ctx): string {
   const existing = ctx.ids.get(node.id);
