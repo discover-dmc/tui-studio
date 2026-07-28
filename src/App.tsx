@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, lazy, Suspense } from 'react';
+import { useCallback, useEffect, lazy, Suspense } from 'react';
 import { cloneNode } from './utils/treeUtils';
 import './App.css';
 import { EditorLayout } from './components/editor/EditorLayout';
@@ -10,7 +10,7 @@ import { PropertyPanel } from './components/properties/PropertyPanel';
 const CommandPalette = lazy(() =>
   import('./components/editor/CommandPalette').then((m) => ({ default: m.CommandPalette }))
 );
-import { useComponentStore, useSelectionStore, useThemeStore } from './stores';
+import { useComponentStore, useSelectionStore, useThemeStore, useUIStore } from './stores';
 import { openTuiFile } from './utils/fileOps';
 import { initAutosave, loadAutosave } from './utils/autosave';
 import { COMPONENT_LIBRARY } from './constants/components';
@@ -50,7 +50,9 @@ function pasteTree(
 function App() {
   const componentStore = useComponentStore();
   const selectionStore = useSelectionStore();
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen);
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
+  const openDialog = useUIStore((s) => s.openDialog);
 
   // Enable dark mode
   useEffect(() => {
@@ -158,7 +160,7 @@ function App() {
       // Help / Keyboard shortcuts (Ctrl/Cmd+?)
       if ((e.metaKey || e.ctrlKey) && e.key === '?') {
         e.preventDefault();
-        window.dispatchEvent(new Event('command-help'));
+        openDialog('help');
         return;
       }
 
@@ -223,21 +225,21 @@ function App() {
       // Save (Ctrl/Cmd+S) — open the save dialog (dialog's button preserves user gesture for showSaveFilePicker)
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        window.dispatchEvent(new Event('open-save-dialog'));
+        openDialog('save');
         return;
       }
 
       // Export (Ctrl/Cmd+E)
       if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
         e.preventDefault();
-        window.dispatchEvent(new Event('command-export'));
+        openDialog('export');
         return;
       }
 
       // Settings (Ctrl/Cmd+K)
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        window.dispatchEvent(new Event('command-settings'));
+        openDialog('settings');
         return;
       }
 
@@ -302,16 +304,14 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [commandPaletteOpen, componentStore, selectionStore, handleAddComponent]);
-
-  // Listen for command palette open event from toolbar button
-  useEffect(() => {
-    const handleOpenCommandPalette = () => {
-      setCommandPaletteOpen(true);
-    };
-    window.addEventListener('open-command-palette', handleOpenCommandPalette);
-    return () => window.removeEventListener('open-command-palette', handleOpenCommandPalette);
-  }, []);
+  }, [
+    commandPaletteOpen,
+    componentStore,
+    selectionStore,
+    handleAddComponent,
+    openDialog,
+    setCommandPaletteOpen,
+  ]);
 
   return (
     <>

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { ComponentType } from '../../types';
 import { dragStore } from '../../hooks/useDragAndDrop';
-import { useComponentStore, useSelectionStore } from '../../stores';
+import { useComponentStore, useSelectionStore, useUIStore } from '../../stores';
 import { COMPONENT_LIBRARY } from '../../constants/components';
 import { getComponentIcon } from './componentIcons';
 
@@ -115,13 +115,11 @@ const COMPONENT_GROUPS: ComponentGroup[] = [
   },
 ];
 
-interface ComponentToolbarProps {
-  docked?: boolean;
-}
-
-export function ComponentToolbar({ docked = false }: ComponentToolbarProps) {
+export function ComponentToolbar() {
   const componentStore = useComponentStore();
   const selectionStore = useSelectionStore();
+  const isDockedState = useUIStore((s) => s.toolbarDocked);
+  const setIsDockedState = useUIStore((s) => s.setToolbarDocked);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [position, setPosition] = useState<ToolbarPosition>('B');
@@ -129,10 +127,6 @@ export function ComponentToolbar({ docked = false }: ComponentToolbarProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [customPosition, setCustomPosition] = useState<ToolbarCoordinates | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<'below' | 'above'>('below');
-  const [isDockedState, setIsDockedState] = useState(() => {
-    const saved = localStorage.getItem('toolbar-docked');
-    return saved ? JSON.parse(saved) : docked;
-  });
   const [isVertical, setIsVertical] = useState(() => {
     const saved = localStorage.getItem('toolbar-vertical');
     return saved ? JSON.parse(saved) : false;
@@ -144,13 +138,6 @@ export function ComponentToolbar({ docked = false }: ComponentToolbarProps) {
   const dragStartPos = useRef<{ x: number; y: number; toolbarX: number; toolbarY: number } | null>(
     null
   );
-
-  // Save docked state to localStorage and notify other components
-  useEffect(() => {
-    localStorage.setItem('toolbar-docked', JSON.stringify(isDockedState));
-    // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('toolbar-docked-changed', { detail: isDockedState }));
-  }, [isDockedState]);
 
   useEffect(() => {
     localStorage.setItem('toolbar-vertical', JSON.stringify(isVertical));

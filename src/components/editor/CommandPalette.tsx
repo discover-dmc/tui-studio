@@ -13,7 +13,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { useThemeStore } from '../../stores';
+import { useThemeStore, useUIStore } from '../../stores';
 import { COMPONENT_LIBRARY } from '../../constants/components';
 import { THEME_NAMES } from '../../stores/themeStore';
 import type { ComponentType } from '../../types';
@@ -36,6 +36,7 @@ interface Command {
 
 export function CommandPalette({ isOpen, onClose, onAddComponent }: CommandPaletteProps) {
   const themeStore = useThemeStore();
+  const openDialog = useUIStore((s) => s.openDialog);
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +63,7 @@ export function CommandPalette({ isOpen, onClose, onAddComponent }: CommandPalet
       description: 'Save design to file',
       icon: Save,
       action: () => {
-        window.dispatchEvent(new Event('command-save'));
+        openDialog('save');
         onClose();
       },
       category: 'action',
@@ -74,7 +75,7 @@ export function CommandPalette({ isOpen, onClose, onAddComponent }: CommandPalet
       description: 'Export design to code',
       icon: FileDown,
       action: () => {
-        window.dispatchEvent(new Event('command-export'));
+        openDialog('export');
         onClose();
       },
       category: 'action',
@@ -86,7 +87,7 @@ export function CommandPalette({ isOpen, onClose, onAddComponent }: CommandPalet
       description: 'Open settings',
       icon: Settings,
       action: () => {
-        window.dispatchEvent(new Event('command-settings'));
+        openDialog('settings');
         onClose();
       },
       category: 'action',
@@ -98,7 +99,7 @@ export function CommandPalette({ isOpen, onClose, onAddComponent }: CommandPalet
       description: 'View all keyboard shortcuts',
       icon: Keyboard,
       action: () => {
-        window.dispatchEvent(new Event('command-help'));
+        openDialog('help');
         onClose();
       },
       category: 'action',
@@ -110,7 +111,7 @@ export function CommandPalette({ isOpen, onClose, onAddComponent }: CommandPalet
       description: 'Version info and links',
       icon: Info,
       action: () => {
-        window.dispatchEvent(new Event('command-about'));
+        openDialog('about');
         onClose();
       },
       category: 'action',

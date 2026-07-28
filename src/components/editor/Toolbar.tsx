@@ -18,7 +18,8 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { useComponentStore, useCanvasStore, useThemeStore } from '../../stores';
+import { useComponentStore, useCanvasStore, useThemeStore, useUIStore } from '../../stores';
+import type { DialogName } from '../../stores/uiStore';
 // Lazy: the export panel pulls in all seven code exporters, which most
 // sessions never open. Keep them out of the main bundle until they're needed.
 const ExportModal = lazy(() =>
@@ -599,6 +600,8 @@ function AppMenu() {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const openDialog = useUIStore((s) => s.openDialog);
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
 
   useEffect(() => {
     if (!open) return;
@@ -617,6 +620,13 @@ function AppMenu() {
     setHovered(null);
   };
 
+  const openDialogAndClose = (name: DialogName) => {
+    close();
+    openDialog(name);
+  };
+
+  // TODO(task_7b18da74): Copy/Paste still dispatch to no listener — dead
+  // no-ops, pre-existing, flagged for a separate fix rather than bundled here.
   const dispatch = (event: string) => {
     close();
     window.dispatchEvent(new Event(event));
@@ -634,7 +644,10 @@ function AppMenu() {
       {
         label: 'Command Palette',
         shortcut: `${mod}P`,
-        action: () => dispatch('open-command-palette'),
+        action: () => {
+          close();
+          setCommandPaletteOpen(true);
+        },
       },
     ],
     [
@@ -652,12 +665,9 @@ function AppMenu() {
           {
             label: 'Save',
             shortcut: `${mod}S`,
-            action: () => {
-              close();
-              window.dispatchEvent(new Event('open-save-dialog'));
-            },
+            action: () => openDialogAndClose('save'),
           },
-          { label: 'Export', shortcut: `${mod}E`, action: () => dispatch('command-export') },
+          { label: 'Export', shortcut: `${mod}E`, action: () => openDialogAndClose('export') },
         ],
       },
       {
@@ -668,7 +678,7 @@ function AppMenu() {
         ],
       },
     ],
-    [{ label: 'Settings', shortcut: `${mod}K`, action: () => dispatch('command-settings') }],
+    [{ label: 'Settings', shortcut: `${mod}K`, action: () => openDialogAndClose('settings') }],
     [
       {
         label: 'Help',
@@ -676,10 +686,10 @@ function AppMenu() {
           {
             label: 'Keyboard Shortcuts',
             shortcut: `${mod}?`,
-            action: () => dispatch('command-help'),
+            action: () => openDialogAndClose('help'),
           },
-          { label: 'Changelog', action: () => dispatch('command-changelog') },
-          { label: 'About', action: () => dispatch('command-about') },
+          { label: 'Changelog', action: () => openDialogAndClose('changelog') },
+          { label: 'About', action: () => openDialogAndClose('about') },
         ],
       },
     ],
@@ -761,15 +771,11 @@ export function Toolbar() {
   const componentStore = useComponentStore();
   const canvasStore = useCanvasStore();
   const themeStore = useThemeStore();
-  const [exportOpen, setExportOpen] = useState(false);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
-  const [changelogOpen, setChangelogOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [isToolbarDocked, setIsToolbarDocked] = useState(() =>
-    JSON.parse(localStorage.getItem('toolbar-docked') || 'false')
-  );
+  const isToolbarDocked = useUIStore((s) => s.toolbarDocked);
+  const activeDialog = useUIStore((s) => s.activeDialog);
+  const closeDialog = useUIStore((s) => s.closeDialog);
+  const openDialog = useUIStore((s) => s.openDialog);
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen);
 
   // Apply saved accent color on mount
   useEffect(() => {
@@ -780,57 +786,6 @@ export function Toolbar() {
 
   const canUndo = componentStore.historyIndex > 0;
   const canRedo = componentStore.historyIndex < componentStore.history.length - 1;
-
-  // Listen for toolbar dock state changes
-  useEffect(() => {
-    const handleDockedChange = () => {
-      setIsToolbarDocked(JSON.parse(localStorage.getItem('toolbar-docked') || 'false'));
-    };
-    window.addEventListener('toolbar-docked-changed', handleDockedChange);
-    return () => window.removeEventListener('toolbar-docked-changed', handleDockedChange);
-  }, []);
-
-  // Listen for save dialog trigger (e.g. from Cmd+S keyboard shortcut)
-  useEffect(() => {
-    const handler = () => setSaveDialogOpen(true);
-    window.addEventListener('open-save-dialog', handler);
-    return () => window.removeEventListener('open-save-dialog', handler);
-  }, []);
-
-  // Listen for export trigger (e.g. from Cmd+E or app menu)
-  useEffect(() => {
-    const handler = () => setExportOpen(true);
-    window.addEventListener('command-export', handler);
-    return () => window.removeEventListener('command-export', handler);
-  }, []);
-
-  // Listen for about trigger from app menu
-  useEffect(() => {
-    const handler = () => setAboutOpen(true);
-    window.addEventListener('command-about', handler);
-    return () => window.removeEventListener('command-about', handler);
-  }, []);
-
-  // Listen for help trigger from app menu
-  useEffect(() => {
-    const handler = () => setHelpOpen(true);
-    window.addEventListener('command-help', handler);
-    return () => window.removeEventListener('command-help', handler);
-  }, []);
-
-  // Listen for changelog trigger
-  useEffect(() => {
-    const handler = () => setChangelogOpen(true);
-    window.addEventListener('command-changelog', handler);
-    return () => window.removeEventListener('command-changelog', handler);
-  }, []);
-
-  // Listen for settings trigger
-  useEffect(() => {
-    const handler = () => setSettingsOpen(true);
-    window.addEventListener('command-settings', handler);
-    return () => window.removeEventListener('command-settings', handler);
-  }, []);
 
   return (
     <>
@@ -856,7 +811,7 @@ export function Toolbar() {
           {/* Component Toolbar (when docked) */}
           {isToolbarDocked && (
             <>
-              <ComponentToolbar docked={true} />
+              <ComponentToolbar />
               {/* Separator */}
               <div className="h-6 w-px bg-border" />
             </>
@@ -942,7 +897,7 @@ export function Toolbar() {
 
           {/* Command Palette */}
           <button
-            onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+            onClick={() => setCommandPaletteOpen(true)}
             className="p-2 hover:bg-accent rounded-lg transition-colors"
             title="Command Palette (Ctrl+P)"
           >
@@ -953,7 +908,7 @@ export function Toolbar() {
         {/* Right - Actions */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setSaveDialogOpen(true)}
+            onClick={() => openDialog('save')}
             className="px-3 py-2 text-sm hover:bg-accent rounded-lg flex items-center gap-2 transition-colors"
             title="Save (Cmd+S)"
           >
@@ -964,26 +919,26 @@ export function Toolbar() {
       </div>
 
       {/* Export Modal — only rendered (and its chunk fetched) once actually opened */}
-      {exportOpen && (
+      {activeDialog === 'export' && (
         <Suspense fallback={null}>
-          <ExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} />
+          <ExportModal isOpen onClose={closeDialog} />
         </Suspense>
       )}
 
       {/* Save Dialog */}
-      {saveDialogOpen && <SaveDialog onClose={() => setSaveDialogOpen(false)} />}
+      {activeDialog === 'save' && <SaveDialog onClose={closeDialog} />}
 
       {/* About Modal */}
-      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {activeDialog === 'about' && <AboutModal onClose={closeDialog} />}
 
       {/* Help Modal */}
-      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
+      {activeDialog === 'help' && <HelpModal onClose={closeDialog} />}
 
       {/* Changelog Modal */}
-      {changelogOpen && <ChangelogModal onClose={() => setChangelogOpen(false)} />}
+      {activeDialog === 'changelog' && <ChangelogModal onClose={closeDialog} />}
 
       {/* Settings Modal */}
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      {activeDialog === 'settings' && <SettingsModal onClose={closeDialog} />}
     </>
   );
 }

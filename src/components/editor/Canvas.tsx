@@ -1,7 +1,13 @@
 // Main canvas for displaying the TUI design
 
 import { useEffect, useState, useRef, memo, type CSSProperties } from 'react';
-import { useCanvasStore, useComponentStore, useSelectionStore, useThemeStore } from '../../stores';
+import {
+  useCanvasStore,
+  useComponentStore,
+  useSelectionStore,
+  useThemeStore,
+  useUIStore,
+} from '../../stores';
 import { layoutEngine } from '../../utils/layout';
 import { dragStore } from '../../hooks/useDragAndDrop';
 import { COMPONENT_LIBRARY, canHaveChildren } from '../../constants/components';
@@ -83,21 +89,10 @@ export function Canvas() {
   const themeStore = useThemeStore();
 
   const { root } = componentStore;
+  const isToolbarDocked = useUIStore((s) => s.toolbarDocked);
 
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isToolbarDocked, setIsToolbarDocked] = useState(() =>
-    JSON.parse(localStorage.getItem('toolbar-docked') || 'false')
-  );
   const viewportRef = useRef<HTMLDivElement>(null);
-
-  // Listen for toolbar dock state changes
-  useEffect(() => {
-    const handleDockedChange = () => {
-      setIsToolbarDocked(JSON.parse(localStorage.getItem('toolbar-docked') || 'false'));
-    };
-    window.addEventListener('toolbar-docked-changed', handleDockedChange);
-    return () => window.removeEventListener('toolbar-docked-changed', handleDockedChange);
-  }, []);
 
   // Responsive canvas sizing
   useEffect(() => {
