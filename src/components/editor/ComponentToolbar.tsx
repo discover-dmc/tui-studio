@@ -1,119 +1,18 @@
 // Figma-style component toolbar with grouped components and hotkeys
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  LayoutGrid,
-  TextCursorInput,
-  Eye,
-  Table2,
-  Menu as MenuIcon,
-  ChevronDown,
-  ChevronRight,
-  Ellipsis,
-  GripVertical,
-  GripHorizontal,
-} from 'lucide-react';
-import { ComponentType } from '../../types';
+import { ChevronDown, ChevronRight, Ellipsis, GripVertical, GripHorizontal } from 'lucide-react';
+import type { ComponentType } from '../../types';
 import { dragStore } from '../../hooks/useDragAndDrop';
+import { useToolbarPosition } from '../../hooks/useToolbarPosition';
 import { useComponentStore, useSelectionStore, useUIStore } from '../../stores';
 import { COMPONENT_LIBRARY } from '../../constants/components';
+import {
+  COMPONENT_GROUPS,
+  POSITION_LABELS,
+  type ToolbarPosition,
+} from '../../constants/componentToolbar';
 import { getComponentIcon } from './componentIcons';
-
-type ToolbarPosition = 'TL' | 'T' | 'TR' | 'BL' | 'B' | 'BR' | 'custom';
-
-interface ToolbarCoordinates {
-  x: number;
-  y: number;
-}
-
-const POSITION_PRESETS: Record<Exclude<ToolbarPosition, 'custom'>, ToolbarCoordinates> = {
-  TL: { x: 32, y: 32 },
-  T: { x: 50, y: 32 }, // percentage for center
-  TR: { x: -32, y: 32 }, // negative for right offset
-  BL: { x: 32, y: -32 }, // negative for bottom offset
-  B: { x: 50, y: -32 },
-  BR: { x: -32, y: -32 },
-};
-
-const POSITION_LABELS: Record<Exclude<ToolbarPosition, 'custom'>, string> = {
-  TL: 'Top Left',
-  T: 'Top Center',
-  TR: 'Top Right',
-  BL: 'Bottom Left',
-  B: 'Bottom Center',
-  BR: 'Bottom Right',
-};
-
-interface ComponentGroup {
-  id: string;
-  name: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  items: ComponentItem[];
-}
-
-interface ComponentItem {
-  type: ComponentType;
-  label: string;
-  hotkey?: string;
-}
-
-const COMPONENT_GROUPS: ComponentGroup[] = [
-  {
-    id: 'layout',
-    name: 'Layout',
-    icon: LayoutGrid,
-    items: [
-      { type: 'Box', label: 'Box', hotkey: 'X' },
-      { type: 'Grid', label: 'Grid', hotkey: 'G' },
-      { type: 'Spacer', label: 'Spacer', hotkey: 'J' },
-      { type: 'Modal', label: 'Modal', hotkey: 'O' },
-    ],
-  },
-  {
-    id: 'input',
-    name: 'Input',
-    icon: TextCursorInput,
-    items: [
-      { type: 'Button', label: 'Button', hotkey: 'B' },
-      { type: 'TextInput', label: 'Text Input', hotkey: 'I' },
-      { type: 'Checkbox', label: 'Checkbox', hotkey: 'K' },
-      { type: 'Radio', label: 'Radio', hotkey: 'R' },
-      { type: 'Select', label: 'Select', hotkey: 'D' },
-      { type: 'Toggle', label: 'Toggle', hotkey: 'E' },
-    ],
-  },
-  {
-    id: 'display',
-    name: 'Display',
-    icon: Eye,
-    items: [
-      { type: 'Text', label: 'Text', hotkey: 'Y' },
-
-      { type: 'Spinner', label: 'Spinner', hotkey: 'N' },
-      { type: 'ProgressBar', label: 'Progress Bar', hotkey: 'P' },
-    ],
-  },
-  {
-    id: 'data',
-    name: 'Data',
-    icon: Table2,
-    items: [
-      { type: 'Table', label: 'Table', hotkey: 'A' },
-      { type: 'List', label: 'List', hotkey: 'U' },
-      { type: 'Tree', label: 'Tree', hotkey: 'Z' },
-    ],
-  },
-  {
-    id: 'navigation',
-    name: 'Navigation',
-    icon: MenuIcon,
-    items: [
-      { type: 'Menu', label: 'Menu', hotkey: 'M' },
-      { type: 'Tabs', label: 'Tabs', hotkey: 'T' },
-      { type: 'Breadcrumb', label: 'Breadcrumb', hotkey: 'C' },
-    ],
-  },
-];
 
 export function ComponentToolbar() {
   const componentStore = useComponentStore();
@@ -122,10 +21,7 @@ export function ComponentToolbar() {
   const setIsDockedState = useUIStore((s) => s.setToolbarDocked);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
-  const [position, setPosition] = useState<ToolbarPosition>('B');
   const [showSettings, setShowSettings] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [customPosition, setCustomPosition] = useState<ToolbarCoordinates | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<'below' | 'above'>('below');
   const [isVertical, setIsVertical] = useState(() => {
     const saved = localStorage.getItem('toolbar-vertical');
@@ -135,9 +31,16 @@ export function ComponentToolbar() {
   const settingsRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const dragStartPos = useRef<{ x: number; y: number; toolbarX: number; toolbarY: number } | null>(
-    null
-  );
+
+  const {
+    position,
+    setPosition,
+    customPosition,
+    setCustomPosition,
+    isDragging,
+    handleDragStart,
+    getPositionStyle,
+  } = useToolbarPosition(toolbarRef);
 
   useEffect(() => {
     localStorage.setItem('toolbar-vertical', JSON.stringify(isVertical));
@@ -254,66 +157,6 @@ export function ComponentToolbar() {
   }, [addComponentDirectly]);
 
   // Handle drag to reposition
-  const handleDragStart = (e: React.MouseEvent) => {
-    if (!toolbarRef.current) return;
-
-    const rect = toolbarRef.current.getBoundingClientRect();
-    dragStartPos.current = {
-      x: e.clientX,
-      y: e.clientY,
-      toolbarX: rect.left,
-      toolbarY: rect.top,
-    };
-    setIsDragging(true);
-  };
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleDragMove = (e: MouseEvent) => {
-      if (!dragStartPos.current || !toolbarRef.current) return;
-
-      const deltaX = e.clientX - dragStartPos.current.x;
-      const deltaY = e.clientY - dragStartPos.current.y;
-
-      let newX = dragStartPos.current.toolbarX + deltaX;
-      let newY = dragStartPos.current.toolbarY + deltaY;
-
-      // Get canvas bounds (parent container)
-      const parent = toolbarRef.current.parentElement;
-      if (parent) {
-        const parentRect = parent.getBoundingClientRect();
-        const toolbarRect = toolbarRef.current.getBoundingClientRect();
-
-        // Constrain to canvas boundaries with margin
-        const margin = 16;
-        const minX = margin;
-        const minY = margin;
-        const maxX = parentRect.width - toolbarRect.width - margin;
-        const maxY = parentRect.height - toolbarRect.height - margin;
-
-        newX = Math.max(minX, Math.min(maxX, newX));
-        newY = Math.max(minY, Math.min(maxY, newY));
-      }
-
-      setCustomPosition({ x: newX, y: newY });
-      setPosition('custom');
-    };
-
-    const handleDragEnd = () => {
-      setIsDragging(false);
-      dragStartPos.current = null;
-    };
-
-    document.addEventListener('mousemove', handleDragMove);
-    document.addEventListener('mouseup', handleDragEnd);
-
-    return () => {
-      document.removeEventListener('mousemove', handleDragMove);
-      document.removeEventListener('mouseup', handleDragEnd);
-    };
-  }, [isDragging]);
-
   const handleGroupClick = (groupId: string) => {
     if (openDropdown === groupId) {
       setOpenDropdown(null);
@@ -360,40 +203,6 @@ export function ComponentToolbar() {
     setPosition(pos);
     setCustomPosition(null);
     setShowSettings(false);
-  };
-
-  // Calculate toolbar position style
-  const getPositionStyle = (): React.CSSProperties => {
-    if (position === 'custom' && customPosition) {
-      return {
-        left: `${customPosition.x}px`,
-        top: `${customPosition.y}px`,
-      };
-    }
-
-    const preset = POSITION_PRESETS[position as Exclude<ToolbarPosition, 'custom'>];
-    if (!preset) return {};
-
-    const style: React.CSSProperties = {};
-
-    // Handle horizontal positioning
-    if (preset.x === 50) {
-      style.left = '50%';
-      style.transform = 'translateX(-50%)';
-    } else if (preset.x < 0) {
-      style.right = `${Math.abs(preset.x)}px`;
-    } else {
-      style.left = `${preset.x}px`;
-    }
-
-    // Handle vertical positioning
-    if (preset.y < 0) {
-      style.bottom = `${Math.abs(preset.y)}px`;
-    } else {
-      style.top = `${preset.y}px`;
-    }
-
-    return style;
   };
 
   // If docked, render simplified toolbar
