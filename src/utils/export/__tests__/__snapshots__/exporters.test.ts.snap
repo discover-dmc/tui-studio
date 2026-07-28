@@ -1,0 +1,957 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`exportToCode snapshots > blessed: empty screen 1`] = `
+"const blessed = require('blessed');
+
+const screen = blessed.screen({
+  smartCSR: true,
+  title: "Screen",
+});
+
+
+
+screen.key(['escape', 'q', 'C-c'], () => process.exit(0));
+
+screen.render();
+"
+`;
+
+exports[`exportToCode snapshots > blessed: kitchen-sink tree 1`] = `
+"const blessed = require('blessed');
+
+const screen = blessed.screen({
+  smartCSR: true,
+  title: "Screen",
+});
+
+const header = blessed.box({
+  parent: screen,
+  top: 0,
+  left: 0,
+  width: 1,
+  height: 5,
+  border: { type: 'line' },
+  label: " Header ",
+  style: { border: { fg: "#414868" } },
+});
+
+const title = blessed.box({
+  parent: header,
+  top: 0,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: "Say \\"hi\\" to <all>",
+  style: { fg: "#7dcfff", bold: true },
+});
+
+const nav = blessed.box({
+  parent: header,
+  top: 0,
+  left: 3,
+  width: 29,
+  height: 3,
+  content: "  Dashboard  {bold}[ Agent ]{/bold}",
+  tags: true,
+});
+
+const body = blessed.box({
+  parent: screen,
+  top: 5,
+  left: 0,
+  width: 1,
+  height: 5,
+});
+
+const files = blessed.list({
+  parent: body,
+  top: 0,
+  left: 0,
+  width: 1,
+  height: 1,
+  border: { type: 'line' },
+  label: " Files ",
+  mouse: true,
+  keys: true,
+  items: ["• main.rs  1", "• lib.rs  2"],
+  selected: 0,
+  style: { border: { fg: "red" }, selected: { inverse: true } },
+});
+
+const explorer = blessed.box({
+  parent: body,
+  top: 0,
+  left: 1,
+  width: 1,
+  height: 1,
+  content: "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested",
+});
+
+const stats = blessed.listtable({
+  parent: body,
+  top: 0,
+  left: 2,
+  width: 1,
+  height: 1,
+  rows: [["PID", "CPU"], ["123", "45%"], ["456", "2%"]],
+  align: 'left',
+  style: { header: { bold: true } },
+});
+
+const nav2 = blessed.list({
+  parent: body,
+  top: 0,
+  left: 3,
+  width: 1,
+  height: 1,
+  mouse: true,
+  keys: true,
+  items: ["⌂ Home  ^H"],
+  selected: 0,
+  style: { selected: { inverse: true } },
+});
+
+const controls = blessed.box({
+  parent: screen,
+  top: 10,
+  left: 0,
+  width: 1,
+  height: 5,
+});
+
+const oK = blessed.button({
+  parent: controls,
+  top: 0,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: " OK ",
+  mouse: true,
+  keys: true,
+  style: { bold: true, inverse: true },
+});
+
+const oK2 = blessed.button({
+  parent: controls,
+  top: 1,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: " Cancel ",
+  mouse: true,
+  keys: true,
+  style: { fg: "red" },
+});
+
+const search = blessed.textbox({
+  parent: controls,
+  top: 2,
+  left: 0,
+  width: 1,
+  height: 1,
+  mouse: true,
+  keys: true,
+  inputOnFocus: true,
+  value: "",
+});
+
+const opt = blessed.checkbox({
+  parent: controls,
+  top: 3,
+  left: 0,
+  width: 1,
+  height: 1,
+  mouse: true,
+  checked: true,
+  text: "Enable",
+});
+
+const r1 = blessed.radiobutton({
+  parent: controls,
+  top: 4,
+  left: 0,
+  width: 1,
+  height: 1,
+  mouse: true,
+  checked: true,
+  text: "Choice A",
+});
+
+const dark = blessed.box({
+  parent: controls,
+  top: 5,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: "[ON ] Dark mode",
+});
+
+const sel = blessed.box({
+  parent: controls,
+  top: 6,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: "Two ▼",
+});
+
+const load = blessed.box({
+  parent: controls,
+  top: 7,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: "[====] Working",
+});
+
+const prog = blessed.box({
+  parent: controls,
+  top: 8,
+  left: 0,
+  width: 24,
+  height: 1,
+  content: "[==========>      ] 67%",
+});
+
+const crumb = blessed.box({
+  parent: controls,
+  top: 9,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: "Home / Docs",
+});
+
+const empty = blessed.box({
+  parent: screen,
+  top: 15,
+  left: 0,
+  width: 1,
+  height: 5,
+  border: { type: 'line' },
+  label: " Empty ",
+});
+
+const confirm = blessed.box({
+  parent: screen,
+  top: 20,
+  left: 0,
+  width: 1,
+  height: 5,
+  border: { type: 'line' },
+  label: " Confirm ",
+  style: { border: { fg: "red" } },
+});
+
+const msg = blessed.box({
+  parent: confirm,
+  top: -1,
+  left: -1,
+  width: 1,
+  height: 1,
+  content: "Sure?",
+});
+
+screen.key(['escape', 'q', 'C-c'], () => process.exit(0));
+
+screen.render();
+"
+`;
+
+exports[`exportToCode snapshots > blessed: text-only tree 1`] = `
+"const blessed = require('blessed');
+
+const screen = blessed.screen({
+  smartCSR: true,
+  title: "Screen",
+});
+
+const title = blessed.box({
+  parent: screen,
+  top: 0,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: "Hello",
+});
+
+screen.key(['escape', 'q', 'C-c'], () => process.exit(0));
+
+screen.render();
+"
+`;
+
+exports[`exportToCode snapshots > bubbletea: empty screen 1`] = `
+"package main
+
+import (
+	"fmt"
+	"os"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+type model struct{}
+
+func (m model) Init() tea.Cmd {
+	return nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" || msg.String() == "q" {
+			return m, tea.Quit
+		}
+	}
+	return m, nil
+}
+
+func (m model) View() string {
+	return ""
+}
+
+func main() {
+	p := tea.NewProgram(model{}, tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+"
+`;
+
+exports[`exportToCode snapshots > bubbletea: kitchen-sink tree 1`] = `
+"// NOT exported (unsupported in a static view):
+//   - Modal "Confirm" — no overlay support; build with tea.Model state + lipgloss.Place
+
+package main
+
+import (
+	"fmt"
+	"os"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+type model struct{}
+
+func (m model) Init() tea.Cmd {
+	return nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" || msg.String() == "q" {
+			return m, tea.Quit
+		}
+	}
+	return m, nil
+}
+
+func (m model) View() string {
+	nav := lipgloss.JoinHorizontal(lipgloss.Top, " Dashboard ", lipgloss.NewStyle().Bold(true).Underline(true).Render(" Agent "))
+	header := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#414868")).Padding(1).Render(lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Foreground(lipgloss.Color("#7dcfff")).Bold(true).Render("Say \\"hi\\" to <all>"), "  ", nav))
+	body := lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("1")).Render("▶ • main.rs  1\\n  • lib.rs  2"), "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested", "PID            │ CPU           \\n───────────────┼───────────────\\n123            │ 45%           \\n456            │ 2%            ", "  ⌂ Home  ^H")
+	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", "[✓] Enable"), lipgloss.JoinHorizontal(lipgloss.Top, "(●) Choice A", "[ON ] Dark mode"), lipgloss.JoinHorizontal(lipgloss.Top, "Two ▼", "[====] Working"), lipgloss.JoinHorizontal(lipgloss.Top, "[==========>      ] 67%", "Home / Docs"), "")
+	empty := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render("")
+	screen := lipgloss.JoinVertical(lipgloss.Left, header, body, controls, empty)
+	return screen
+}
+
+func main() {
+	p := tea.NewProgram(model{}, tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+"
+`;
+
+exports[`exportToCode snapshots > bubbletea: text-only tree 1`] = `
+"package main
+
+import (
+	"fmt"
+	"os"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+type model struct{}
+
+func (m model) Init() tea.Cmd {
+	return nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" || msg.String() == "q" {
+			return m, tea.Quit
+		}
+	}
+	return m, nil
+}
+
+func (m model) View() string {
+	screen := "Hello"
+	return screen
+}
+
+func main() {
+	p := tea.NewProgram(model{}, tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+"
+`;
+
+exports[`exportToCode snapshots > ink: empty screen 1`] = `
+"import React from 'react';
+import { render, Box, Text } from 'ink';
+
+function App() {
+  return (
+    <Box />
+  );
+}
+
+render(<App />);
+"
+`;
+
+exports[`exportToCode snapshots > ink: kitchen-sink tree 1`] = `
+"import React from 'react';
+import { render, Box, Text } from 'ink';
+import TextInput from 'ink-text-input';
+import SelectInput from 'ink-select-input';
+import Spinner from 'ink-spinner';
+
+function App() {
+  return (
+    <Box>
+      <Box flexDirection="row" gap={2} padding={1} borderStyle="single" borderColor="#414868">
+        <Text color="#7dcfff" bold>Say "hi" to &lt;all&gt;</Text>
+        <Box flexDirection="row">
+          <Text key={"Dashboard"} underline> Dashboard </Text>
+          <Text key={"Agent"} underline> Agent </Text>
+        </Box>
+      </Box>
+      <Box flexDirection="row">
+        <Box borderStyle="single" borderColor="red" flexDirection="column">
+          <Text key={"main.rs"}>• main.rs</Text>
+          <Text key={"lib.rs"}>• lib.rs</Text>
+        </Box>
+        <Box flexDirection="column">
+          <Text key={"Root"}>{"Root"}</Text>
+          <Text key={"  ├─ Child 1"}>{"  ├─ Child 1"}</Text>
+          <Text key={"  ├─ Child 2"}>{"  ├─ Child 2"}</Text>
+          <Text key={"    ├─ Nested"}>{"    ├─ Nested"}</Text>
+        </Box>
+        <Box flexDirection="column">
+          <Text key={0}>{"PID            │ CPU           "}</Text>
+          <Text key={1}>{"───────────────┼───────────────"}</Text>
+          <Text key={2}>{"123            │ 45%           "}</Text>
+          <Text key={3}>{"456            │ 2%            "}</Text>
+        </Box>
+        <Box flexDirection="column" gap={1}>
+          <Text key={"Home"}>⌂ Home</Text>
+        </Box>
+      </Box>
+      <Box>
+        <Text bold inverse>  OK  </Text>
+        <Text color="red" bold inverse>  Cancel  </Text>
+        <TextInput value={""} placeholder={"type \\"here\\"..."} onChange={() => {}} />
+        <Text>{/* checked={true} */} ✓ Enable</Text>
+        <Text>{/* selected={true} */} ◉ Choice A</Text>
+        <Text>{/* on={true} */} {true ? '[ON ]' : '[OFF]'} Dark mode</Text>
+        <SelectInput items={[{ label: "One", value: "one" }, { label: "Two", value: "two" }]} onSelect={() => {}} />
+        <Text><Spinner type="bouncingBar" /> Working</Text>
+        <Text>
+          {"["}{'='.repeat(Math.round(67 / 100 * 24))}{' '.repeat(24 - Math.round(67 / 100 * 24))}{"]"} 67%
+        </Text>
+        <Text>{"Home  /  Docs"}</Text>
+        <Box flexGrow={1} />
+      </Box>
+      <Box borderStyle="single" />
+      <Box borderStyle="double" borderColor="red">
+        <Text>Sure?</Text>
+      </Box>
+    </Box>
+  );
+}
+
+render(<App />);
+
+// Install extra packages:
+// npm install ink-text-input ink-select-input ink-spinner
+"
+`;
+
+exports[`exportToCode snapshots > ink: text-only tree 1`] = `
+"import React from 'react';
+import { render, Box, Text } from 'ink';
+
+function App() {
+  return (
+    <Box>
+      <Text>Hello</Text>
+    </Box>
+  );
+}
+
+render(<App />);
+"
+`;
+
+exports[`exportToCode snapshots > opentui: empty screen 1`] = `
+"import { createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
+
+function App() {
+  return (
+    <box />
+  );
+}
+
+const renderer = await createCliRenderer();
+createRoot(renderer).render(<App />);
+"
+`;
+
+exports[`exportToCode snapshots > opentui: kitchen-sink tree 1`] = `
+"import { createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
+
+function App() {
+  return (
+    <box style={{ flexDirection: "column" }}>
+      <box border borderStyle="rounded" title={" Header "} style={{ flexDirection: "row", gap: 2, padding: 1, borderColor: "#414868" }}>
+        <text fg="#7dcfff"><strong>Say "hi" to &lt;all&gt;</strong></text>
+        <tab-select options={[{ name: "Dashboard", description: "", value: "dashboard" }, { name: "Agent", description: "", value: "agent" }]} />
+      </box>
+      <box style={{ flexDirection: "row", flexGrow: 1 }}>
+        <box border title={" Files "} style={{ borderColor: "red" }}>
+          <text>▶ • main.rs  1</text>
+          <text>  • lib.rs  2</text>
+        </box>
+        <box>
+          <text>Root</text>
+          <text>  ├─ Child 1</text>
+          <text>  ├─ Child 2</text>
+          <text>    ├─ Nested</text>
+        </box>
+        <box>
+          <text>PID            │ CPU           </text>
+          <text>───────────────┼───────────────</text>
+          <text>123            │ 45%           </text>
+          <text>456            │ 2%            </text>
+        </box>
+        <box>
+          <text>  ⌂ Home  ^H</text>
+        </box>
+      </box>
+      <box style={{ flexDirection: "column" }}>
+        <box style={{ flexDirection: "row" }}>
+          <box border borderStyle="single">
+            <text><strong> OK </strong></text>
+          </box>
+          <box border borderStyle="single">
+            <text fg="red"><strong> Cancel </strong></text>
+          </box>
+        </box>
+        <box style={{ flexDirection: "row" }}>
+          <input placeholder={"type \\"here\\"..."} onInput={() => {}} />
+          <text>[✓] Enable</text>
+        </box>
+        <box style={{ flexDirection: "row" }}>
+          <text>(●) Choice A</text>
+          <text>[ON ] Dark mode</text>
+        </box>
+        <box style={{ flexDirection: "row" }}>
+          <select options={[{ name: "One", description: "", value: "one" }, { name: "Two", description: "", value: "two" }]} />
+          <text>[====] Working</text>
+        </box>
+        <box style={{ flexDirection: "row" }}>
+          <text>[==========&gt;      ] 67%</text>
+          <text>Home / Docs</text>
+        </box>
+        <box style={{ flexDirection: "row" }}>
+          <box style={{ flexGrow: 1 }} />
+        </box>
+      </box>
+      <box border title={" Empty "} />
+      {/* Modal: render conditionally on top */}
+      <box border borderStyle="double" title={" Confirm "} style={{ borderColor: "red" }}>
+        <text>Sure?</text>
+      </box>
+    </box>
+  );
+}
+
+const renderer = await createCliRenderer();
+createRoot(renderer).render(<App />);
+"
+`;
+
+exports[`exportToCode snapshots > opentui: text-only tree 1`] = `
+"import { createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
+
+function App() {
+  return (
+    <box>
+      <text>Hello</text>
+    </box>
+  );
+}
+
+const renderer = await createCliRenderer();
+createRoot(renderer).render(<App />);
+"
+`;
+
+exports[`exportToCode snapshots > ratatui: empty screen 1`] = `
+"// Requires: ratatui = "0.28"
+// Add to Cargo.toml: [dependencies] ratatui = { version = "0.28", features = ["crossterm"] }
+use std::io;
+use ratatui::{
+    crossterm::event::{self, Event, KeyCode, KeyEventKind},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    widgets::{Block, BorderType, Borders, Paragraph},
+    Frame,
+};
+
+fn main() -> io::Result<()> {
+    let mut terminal = ratatui::init();
+    loop {
+        terminal.draw(ui)?;
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => break,
+                    _ => {}
+                }
+            }
+        }
+    }
+    ratatui::restore();
+    Ok(())
+}
+
+fn ui(frame: &mut Frame) {
+    let area = frame.area();
+
+}
+"
+`;
+
+exports[`exportToCode snapshots > ratatui: kitchen-sink tree 1`] = `
+"// Requires: ratatui = "0.28"
+// Add to Cargo.toml: [dependencies] ratatui = { version = "0.28", features = ["crossterm"] }
+use std::io;
+use ratatui::{
+    crossterm::event::{self, Event, KeyCode, KeyEventKind},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    widgets::{Block, BorderType, Borders, Gauge, List, ListItem, Paragraph, Row, Table, Tabs},
+    Frame,
+};
+
+fn main() -> io::Result<()> {
+    let mut terminal = ratatui::init();
+    loop {
+        terminal.draw(ui)?;
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => break,
+                    _ => {}
+                }
+            }
+        }
+    }
+    ratatui::restore();
+    Ok(())
+}
+
+fn ui(frame: &mut Frame) {
+    let area = frame.area();
+    let chunks_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
+        .split(area);
+        let block_chunks_area_0_ = Block::new().borders(Borders::ALL).border_type(BorderType::Rounded).title("Header").border_style(Style::default().fg(Color::Rgb(65, 72, 104)));
+        let inner_chunks_area_0_ = block_chunks_area_0_.inner(chunks_area[0]);
+        frame.render_widget(block_chunks_area_0_, chunks_area[0]);
+        let chunks_inner_chunks_area_0_ = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(1), Constraint::Min(1)])
+            .split(inner_chunks_area_0_);
+            frame.render_widget(Paragraph::new("Say \\"hi\\" to <all>").style(Style::default().fg(Color::Rgb(125, 207, 255)).add_modifier(Modifier::BOLD)), chunks_inner_chunks_area_0_[0]);
+            frame.render_widget(Tabs::new(vec!["Dashboard", "Agent"]).select(1).style(Style::default()).highlight_style(Style::default().add_modifier(Modifier::BOLD)), chunks_inner_chunks_area_0_[1]);
+        let chunks_chunks_area_1_ = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
+            .split(chunks_area[1]);
+            frame.render_widget(List::new(vec![ListItem::new("▶ • main.rs  1"), ListItem::new("  • lib.rs  2")]).style(Style::default()).block(Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("Files").border_style(Style::default().fg(Color::Red))), chunks_chunks_area_1_[0]);
+            frame.render_widget(List::new(vec![ListItem::new("▾ Root"), ListItem::new("  ├─ Child 1"), ListItem::new("  ├─ ▸ Child 2")]).style(Style::default()), chunks_chunks_area_1_[1]);
+            frame.render_widget(Table::new(vec![Row::new(vec!["123", "45%"]), Row::new(vec!["456", "2%"])], [Constraint::Fill(1), Constraint::Fill(1)]).header(Row::new(vec!["PID", "CPU"]).style(Style::default().add_modifier(Modifier::BOLD))).style(Style::default()), chunks_chunks_area_1_[2]);
+            frame.render_widget(List::new(vec![ListItem::new("▶ ⌂ Home  ^H")]).style(Style::default()), chunks_chunks_area_1_[3]);
+        let grid_rows_chunks_area_2_ = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
+            .split(chunks_area[2]);
+        let grid_cols_chunks_area_2__0 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(grid_rows_chunks_area_2_[0]);
+            frame.render_widget(Paragraph::new("OK").alignment(Alignment::Center).style(Style::default()).block(Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("OK")), grid_cols_chunks_area_2__0[0]);
+            frame.render_widget(Paragraph::new("Cancel").alignment(Alignment::Center).style(Style::default().fg(Color::Red)).block(Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("OK")), grid_cols_chunks_area_2__0[1]);
+        let grid_cols_chunks_area_2__1 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(grid_rows_chunks_area_2_[1]);
+            frame.render_widget(Paragraph::new("type \\"here\\"..._").style(Style::default()), grid_cols_chunks_area_2__1[0]);
+            frame.render_widget(Paragraph::new("[✓] Enable").style(Style::default()), grid_cols_chunks_area_2__1[1]);
+        let grid_cols_chunks_area_2__2 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(grid_rows_chunks_area_2_[2]);
+            frame.render_widget(Paragraph::new("(●) Choice A").style(Style::default()), grid_cols_chunks_area_2__2[0]);
+            frame.render_widget(Paragraph::new("[OFF] Dark mode").style(Style::default()), grid_cols_chunks_area_2__2[1]);
+        let grid_cols_chunks_area_2__3 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(grid_rows_chunks_area_2_[3]);
+            frame.render_widget(Paragraph::new("Two ▼").style(Style::default()), grid_cols_chunks_area_2__3[0]);
+            frame.render_widget(Paragraph::new("[====] Working").style(Style::default()), grid_cols_chunks_area_2__3[1]);
+        let grid_cols_chunks_area_2__4 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(grid_rows_chunks_area_2_[4]);
+            frame.render_widget(Gauge::default().ratio(0.670).style(Style::default()), grid_cols_chunks_area_2__4[0]);
+            frame.render_widget(Paragraph::new("Home / Docs").style(Style::default()), grid_cols_chunks_area_2__4[1]);
+        let grid_cols_chunks_area_2__5 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(grid_rows_chunks_area_2_[5]);
+        let block_chunks_area_3_ = Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("Empty");
+        let inner_chunks_area_3_ = block_chunks_area_3_.inner(chunks_area[3]);
+        frame.render_widget(block_chunks_area_3_, chunks_area[3]);
+        let modal_chunks_area_4_ = Rect::new(
+            chunks_area[4].x.saturating_add((chunks_area[4].width.saturating_sub(40)) / 2),
+            chunks_area[4].y.saturating_add((chunks_area[4].height.saturating_sub(12)) / 2),
+            40,
+            12,
+        );
+        let block_modal_chunks_area_4_ = Block::new().borders(Borders::ALL).border_type(BorderType::Double).title("Confirm").border_style(Style::default().fg(Color::Red));
+        let inner_modal_chunks_area_4_ = block_modal_chunks_area_4_.inner(modal_chunks_area_4_);
+        frame.render_widget(block_modal_chunks_area_4_, modal_chunks_area_4_);
+        let chunks_inner_modal_chunks_area_4_ = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(1)])
+            .split(inner_modal_chunks_area_4_);
+            frame.render_widget(Paragraph::new("Sure?").style(Style::default()), chunks_inner_modal_chunks_area_4_[0]);
+
+}
+"
+`;
+
+exports[`exportToCode snapshots > ratatui: text-only tree 1`] = `
+"// Requires: ratatui = "0.28"
+// Add to Cargo.toml: [dependencies] ratatui = { version = "0.28", features = ["crossterm"] }
+use std::io;
+use ratatui::{
+    crossterm::event::{self, Event, KeyCode, KeyEventKind},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    widgets::{Block, BorderType, Borders, Paragraph},
+    Frame,
+};
+
+fn main() -> io::Result<()> {
+    let mut terminal = ratatui::init();
+    loop {
+        terminal.draw(ui)?;
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => break,
+                    _ => {}
+                }
+            }
+        }
+    }
+    ratatui::restore();
+    Ok(())
+}
+
+fn ui(frame: &mut Frame) {
+    let area = frame.area();
+    let chunks_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(1)])
+        .split(area);
+        frame.render_widget(Paragraph::new("Hello").style(Style::default()), chunks_area[0]);
+
+}
+"
+`;
+
+exports[`exportToCode snapshots > textual: empty screen 1`] = `
+"from textual.app import App, ComposeResult
+from textual.widgets import Static
+
+
+class MyApp(App):
+    def compose(self) -> ComposeResult:
+        yield Static("")
+
+
+if __name__ == "__main__":
+    MyApp().run()
+"
+`;
+
+exports[`exportToCode snapshots > textual: kitchen-sink tree 1`] = `
+"from textual.app import App, ComposeResult
+from textual.containers import Grid, Horizontal, Vertical
+from textual.screen import ModalScreen
+from textual.widgets import Button, Checkbox, DataTable, Input, Label, ListItem, ListView, LoadingIndicator, OptionList, ProgressBar, RadioButton, Select, Static, Switch, Tabs, Tree
+
+
+class ConfirmModal(ModalScreen):
+    def compose(self) -> ComposeResult:
+        with Vertical(id="confirm"):
+            yield Static("Sure?")
+
+
+class MyApp(App):
+    CSS = """
+    #header {
+        border: round #414868;
+        padding: 1;
+    }
+
+    #header > * {
+        margin-right: 2;
+    }
+
+    #title {
+        color: #7dcfff;
+        text-style: bold;
+    }
+
+    #body {
+        width: 1fr;
+    }
+
+    #files {
+        border: solid red;
+    }
+
+    #controls {
+        grid-size: 2 6;
+    }
+
+    #ok {
+        color: red;
+    }
+
+    #prog {
+        width: 24;
+    }
+
+    #empty {
+        border: solid white;
+    }
+
+    #confirm {
+        width: auto;
+        height: auto;
+        border: double red;
+    }
+
+    ConfirmModal {
+        align: center middle;
+    }
+
+    .spacer {
+        width: 1fr;
+        height: 1fr;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Horizontal(id="header"):
+            yield Static("Say \\"hi\\" to <all>", id="title")
+            yield Tabs("Dashboard", "Agent", id="nav")
+        with Horizontal(id="body"):
+            yield ListView(ListItem(Label("• main.rs")), ListItem(Label("• lib.rs")), initial_index=0, id="files")
+            yield Tree("Explorer", id="explorer")
+            yield DataTable(id="stats")
+            yield OptionList("⌂ Home")
+        with Grid(id="controls"):
+            yield Button("OK")
+            yield Button("Cancel", id="ok")
+            yield Input(placeholder="type \\"here\\"...")
+            yield Checkbox("Enable", value=True)
+            yield RadioButton("Choice A", value=True)
+            with Horizontal():
+                yield Static("Dark mode")
+                yield Switch(value=True)
+            yield Select([("One", 0), ("Two", 1)], allow_blank=False, value=1)
+            yield LoadingIndicator()
+            yield ProgressBar(total=100, show_eta=False, id="prog")
+            yield Static("Home / Docs")
+            yield Static("", classes="spacer")
+        with Vertical(id="empty"):
+            pass
+
+    def on_mount(self) -> None:
+        self.query_one("#nav", Tabs).active = "tab-2"
+        tree_explorer = self.query_one("#explorer", Tree)
+        tree_explorer.root.expand()
+        node_explorer_0_0 = tree_explorer.root.add("Root", expand=True)
+        node_explorer_0_0.add_leaf("Child 1")
+        node_explorer_1_1 = node_explorer_0_0.add("Child 2", expand=False)
+        node_explorer_1_1.add_leaf("Nested")
+        table_stats = self.query_one("#stats", DataTable)
+        table_stats.add_columns("PID", "CPU")
+        table_stats.add_rows([("123", "45%"), ("456", "2%")])
+        self.query_one("#prog", ProgressBar).update(total=100, progress=67)
+        self.push_screen(ConfirmModal())
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        pass
+
+
+if __name__ == "__main__":
+    MyApp().run()
+"
+`;
+
+exports[`exportToCode snapshots > textual: text-only tree 1`] = `
+"from textual.app import App, ComposeResult
+from textual.widgets import Static
+
+
+class MyApp(App):
+    def compose(self) -> ComposeResult:
+        yield Static("Hello")
+
+
+if __name__ == "__main__":
+    MyApp().run()
+"
+`;
