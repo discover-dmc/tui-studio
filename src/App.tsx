@@ -7,8 +7,9 @@ import { LeftSidebar } from './components/editor/LeftSidebar';
 import { Canvas } from './components/editor/Canvas';
 import { PropertyPanel } from './components/properties/PropertyPanel';
 import { CommandPalette } from './components/editor/CommandPalette';
-import { useComponentStore, useSelectionStore } from './stores';
+import { useComponentStore, useSelectionStore, useThemeStore } from './stores';
 import { openTuiFile } from './utils/fileOps';
+import { initAutosave, loadAutosave } from './utils/autosave';
 import { COMPONENT_LIBRARY } from './constants/components';
 import type { ComponentType } from './types';
 
@@ -53,9 +54,18 @@ function App() {
     document.documentElement.classList.add('dark');
   }, []);
 
-  // Initialize default Screen root on first load
+  // Debounce-persist the tree to localStorage so a refresh doesn't lose work
+  useEffect(() => initAutosave(), []);
+
+  // Restore the last autosave, or initialize a default Screen root, on first load
   useEffect(() => {
     if (!componentStore.root) {
+      const saved = loadAutosave();
+      if (saved) {
+        componentStore.setRoot(saved.tree);
+        if (saved.theme) useThemeStore.getState().setTheme(saved.theme);
+        return;
+      }
       componentStore.setRoot({
         id: 'root',
         type: 'Screen',
