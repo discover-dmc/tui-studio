@@ -19,14 +19,13 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   usage-gated imports, Grid layout, Modal centering (saturating u16 math), Spacer/auto
   constraints, 3-digit hex, `Block::new()`, Cargo.toml hint. Also fixed the lint error.
   Conflicts vs #19 resolved: shared `escRust` kept over local copy, README keeps no-Tview line.
-- [ ] **Rebuild Textual exporter** (task chip `task_5f523ab8` exists):
-  - [ ] Fix indentation (compose body at 8 spaces)
-  - [x] Escape all interpolated strings (escape.ts wired by PR #19, 2026-07-28)
-  - [ ] Map containers → `Vertical`/`Horizontal`, preserve tree structure
-  - [ ] Full widget coverage: Box, List (`ListView`), Table (`DataTable`), Tree, Tabs
-    (`TabbedContent`), ProgressBar, Checkbox, RadioButton, Switch, Select, Label
-  - [ ] Style translation → inline `styles` or generated TCSS (implement the dead
-    `includeCSS` setting for real)
+- [x] **Rebuild Textual exporter** (2026-07-28, commit 99b476c): new
+  `exporters/textual.ts` module — containers → Vertical/Horizontal/Grid with-blocks,
+  all 20 component types mapped (ListView, DataTable, Tree, Tabs, ProgressBar, Checkbox,
+  RadioButton, Switch, Select, OptionList, LoadingIndicator…), styles → TCSS in `App.CSS`,
+  data widgets populated in `on_mount`. Verified: py_compile + live `run_test()` mount
+  under real textual. Remaining niceties: Tabs `activeTab` not applied, `gap` untranslated,
+  Modal renders as container (ModalScreen would be more idiomatic).
 - [ ] **Rebuild BubbleTea exporter**: `generateBubbleTeaView` never recurses — whole tree
   becomes one string. Emit lipgloss styles + joined layout (`lipgloss.JoinVertical/
   Horizontal`), per-component view funcs, escaped strings.
