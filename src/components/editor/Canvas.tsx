@@ -10,6 +10,7 @@ import {
 } from '../../stores';
 import { layoutEngine } from '../../utils/layout';
 import { dragStore } from '../../hooks/useDragAndDrop';
+import { useCanvasKeyboardNudge } from '../../hooks/useCanvasKeyboard';
 import { COMPONENT_LIBRARY, canHaveChildren } from '../../constants/components';
 import { SPINNER_PRESETS, renderBar } from '../../constants/assets';
 import { THEMES } from '../../stores/themeStore';
@@ -129,54 +130,7 @@ export function Canvas() {
   }, [canvasStore, canvasStore.sizeMode, canvasStore.zoom, root]);
 
   // Keyboard navigation for selected components
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const selectedIds = Array.from(selectionStore.selectedIds);
-      if (selectedIds.length === 0) return;
-
-      // Only handle arrow keys
-      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
-
-      // Don't interfere with input fields
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      e.preventDefault();
-
-      // Shift key = move 5 units, otherwise 1 unit
-      const step = e.shiftKey ? 5 : 1;
-
-      selectedIds.forEach((id) => {
-        const component = componentStore.getComponent(id);
-        if (!component || component.locked) return;
-
-        const currentX = component.layout.x || 0;
-        const currentY = component.layout.y || 0;
-
-        let newX = currentX;
-        let newY = currentY;
-
-        switch (e.key) {
-          case 'ArrowUp':
-            newY = Math.max(0, currentY - step);
-            break;
-          case 'ArrowDown':
-            newY = currentY + step;
-            break;
-          case 'ArrowLeft':
-            newX = Math.max(0, currentX - step);
-            break;
-          case 'ArrowRight':
-            newX = currentX + step;
-            break;
-        }
-
-        componentStore.updateLayout(id, { x: newX, y: newY });
-      });
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [componentStore, selectionStore]);
+  useCanvasKeyboardNudge();
 
   const cellWidth = 8; // pixels per character
   const cellHeight = 16; // pixels per line
