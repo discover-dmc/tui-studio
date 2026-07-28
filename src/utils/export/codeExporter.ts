@@ -2,7 +2,8 @@
 
 import type { ComponentNode } from '../../types';
 import { exportToRatatui } from './exporters/ratatui';
-import { escJsx, escGo, escPy } from './escape';
+import { exportToTextual } from './exporters/textual';
+import { escJsx, escGo } from './escape';
 
 /**
  * Export design to framework-specific code
@@ -428,37 +429,6 @@ function generateBlessedComponents(node: ComponentNode, indent: number): string 
     result += generateBlessedComponents(child, indent);
   }
   return result;
-}
-
-// ── Textual ───────────────────────────────────────────────────────────────────
-
-function exportToTextual(node: ComponentNode): string {
-  return `from textual.app import App, ComposeResult
-from textual.widgets import Static, Button, Input
-
-class MyApp(App):
-    def compose(self) -> ComposeResult:
-${generateTextualComponents(node, 2)}
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        pass
-
-if __name__ == "__main__":
-    app = MyApp()
-    app.run()
-`;
-}
-
-function generateTextualComponents(node: ComponentNode, indent: number): string {
-  const spaces = '  '.repeat(indent);
-  if (node.type === 'Text') return `${spaces}yield Static("${escPy(String(node.props.content || 'Text'))}")\n`;
-  if (node.type === 'Button') return `${spaces}yield Button("${escPy(String(node.props.label || 'Button'))}")\n`;
-  if (node.type === 'TextInput')
-    return `${spaces}yield Input(placeholder="${escPy(String(node.props.placeholder || ''))}")\n`;
-
-  let result = '';
-  for (const child of node.children) result += generateTextualComponents(child, indent);
-  return result || `${spaces}yield Static("${escPy(node.type)}")\n`;
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
