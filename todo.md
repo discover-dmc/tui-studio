@@ -48,9 +48,11 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   unsupported features surface via the warnings banner instead.
 - [x] **Fix lint failure**: resolved by PR #20's eslint-disable on `RatatuiExportSettings`
   (2026-07-28). `npm run lint` is clean.
-- [ ] **Validate `.tui` file on open**: `openTuiFile` feeds parsed JSON straight into
-  `setRoot` — malformed tree shape crashes the editor. Wire up the currently-unused
-  [validation.ts](src/utils/validation.ts) (or a small shape check) at this boundary.
+- [x] **Validate `.tui` file on open** (2026-07-28, commit 175cb27): added
+  `isValidComponentTree` to [validation.ts](src/utils/validation.ts) — recursively checks
+  required fields and validates `node.type` against real `COMPONENT_LIBRARY` keys.
+  `openTuiFile` now rejects malformed trees with the existing alert instead of crashing.
+  Verified against good/malformed fixtures (bad type, non-array children, malformed child).
 
 ## P1 — Export parity & quality
 
@@ -64,9 +66,12 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 - [ ] **Color-tier degradation in code exports**: exporters emit truecolor hex only. Offer
   ANSI-16 named-color mapping (the tui-design skill's tier model is the spec; ratatui's
   `ratatuiColor` named-color table is a starting point).
-- [ ] **Export snapshot tests**: no test runner exists. Add vitest + snapshot per
-  (framework × fixture tree). The esbuild-bundle harness from the audit proves this is easy.
-  Optional gold standard: compile-check generated output in CI (rustc/go/python/node).
+- [x] **Export snapshot tests** (2026-07-28, commit e36c799): vitest added (native Vite 7
+  compat). Snapshot coverage of all 6 code formats × 3 fixtures (kitchen-sink, empty
+  screen, text-only) in `src/utils/export/__tests__/`. Plus explicit regression assertions
+  locking in this session's fixes (Blessed var collision, Textual indentation, OpenTUI
+  content/intrinsics, Ink borderColor, Ratatui import gating, BubbleTea warnings).
+  Compile-checking generated output in CI (rustc/go/python) is still open — see below.
 - [ ] **Round-trip fidelity pass**: canvas preview vs generated code for gap audit per
   framework (padding, gap, justify/align, borders, gradients).
 
@@ -129,4 +134,8 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   fork; closing them is upstream's call), #16 (cherry-pick or redo). #19/#20 adopted 2026-07-28.
 - [ ] Decide contribution posture: PR fixes back to upstream (inactive ~2 months) vs
   diverge on fork. Default: land on fork, offer upstream PRs opportunistically.
-- [ ] CI on fork: GitHub Action for `build + lint` (+ vitest once P1 tests exist)
+- [x] CI on fork (2026-07-28, commit e36c799): `.github/workflows/ci.yml` runs
+  lint + test + build on push/PR, Node 22. First run green: https://github.com/discover-dmc/tui-studio/actions/runs/30374434316
+- [ ] CI follow-up: compile-check generated exporter output for real (rustc/go toolchain/
+  textual+python/blessed+node in CI), not just snapshot — today's manual verification
+  (gofmt, go test, py_compile+run_test, pty blessed run) isn't yet automated in CI.
