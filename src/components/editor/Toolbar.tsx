@@ -1,6 +1,6 @@
 // Top toolbar with controls
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
   Undo2,
   Redo2,
@@ -19,7 +19,11 @@ import {
   Moon,
 } from 'lucide-react';
 import { useComponentStore, useCanvasStore, useThemeStore } from '../../stores';
-import { ExportModal } from '../export/ExportModal';
+// Lazy: the export panel pulls in all seven code exporters, which most
+// sessions never open. Keep them out of the main bundle until they're needed.
+const ExportModal = lazy(() =>
+  import('../export/ExportModal').then((m) => ({ default: m.ExportModal }))
+);
 import { THEME_NAMES, THEMES } from '../../stores/themeStore';
 import { ComponentToolbar } from './ComponentToolbar';
 import { buildTuiData, saveTuiData, openTuiFile } from '../../utils/fileOps';
@@ -959,8 +963,12 @@ export function Toolbar() {
         </div>
       </div>
 
-      {/* Export Modal */}
-      <ExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} />
+      {/* Export Modal — only rendered (and its chunk fetched) once actually opened */}
+      {exportOpen && (
+        <Suspense fallback={null}>
+          <ExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Save Dialog */}
       {saveDialogOpen && <SaveDialog onClose={() => setSaveDialogOpen(false)} />}

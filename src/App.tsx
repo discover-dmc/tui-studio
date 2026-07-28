@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, lazy, Suspense } from 'react';
 import { cloneNode } from './utils/treeUtils';
 import './App.css';
 import { EditorLayout } from './components/editor/EditorLayout';
@@ -6,7 +6,10 @@ import { Toolbar } from './components/editor/Toolbar';
 import { LeftSidebar } from './components/editor/LeftSidebar';
 import { Canvas } from './components/editor/Canvas';
 import { PropertyPanel } from './components/properties/PropertyPanel';
-import { CommandPalette } from './components/editor/CommandPalette';
+// Lazy: most sessions never open the command palette on first render.
+const CommandPalette = lazy(() =>
+  import('./components/editor/CommandPalette').then((m) => ({ default: m.CommandPalette }))
+);
 import { useComponentStore, useSelectionStore, useThemeStore } from './stores';
 import { openTuiFile } from './utils/fileOps';
 import { initAutosave, loadAutosave } from './utils/autosave';
@@ -318,11 +321,15 @@ function App() {
         canvas={<Canvas />}
         rightSidebar={<PropertyPanel />}
       />
-      <CommandPalette
-        isOpen={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-        onAddComponent={handleAddComponent}
-      />
+      {commandPaletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            isOpen={commandPaletteOpen}
+            onClose={() => setCommandPaletteOpen(false)}
+            onAddComponent={handleAddComponent}
+          />
+        </Suspense>
+      )}
     </>
   );
 }
