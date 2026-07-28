@@ -3,9 +3,24 @@
 import type { ComponentNode } from '../../types';
 import { exportToRatatui } from './exporters/ratatui';
 import { exportToTextual } from './exporters/textual';
-import { exportToBubbleTea } from './exporters/bubbletea';
+import { exportToBubbleTea, getBubbleTeaWarnings } from './exporters/bubbletea';
+import { exportToBlessed } from './exporters/blessed';
+import { exportToOpenTUI, getOpenTuiWarnings } from './exporters/opentui';
 import { escJsx } from './escape';
 import { PROGRESSBAR_STYLES } from '../../constants/assets';
+
+/** Design features the selected framework's exporter cannot express. */
+export function getExportWarnings(root: ComponentNode | null, format: string): string[] {
+  if (!root) return [];
+  switch (format) {
+    case 'bubbletea':
+      return getBubbleTeaWarnings(root);
+    case 'opentui':
+      return getOpenTuiWarnings(root);
+    default:
+      return [];
+  }
+}
 
 /**
  * Export design to framework-specific code
@@ -306,118 +321,3 @@ function inkTextProps(node: ComponentNode): string {
 
 /** Escape characters that are special in JSX text content */
 // escJsx is imported from ./escape
-
-// ── OpenTUI ───────────────────────────────────────────────────────────────────
-
-function exportToOpenTUI(node: ComponentNode): string {
-  const imports = new Set<string>();
-  const code = generateOpenTUIComponent(node, imports, 0);
-
-  return `import { ${Array.from(imports).join(', ')} } from '@opentui/core';
-
-function App() {
-  return (
-${code}
-  );
-}
-
-export default App;
-`;
-}
-
-function generateOpenTUIComponent(
-  node: ComponentNode,
-  imports: Set<string>,
-  indent: number
-): string {
-  const spaces = '  '.repeat(indent + 1);
-  const componentName = mapToOpenTUIComponent(node.type);
-  imports.add(componentName);
-
-  const props = generatePropsString(node);
-  const style = generateStyleString(node);
-
-  let result = `${spaces}<${componentName}${props}${style}`;
-
-  if (node.children.length > 0) {
-    result += '>\n';
-    for (const child of node.children) {
-      result += generateOpenTUIComponent(child, imports, indent + 1);
-    }
-    result += `${spaces}</${componentName}>\n`;
-  } else {
-    result += ' />\n';
-  }
-
-  return result;
-}
-
-// ── Blessed ───────────────────────────────────────────────────────────────────
-
-function exportToBlessed(node: ComponentNode): string {
-  return `const blessed = require('blessed');
-
-const screen = blessed.screen({
-  smartCSR: true
-});
-
-${generateBlessedComponents(node, 0)}
-
-screen.key(['escape', 'q', 'C-c'], function() {
-  return process.exit(0);
-});
-
-screen.render();
-`;
-}
-
-function generateBlessedComponents(node: ComponentNode, indent: number): string {
-  const spaces = '  '.repeat(indent);
-  const varName = node.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-
-  const options: string[] = [];
-  if (node.props.width) options.push(`width: ${JSON.stringify(node.props.width)}`);
-  if (node.props.height) options.push(`height: ${JSON.stringify(node.props.height)}`);
-  if (node.style.border) options.push(`border: { type: 'line' }`);
-  if (node.props.content) options.push(`content: ${JSON.stringify(node.props.content)}`);
-
-  let result = `${spaces}const ${varName} = blessed.box({\n`;
-  result += options.map((opt) => `${spaces}  ${opt}`).join(',\n') + '\n';
-  result += `${spaces}});\n`;
-  result += `${spaces}screen.append(${varName});\n\n`;
-
-  for (const child of node.children) {
-    result += generateBlessedComponents(child, indent);
-  }
-  return result;
-}
-
-// ── Shared helpers ────────────────────────────────────────────────────────────
-
-function mapToOpenTUIComponent(type: string): string {
-  const map: Record<string, string> = {
-    Box: 'Box',
-    Text: 'Text',
-    Button: 'Button',
-    TextInput: 'Input',
-  };
-  return map[type] || 'Box';
-}
-
-function generatePropsString(node: ComponentNode): string {
-  const props: string[] = [];
-  if (node.props.width && typeof node.props.width === 'number')
-    props.push(`width={${node.props.width}}`);
-  if (node.props.height && typeof node.props.height === 'number')
-    props.push(`height={${node.props.height}}`);
-  return props.length ? ' ' + props.join(' ') : '';
-}
-
-function generateStyleString(node: ComponentNode): string {
-  const styles: string[] = [];
-  if (node.style.color) styles.push(`color="${node.style.color}"`);
-  if (node.style.backgroundColor) styles.push(`backgroundColor="${node.style.backgroundColor}"`);
-  if (node.style.border) styles.push(`border={true}`);
-  if (node.style.bold) styles.push(`bold={true}`);
-  return styles.length ? ' ' + styles.join(' ') : '';
-}

@@ -10,15 +10,38 @@ import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
 interface Ctx {
   stmts: string[];
   usedVars: Set<string>;
+  skipped: string[];
+}
+
+/** Features of the design a static Bubble Tea view cannot express. */
+export function getBubbleTeaWarnings(root: ComponentNode): string[] {
+  const warnings: string[] = [];
+  const walk = (node: ComponentNode) => {
+    if (node.hidden) return;
+    if (node.type === 'Modal')
+      warnings.push(`Modal "${node.name}" is skipped — a static Bubble Tea view has no overlays (use bubbletea's tea.Model state + lipgloss.Place to build one).`);
+    if (node.props.width === 'fill' || node.props.height === 'fill')
+      warnings.push(`"${node.name}" uses fill sizing, which lipgloss cannot express — it renders at content size.`);
+    node.children.forEach(walk);
+  };
+  walk(root);
+  return warnings;
 }
 
 export function exportToBubbleTea(root: ComponentNode): string {
-  const ctx: Ctx = { stmts: [], usedVars: new Set(['m', 'model', 'main', 'msg', 'p', 'err']) };
+  const ctx: Ctx = {
+    stmts: [],
+    usedVars: new Set(['m', 'model', 'main', 'msg', 'p', 'err']),
+    skipped: [],
+  };
   const rootExpr = genNode(root, ctx);
 
   const body = ctx.stmts.length ? `${ctx.stmts.join('\n')}\n\treturn ${rootExpr}` : `\treturn ${rootExpr}`;
+  const skippedNote = ctx.skipped.length
+    ? `// NOT exported (unsupported in a static view):\n${ctx.skipped.map((s) => `//   - ${s}`).join('\n')}\n\n`
+    : '';
 
-  return `package main
+  return `${skippedNote}package main
 
 import (
 	"fmt"
@@ -63,19 +86,24 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
   if (node.hidden) return '""';
 
   switch (node.type) {
+    case 'Modal':
+      ctx.skipped.push(`Modal "${node.name}" — no overlay support; build with tea.Model state + lipgloss.Place`);
+      return '""';
+
     case 'Screen':
-    case 'Box':
-    case 'Modal': {
+    case 'Box': {
       const isRow = node.layout.direction === 'row';
       const gap = Math.max(0, Number(node.layout.gap ?? 0));
       const childExprs: string[] = [];
-      node.children.forEach((child, i) => {
-        if (i > 0 && gap > 0) {
+      for (const child of node.children) {
+        const expr = genNode(child, ctx);
+        if (expr === '""' && child.type !== 'Spacer') continue; // skipped node (e.g. Modal)
+        if (childExprs.length > 0 && gap > 0) {
           if (isRow) childExprs.push(escGoStr(' '.repeat(gap)));
           else for (let g = 0; g < gap; g++) childExprs.push('""'); // blank line per gap row
         }
-        childExprs.push(genNode(child, ctx));
-      });
+        childExprs.push(expr);
+      }
       return emitContainer(node, ctx, childExprs, isRow);
     }
 

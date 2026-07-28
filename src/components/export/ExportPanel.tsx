@@ -3,7 +3,13 @@
 import { useState } from 'react';
 import { Download, Copy, Eye } from 'lucide-react';
 import { useComponentStore, useCanvasStore } from '../../stores';
-import { exportToText, exportToCode, exportToHtmlFile, ansiToHtml } from '../../utils/export';
+import {
+  exportToText,
+  exportToCode,
+  exportToHtmlFile,
+  ansiToHtml,
+  getExportWarnings,
+} from '../../utils/export';
 import { saveToDownloadFolder } from '../../utils/downloadManager';
 import type { ExportFormatId } from '../../types/export';
 
@@ -237,11 +243,22 @@ function CodeOutput({ format }: { format: ExportFormatId | 'text' }) {
     format === 'html'
       ? exportToHtmlFile(componentStore.root, canvasStore.width, canvasStore.height)
       : exportToCode(componentStore.root, format as ExportFormatId);
+  const warnings = format === 'html' ? [] : getExportWarnings(componentStore.root, format);
 
   return (
-    <pre className="text-xs font-mono bg-secondary p-4 rounded overflow-auto border border-border">
-      {output}
-    </pre>
+    <>
+      {warnings.length > 0 && (
+        <div className="mb-3 px-3 py-2 bg-yellow-500/10 border border-yellow-500/40 rounded text-xs text-yellow-500 space-y-1">
+          <div className="font-semibold">Not supported by this framework:</div>
+          {warnings.map((w, i) => (
+            <div key={i}>• {w}</div>
+          ))}
+        </div>
+      )}
+      <pre className="text-xs font-mono bg-secondary p-4 rounded overflow-auto border border-border">
+        {output}
+      </pre>
+    </>
   );
 }
 
