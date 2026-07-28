@@ -144,13 +144,17 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   limited to the common single-line case (multiple wrapped lines can't each stretch to
   the full container without overlapping). Verified directly against
   `calculateFlexboxLayout`; `src/utils/layout/__tests__/flexbox.test.ts` added.
-- [ ] **Canvas.tsx decomposition**: 1,370 lines mixing render/selection/drag/keyboard.
-  Split into hooks (useCanvasDrag, useCanvasSelection, useCanvasKeyboard) before adding
-  features. Toolbar.tsx (981) and ComponentToolbar.tsx (710) next. Deliberately not
-  attempted in the same pass as the rest of P2 — no test coverage exists for canvas
-  drag/select/keyboard interactions, so a full decomposition needs its own careful,
-  isolated pass with heavy manual browser verification, not folded into a batch of
-  otherwise-independent fixes.
+- [~] **Canvas.tsx decomposition** (started 2026-07-28, commit 850f055): first slice done —
+  arrow-key nudge extracted verbatim into `src/hooks/useCanvasKeyboardNudge` (it was fully
+  self-contained, no shared local state, the safest piece to pull out first). Verified
+  equivalence via a git-stash round-trip in the browser, not just "it builds" — and in the
+  process discovered the nudge doesn't actually move anything on *either* version (X/Y stay
+  0), a real pre-existing bug, now flagged separately as `task_61c608d2` rather than
+  silently fixed or left unmentioned. Remaining: `useCanvasDrag`/`useCanvasSelection` are
+  still inline — genuinely riskier (shared local state, no test coverage for drag/select
+  interactions), deliberately left for their own dedicated pass rather than rushed through
+  in the same session as five independent, lower-risk P2 fixes. Toolbar.tsx (981 lines)
+  and ComponentToolbar.tsx (710 lines) are next after that.
 - [x] **Code-split the bundle** (2026-07-28, commit 104c8ba): `ExportModal` (75KB — bundles
   all 7 exporters) and `CommandPalette` (4.9KB) converted to `React.lazy()`, gated at the
   JSX call site by their own `isOpen`/`open` flag so the dynamic import only fires on
