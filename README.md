@@ -96,7 +96,7 @@ Projects are saved as `.tui` files (JSON):
 | [Blessed](https://github.com/chjj/blessed)              | JavaScript         |
 | [Textual](https://github.com/Textualize/textual)        | Python             |
 | [OpenTUI](https://opentui.js.org/)                      | TypeScript         |
-| [Ratatui](https://github.com/ratatui-org/ratatui)                           | Rust               |
+| [Ratatui](https://ratatui.rs/)                          | Rust               |
 
 ## Tech Stack
 
