@@ -136,6 +136,14 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   diverge on fork. Default: land on fork, offer upstream PRs opportunistically.
 - [x] CI on fork (2026-07-28, commit e36c799): `.github/workflows/ci.yml` runs
   lint + test + build on push/PR, Node 22. First run green: https://github.com/discover-dmc/tui-studio/actions/runs/30374434316
-- [ ] CI follow-up: compile-check generated exporter output for real (rustc/go toolchain/
-  textual+python/blessed+node in CI), not just snapshot — today's manual verification
-  (gofmt, go test, py_compile+run_test, pty blessed run) isn't yet automated in CI.
+- [x] CI compile-checks generated output for real (2026-07-28, commit 3504160):
+  `scripts/generate-export-fixtures.mjs` bundles the exporters and writes the
+  kitchen-sink fixture's output for all 6 formats; `build` uploads it as an artifact;
+  4 new jobs each hand it to a real toolchain — `verify-rust` (cargo build vs real
+  ratatui), `verify-go` (go test calling model{}.View() vs real bubbletea+lipgloss),
+  `verify-python` (py_compile + headless run_test() vs real textual),
+  `verify-node-exports` (node --check on Blessed — the exact check that would've
+  caught the `const screen` collision — plus esbuild syntax checks on OpenTUI/Ink
+  TSX). All reproduced locally first (installed rust via brew for this); ratatui.rs
+  had never actually been rustc-verified before — it compiles cleanly. First full
+  run green: https://github.com/discover-dmc/tui-studio/actions/runs/30375505811
