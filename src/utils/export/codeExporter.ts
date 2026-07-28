@@ -301,7 +301,7 @@ function inkBoxProps(node: ComponentNode): string {
     };
     const bs = bsMap[(node.style.borderStyle as string) || 'single'] || 'single';
     props.push(`borderStyle="${bs}"`);
-    if (node.style.color) props.push(`borderColor="${node.style.color}"`);
+    if (node.style.borderColor) props.push(`borderColor="${node.style.borderColor}"`);
   }
 
   return props.length ? ' ' + props.join(' ') : '';
