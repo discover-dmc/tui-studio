@@ -18,3 +18,86 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: node scripts/generate-export-fixtures.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: export-check
+          path: export-check/
+
+  # The steps below hand the exporter's actual generated output to each
+  # target language's real toolchain — catching drift (a bad escape, a
+  # broken import, an upstream API change) that string-snapshot tests alone
+  # would miss. See scripts/generate-export-fixtures.mjs.
+
+  verify-rust:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: export-check
+          path: export-check
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust-check
+      - run: mkdir -p rust-check/src
+      - run: cp scripts/ci-templates/rust/Cargo.toml rust-check/Cargo.toml
+      - run: cp export-check/ratatui.rs rust-check/src/main.rs
+      - run: cargo build --manifest-path rust-check/Cargo.toml
+
+  verify-go:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: export-check
+          path: export-check
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - run: mkdir -p go-check
+      - run: cp scripts/ci-templates/bubbletea/view_test.go go-check/view_test.go
+      - run: cp export-check/bubbletea.go go-check/main.go
+      - working-directory: go-check
+        run: |
+          go mod init exportcheck
+          go mod tidy
+          go test ./...
+
+  verify-python:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: export-check
+          path: export-check
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install textual
+      - run: python -m py_compile export-check/textual.py
+      - run: python scripts/ci-templates/textual/smoke.py export-check/textual.py
+
+  verify-node-exports:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: export-check
+          path: export-check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --check export-check/blessed.js
+      - run: node_modules/.bin/esbuild export-check/opentui.tsx --jsx=automatic --outfile=/dev/null
+      - run: node_modules/.bin/esbuild export-check/ink.tsx --jsx=automatic --outfile=/dev/null
