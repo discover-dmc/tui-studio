@@ -144,17 +144,18 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   limited to the common single-line case (multiple wrapped lines can't each stretch to
   the full container without overlapping). Verified directly against
   `calculateFlexboxLayout`; `src/utils/layout/__tests__/flexbox.test.ts` added.
-- [~] **Canvas.tsx decomposition** (started 2026-07-28, commit 850f055): first slice done —
-  arrow-key nudge extracted verbatim into `src/hooks/useCanvasKeyboardNudge` (it was fully
-  self-contained, no shared local state, the safest piece to pull out first). Verified
-  equivalence via a git-stash round-trip in the browser, not just "it builds" — and in the
-  process discovered the nudge doesn't actually move anything on *either* version (X/Y stay
-  0), a real pre-existing bug, now flagged separately as `task_61c608d2` rather than
-  silently fixed or left unmentioned. Remaining: `useCanvasDrag`/`useCanvasSelection` are
-  still inline — genuinely riskier (shared local state, no test coverage for drag/select
-  interactions), deliberately left for their own dedicated pass rather than rushed through
-  in the same session as five independent, lower-risk P2 fixes. Toolbar.tsx (981 lines)
-  and ComponentToolbar.tsx (710 lines) are next after that.
+- [x] **Canvas.tsx decomposition** (2026-07-28, commits 850f055, current): arrow-key nudge
+  extracted verbatim into `useCanvasKeyboardNudge` (`src/hooks/useCanvasKeyboard.ts`), then
+  selection/hover/context-menu extracted into `useComponentSelection` and
+  drag-reorder/reparent/resize extracted into `useComponentDrag`
+  (`src/hooks/useComponentSelection.ts`, `src/hooks/useComponentDrag.ts`). `Canvas.tsx` shed
+  ~210 lines. Correction to an earlier note here: the "nudge doesn't move anything" finding
+  (`task_61c608d2`) was a false positive — the browser automation tool used to test it
+  dispatches synthetic keydown/mouse events with empty `key`/`code`, which the app's own
+  `.includes(e.key)` guard correctly rejects. Dispatching a real `KeyboardEvent`/`DragEvent`
+  confirms nudge, resize, click-select, hover ring, context menu, and drag reorder/reparent
+  all work correctly; task dismissed as non-issue. Toolbar.tsx (981 lines) and
+  ComponentToolbar.tsx (710 lines) are the next decomposition candidates, not yet started.
 - [x] **Code-split the bundle** (2026-07-28, commit 104c8ba): `ExportModal` (75KB — bundles
   all 7 exporters) and `CommandPalette` (4.9KB) converted to `React.lazy()`, gated at the
   JSX call site by their own `isOpen`/`open` flag so the dynamic import only fires on

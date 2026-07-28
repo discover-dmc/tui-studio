@@ -11,7 +11,9 @@ import {
 import { layoutEngine } from '../../utils/layout';
 import { dragStore } from '../../hooks/useDragAndDrop';
 import { useCanvasKeyboardNudge } from '../../hooks/useCanvasKeyboard';
-import { COMPONENT_LIBRARY, canHaveChildren } from '../../constants/components';
+import { useComponentSelection } from '../../hooks/useComponentSelection';
+import { useComponentDrag } from '../../hooks/useComponentDrag';
+import { COMPONENT_LIBRARY } from '../../constants/components';
 import { SPINNER_PRESETS, renderBar } from '../../constants/assets';
 import { THEMES } from '../../stores/themeStore';
 import { interpolateGradientColor } from '../../utils/rendering/ansi';
@@ -348,13 +350,7 @@ const ComponentRenderer = memo(
     canvasWidth,
     canvasHeight,
   }: ComponentRendererProps) {
-    // Subscribe to entire store to avoid stale state
-    const selectionStore = useSelectionStore();
-    const componentStore = useComponentStore();
     const themeStore = useThemeStore();
-
-    const selectedIds = selectionStore.selectedIds;
-    const isSelected = selectedIds.has(node.id);
 
     // Live-animate the Spinner preview on canvas, cycling through the preset's
     // real frames at its real interval. This is purely a preview concern —
@@ -413,43 +409,18 @@ const ComponentRenderer = memo(
       return `linear-gradient(${cssAngle}deg, ${hardStops.join(', ')})`;
     };
 
-    const [isDragging, setIsDragging] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
-    const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
-    const [resizing, setResizing] = useState<{
-      direction: 'e' | 's' | 'se';
-      startX: number;
-      startY: number;
-      startWidth: number;
-      startHeight: number;
-    } | null>(null);
-
-    // Global mouse handlers while a resize drag is active
-    useEffect(() => {
-      if (!resizing) return;
-
-      const handleMouseMove = (e: MouseEvent) => {
-        const deltaCharW = Math.round((e.clientX - resizing.startX) / (cellWidth * zoom));
-        const deltaCharH = Math.round((e.clientY - resizing.startY) / (cellHeight * zoom));
-        const updates: Record<string, number> = {};
-        if (resizing.direction !== 's') {
-          updates.width = Math.max(4, resizing.startWidth + deltaCharW);
-        }
-        if (resizing.direction !== 'e') {
-          updates.height = Math.max(1, resizing.startHeight + deltaCharH);
-        }
-        componentStore.updateProps(node.id, updates);
-      };
-
-      const handleMouseUp = () => setResizing(null);
-
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }, [resizing, cellWidth, cellHeight, zoom, node.id, componentStore]);
+    const { isSelected, isHovered, handleMouseOver, handleMouseOut, handleClick, handleContextMenu } =
+      useComponentSelection(node);
+    const {
+      isDragging,
+      insertionIndex,
+      handleResizeStart,
+      handleDragStart,
+      handleDragEnd,
+      handleDragOver,
+      handleDragLeave,
+      handleDrop,
+    } = useComponentDrag(node, layout, cellWidth, cellHeight, zoom);
 
     if (!layout) return null;
 
@@ -930,18 +901,6 @@ const ComponentRenderer = memo(
       return ['e', 's', 'se'];
     };
 
-    const handleResizeStart = (e: React.MouseEvent, direction: 'e' | 's' | 'se') => {
-      e.preventDefault();
-      e.stopPropagation();
-      setResizing({
-        direction,
-        startX: e.clientX,
-        startY: e.clientY,
-        startWidth: layout.width,
-        startHeight: layout.height,
-      });
-    };
-
     const hasBorder = node.style.border;
     const borderColor = hasBorder
       ? getColor(node.style.borderColor) || 'hsl(var(--foreground))'
@@ -1019,134 +978,6 @@ const ComponentRenderer = memo(
     const y = layout.y * cellHeight * zoom;
     const paddingValue = typeof node.layout.padding === 'number' ? node.layout.padding : undefined;
 
-    const handleDragStart = (e: React.DragEvent) => {
-      e.stopPropagation();
-      e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
-      setIsDragging(true);
-      dragStore.startDrag({
-        type: 'existing-component',
-        componentId: node.id,
-      });
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', node.id);
-
-      // Select the component being dragged
-      selectionStore.select(node.id);
-    };
-
-    const handleDragEnd = () => {
-      setIsDragging(false);
-      dragStore.endDrag();
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-      e.stopPropagation();
-
-      // Only containers can accept children
-      if (!canHaveChildren(node.type)) {
-        e.dataTransfer.dropEffect = 'none';
-        return;
-      }
-
-      e.preventDefault();
-
-      // Calculate insertion position for flexbox/stack containers
-      if (node.children.length > 0 && node.layout.type === 'flexbox') {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const isColumn = node.layout.direction === 'column';
-        const mousePos = isColumn ? mouseY : mouseX;
-
-        // Find insertion index based on mouse position
-        let insertIndex = 0;
-        for (let i = 0; i < node.children.length; i++) {
-          const childLayout = layoutEngine.getLayout(node.children[i].id);
-          if (!childLayout) continue;
-
-          const childPos = isColumn
-            ? (childLayout.y - layout.y) * cellHeight * zoom
-            : (childLayout.x - layout.x) * cellWidth * zoom;
-          const childSize = isColumn
-            ? childLayout.height * cellHeight * zoom
-            : childLayout.width * cellWidth * zoom;
-
-          if (mousePos < childPos + childSize / 2) {
-            insertIndex = i;
-            break;
-          }
-          insertIndex = i + 1;
-        }
-
-        setInsertionIndex(insertIndex);
-      }
-    };
-
-    const handleDragLeave = () => {
-      setInsertionIndex(null);
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-      // Root Screen should not intercept drops - let canvas handle repositioning
-      if (node.id === 'root') {
-        return;
-      }
-
-      // Only containers can accept children
-      if (!canHaveChildren(node.type)) {
-        return;
-      }
-
-      e.stopPropagation();
-      e.preventDefault();
-
-      const dragData = dragStore.dragData;
-      if (!dragData) return;
-
-      // Handle new component from palette
-      if (dragData.type === 'new-component' && dragData.componentType) {
-        const def = COMPONENT_LIBRARY[dragData.componentType];
-        if (def) {
-          const newComponent: Omit<import('../../types').ComponentNode, 'id'> = {
-            type: def.type,
-            name: def.name,
-            props: { ...def.defaultProps },
-            layout: { ...def.defaultLayout, x: 0, y: 0 },
-            style: { ...def.defaultStyle },
-            events: { ...def.defaultEvents },
-            children: [],
-            locked: false,
-            hidden: false,
-            collapsed: false,
-          };
-
-          const id = componentStore.addComponent(
-            node.id,
-            newComponent,
-            insertionIndex ?? undefined
-          );
-          if (id) {
-            selectionStore.select(id);
-          }
-        }
-        setInsertionIndex(null);
-        dragStore.endDrag();
-        return;
-      }
-
-      // Handle existing component reparenting
-      if (dragData.type === 'existing-component' && dragData.componentId) {
-        // Don't drop on self
-        if (dragData.componentId === node.id) return;
-
-        // Move the dragged component to be a child of this component (reparenting)
-        componentStore.moveComponent(dragData.componentId, node.id, insertionIndex ?? undefined);
-        setInsertionIndex(null);
-        dragStore.endDrag();
-      }
-    };
-
     return (
       <>
         <div
@@ -1156,14 +987,8 @@ const ComponentRenderer = memo(
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onMouseOver={(e) => {
-            e.stopPropagation();
-            if (node.id !== 'root') setIsHovered(true);
-          }}
-          onMouseOut={(e) => {
-            e.stopPropagation();
-            setIsHovered(false);
-          }}
+          onMouseOver={handleMouseOver}
+          onMouseOut={handleMouseOut}
           className={`absolute transition-colors ${
             isDragging ? 'opacity-50 cursor-grabbing' : 'cursor-grab'
           } ${
@@ -1206,26 +1031,8 @@ const ComponentRenderer = memo(
                 ? `${paddingValue * cellHeight * zoom}px ${paddingValue * cellWidth * zoom}px`
                 : undefined,
           }}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (node.id !== 'root') {
-              selectionStore.select(node.id, e.shiftKey);
-            } else if (!e.shiftKey) {
-              selectionStore.clearSelection();
-            }
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (node.id !== 'root') {
-              if (!selectionStore.isSelected(node.id)) selectionStore.select(node.id);
-              window.dispatchEvent(
-                new CustomEvent('canvas-context-menu', {
-                  detail: { id: node.id, x: e.clientX, y: e.clientY },
-                })
-              );
-            }
-          }}
+          onClick={handleClick}
+          onContextMenu={handleContextMenu}
         >
           {/* Render content - border is handled by CSS */}
           {renderComponent()}
