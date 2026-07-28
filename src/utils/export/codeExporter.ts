@@ -6,6 +6,7 @@ import { exportToTextual } from './exporters/textual';
 import { exportToBubbleTea, getBubbleTeaWarnings } from './exporters/bubbletea';
 import { exportToBlessed } from './exporters/blessed';
 import { exportToOpenTUI, getOpenTuiWarnings } from './exporters/opentui';
+import { exportToTview } from './exporters/tview';
 import { escJsx } from './escape';
 import { PROGRESSBAR_STYLES } from '../../constants/assets';
 
@@ -41,6 +42,8 @@ export function exportToCode(root: ComponentNode | null, format: string): string
       return exportToTextual(root);
     case 'ratatui':
       return exportToRatatui(root);
+    case 'tview':
+      return exportToTview(root);
     default:
       return `// Unsupported export format: ${format}`;
   }

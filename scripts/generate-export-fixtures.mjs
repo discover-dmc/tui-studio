@@ -17,6 +17,7 @@ const outDir = path.join(repoRoot, 'export-check');
 const EXTENSIONS = {
   ratatui: 'rs',
   bubbletea: 'go',
+  tview: 'go',
   textual: 'py',
   blessed: 'js',
   opentui: 'tsx',

@@ -955,3 +955,206 @@ if __name__ == "__main__":
     MyApp().run()
 "
 `;
+
+exports[`exportToCode snapshots > tview: empty screen 1`] = `
+"package main
+
+import (
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+)
+
+func main() {
+	app := tview.NewApplication()
+
+	root := tview.NewFlex()
+	root.SetDirection(tview.FlexRow)
+
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			app.Stop()
+		}
+		return event
+	})
+
+	if err := app.SetRoot(root, true).Run(); err != nil {
+		panic(err)
+	}
+}
+"
+`;
+
+exports[`exportToCode snapshots > tview: kitchen-sink tree 1`] = `
+"package main
+
+import (
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+)
+
+func main() {
+	app := tview.NewApplication()
+
+	root := tview.NewFlex()
+	root.SetDirection(tview.FlexRow)
+	header := tview.NewFlex()
+	header.SetDirection(tview.FlexColumn)
+	title := tview.NewTextView()
+	title.SetText(tview.Escape("Say \\"hi\\" to <all>"))
+	title.SetTextColor(tcell.GetColor("#7dcfff"))
+	header.AddItem(title, 0, 1, false)
+	nav := tview.NewTextView()
+	nav.SetText(tview.Escape("  Dashboard  [ Agent ]")) // static preview; build real tabs with a Flex of Buttons + tview.Pages
+	header.AddItem(nav, 0, 1, false)
+	header.SetBorder(true)
+	header.SetBorderColor(tcell.GetColor("#414868"))
+	header.SetTitle(tview.Escape(" Header "))
+	root.AddItem(header, 0, 1, false)
+	body := tview.NewFlex()
+	body.SetDirection(tview.FlexColumn)
+	files := tview.NewList()
+	files.ShowSecondaryText(false)
+	files.AddItem(tview.Escape("• main.rs  1"), "", 0, nil)
+	files.AddItem(tview.Escape("• lib.rs  2"), "", 0, nil)
+	files.SetCurrentItem(0)
+	files.SetBorder(true)
+	files.SetBorderColor(tcell.GetColor("red"))
+	files.SetTitle(tview.Escape(" Files "))
+	body.AddItem(files, 0, 1, false)
+	explorerNode := tview.NewTreeNode(tview.Escape("Root"))
+	explorerNode.SetExpanded(true)
+	explorerNode2 := tview.NewTreeNode(tview.Escape("Child 1"))
+	explorerNode2.SetExpanded(false)
+	explorerNode.AddChild(explorerNode2)
+	explorerNode3 := tview.NewTreeNode(tview.Escape("Child 2"))
+	explorerNode3.SetExpanded(false)
+	explorerNode4 := tview.NewTreeNode(tview.Escape("Nested"))
+	explorerNode4.SetExpanded(false)
+	explorerNode3.AddChild(explorerNode4)
+	explorerNode.AddChild(explorerNode3)
+	explorer := tview.NewTreeView()
+	explorer.SetRoot(explorerNode)
+	explorer.SetCurrentNode(explorerNode)
+	body.AddItem(explorer, 0, 1, false)
+	stats := tview.NewTable()
+	stats.SetCell(0, 0, tview.NewTableCell(tview.Escape("PID")))
+	stats.SetCell(0, 1, tview.NewTableCell(tview.Escape("CPU")))
+	stats.SetCell(1, 0, tview.NewTableCell(tview.Escape("123")))
+	stats.SetCell(1, 1, tview.NewTableCell(tview.Escape("45%")))
+	stats.SetCell(2, 0, tview.NewTableCell(tview.Escape("456")))
+	stats.SetCell(2, 1, tview.NewTableCell(tview.Escape("2%")))
+	body.AddItem(stats, 0, 1, false)
+	nav2 := tview.NewList()
+	nav2.ShowSecondaryText(false)
+	nav2.AddItem(tview.Escape("⌂ Home  ^H"), "", 0, nil)
+	body.AddItem(nav2, 0, 1, false)
+	root.AddItem(body, 0, 1, false)
+	controls := tview.NewGrid()
+	controls.SetRows(0, 0, 0, 0, 0, 0)
+	controls.SetColumns(0, 0)
+	oK := tview.NewButton(tview.Escape("OK"))
+	controls.AddItem(oK, 0, 0, 1, 1, 0, 0, false)
+	oK2 := tview.NewButton(tview.Escape("Cancel"))
+	oK2.SetLabelColor(tcell.GetColor("red"))
+	controls.AddItem(oK2, 0, 1, 1, 1, 0, 0, false)
+	search := tview.NewInputField()
+	search.SetPlaceholder(tview.Escape("type \\"here\\"..."))
+	controls.AddItem(search, 1, 0, 1, 1, 0, 0, false)
+	opt := tview.NewCheckbox()
+	opt.SetLabel(tview.Escape("Enable "))
+	opt.SetChecked(true)
+	opt.SetCheckedString(tview.Escape("X"))
+	opt.SetUncheckedString(tview.Escape(" "))
+	controls.AddItem(opt, 1, 1, 1, 1, 0, 0, false)
+	r1 := tview.NewCheckbox()
+	r1.SetLabel(tview.Escape("Choice A "))
+	r1.SetChecked(true)
+	r1.SetCheckedString(tview.Escape("●"))
+	r1.SetUncheckedString(tview.Escape("○"))
+	controls.AddItem(r1, 2, 0, 1, 1, 0, 0, false)
+	dark := tview.NewCheckbox()
+	dark.SetLabel(tview.Escape("Dark mode "))
+	dark.SetChecked(true)
+	dark.SetCheckedString(tview.Escape(" ON "))
+	dark.SetUncheckedString(tview.Escape(" OFF "))
+	controls.AddItem(dark, 2, 1, 1, 1, 0, 0, false)
+	sel := tview.NewDropDown()
+	sel.SetOptions([]string{tview.Escape("One"), tview.Escape("Two")}, nil)
+	sel.SetCurrentOption(1)
+	controls.AddItem(sel, 3, 0, 1, 1, 0, 0, false)
+	load := tview.NewTextView()
+	load.SetText(tview.Escape("[====] Working")) // static frame; drive with a time.Ticker + app.QueueUpdateDraw for a live spinner
+	controls.AddItem(load, 3, 1, 1, 1, 0, 0, false)
+	prog := tview.NewTextView()
+	prog.SetText(tview.Escape("[==========>      ] 67%")) // tview has no built-in progress bar; update this text as work completes
+	controls.AddItem(prog, 4, 0, 1, 1, 0, 0, false)
+	crumb := tview.NewTextView()
+	crumb.SetText(tview.Escape("Home / Docs"))
+	controls.AddItem(crumb, 4, 1, 1, 1, 0, 0, false)
+	controls.AddItem(tview.NewBox(), 5, 0, 1, 1, 0, 0, false)
+	root.AddItem(controls, 0, 1, false)
+	empty := tview.NewFlex()
+	empty.SetDirection(tview.FlexRow)
+	empty.SetBorder(true)
+	empty.SetTitle(tview.Escape(" Empty "))
+	root.AddItem(empty, 0, 1, false)
+	confirm := tview.NewFlex()
+	confirm.SetDirection(tview.FlexRow)
+	msg := tview.NewTextView()
+	msg.SetText(tview.Escape("Sure?"))
+	confirm.AddItem(msg, 0, 1, false)
+	confirm.SetBorder(true)
+	confirm.SetBorderColor(tcell.GetColor("red"))
+	confirm.SetTitle(tview.Escape(" Confirm "))
+	confirmModal := tview.NewGrid()
+	confirmModal.SetRows(0, 12, 0)
+	confirmModal.SetColumns(0, 40, 0)
+	confirmModal.AddItem(confirm, 1, 1, 1, 1, 0, 0, false)
+	pages := tview.NewPages()
+	pages.AddPage("main", root, true, true)
+	pages.AddPage("modal-confirm", confirmModal, true, true)
+
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			app.Stop()
+		}
+		return event
+	})
+
+	if err := app.SetRoot(pages, true).Run(); err != nil {
+		panic(err)
+	}
+}
+"
+`;
+
+exports[`exportToCode snapshots > tview: text-only tree 1`] = `
+"package main
+
+import (
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+)
+
+func main() {
+	app := tview.NewApplication()
+
+	root := tview.NewFlex()
+	root.SetDirection(tview.FlexRow)
+	title := tview.NewTextView()
+	title.SetText(tview.Escape("Hello"))
+	root.AddItem(title, 0, 1, false)
+
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape || event.Rune() == 'q' {
+			app.Stop()
+		}
+		return event
+	})
+
+	if err := app.SetRoot(root, true).Run(); err != nil {
+		panic(err)
+	}
+}
+"
+`;

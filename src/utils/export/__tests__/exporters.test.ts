@@ -3,7 +3,15 @@ import type { ExportFormatId } from '../../../types';
 import { exportToCode, getExportWarnings } from '../codeExporter';
 import { kitchenSinkTree, emptyScreenTree, textOnlyTree } from './fixtures';
 
-const FORMATS: ExportFormatId[] = ['ink', 'opentui', 'bubbletea', 'blessed', 'textual', 'ratatui'];
+const FORMATS: ExportFormatId[] = [
+  'ink',
+  'opentui',
+  'bubbletea',
+  'blessed',
+  'textual',
+  'ratatui',
+  'tview',
+];
 
 describe('exportToCode snapshots', () => {
   for (const format of FORMATS) {
@@ -97,6 +105,41 @@ describe('exporter regressions', () => {
     const out = exportToCode(kitchenSinkTree(), 'ratatui');
     expect(out).toContain('Say \\"hi\\" to <all>');
   });
+
+  it('Tview: never chains a method call onto a Set*() return (Box-embedding makes that a compile error)', () => {
+    const out = exportToCode(kitchenSinkTree(), 'tview');
+    // every primitive's methods are called as separate `varName.Method(...)`
+    // statements — a `).Set` would mean we chained onto a *Box return value,
+    // which doesn't have the concrete type's other methods
+    expect(out).not.toMatch(/\)\.\s*Set/);
+  });
+
+  it('Tview: maps our row/column direction to tview\'s inverted Flex naming correctly', () => {
+    const out = exportToCode(kitchenSinkTree(), 'tview');
+    // Header has layout.direction: 'row' (side-by-side) — tview.FlexColumn
+    const headerDecl = out.split('\n').findIndex((l) => l.includes('header := tview.NewFlex()'));
+    expect(headerDecl).toBeGreaterThanOrEqual(0);
+    expect(out.split('\n')[headerDecl + 1]).toContain('tview.FlexColumn');
+  });
+
+  it('Tview: renders Modal as a real overlay via Pages + centering Grid, not a flattened comment', () => {
+    const out = exportToCode(kitchenSinkTree(), 'tview');
+    expect(out).toContain('tview.NewPages()');
+    expect(out).toContain('AddPage("modal-confirm"');
+    expect(out).toContain('tview.NewGrid()');
+    expect(out).toContain('Sure?');
+  });
+
+  it('Tview: escapes literal strings for both Go syntax and tview\'s "[tag]" text markup', () => {
+    const out = exportToCode(kitchenSinkTree(), 'tview');
+    expect(out).toContain('tview.Escape("Say \\"hi\\" to <all>")');
+  });
+
+  it('Tview: compiles-shape sanity — balanced braces and parens', () => {
+    const out = exportToCode(kitchenSinkTree(), 'tview');
+    expect((out.match(/{/g) || []).length).toBe((out.match(/}/g) || []).length);
+    expect((out.match(/\(/g) || []).length).toBe((out.match(/\)/g) || []).length);
+  });
 });
 
 describe('getExportWarnings', () => {
@@ -112,7 +155,7 @@ describe('getExportWarnings', () => {
   });
 
   it('returns no warnings for formats without special-cased limitations', () => {
-    for (const format of ['ink', 'blessed', 'textual', 'ratatui'] as ExportFormatId[]) {
+    for (const format of ['ink', 'blessed', 'textual', 'ratatui', 'tview'] as ExportFormatId[]) {
       expect(getExportWarnings(kitchenSinkTree(), format)).toEqual([]);
     }
   });

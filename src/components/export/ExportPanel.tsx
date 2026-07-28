@@ -150,6 +150,7 @@ export function ExportPanel() {
               <option value="textual">Textual (Python)</option>
               <option value="html">HTML + CSS</option>
               <option value="ratatui">Ratatui (Rust)</option>
+              <option value="tview">Tview (Go)</option>
             </select>
           </div>
         )}
@@ -268,6 +269,7 @@ function getCodeExtension(format: string): string {
     case 'ink':
       return '.tsx';
     case 'bubbletea':
+    case 'tview':
       return '.go';
     case 'blessed':
       return '.js';

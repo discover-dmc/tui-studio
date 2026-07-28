@@ -7,6 +7,7 @@ export type ExportFormatId =
   | 'blessed'
   | 'textual'
   | 'ratatui'
+  | 'tview'
   | 'html';
 
 export interface ExportFormat {

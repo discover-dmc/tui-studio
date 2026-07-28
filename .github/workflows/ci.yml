@@ -67,6 +67,14 @@ jobs:
           go mod init exportcheck
           go mod tidy
           go test ./...
+      - run: mkdir -p go-check-tview
+      - run: cp export-check/tview.go go-check-tview/main.go
+      - working-directory: go-check-tview
+        run: |
+          go mod init tviewcheck
+          go mod tidy
+          go build ./...
+          go vet ./...
 
   verify-python:
     needs: build
