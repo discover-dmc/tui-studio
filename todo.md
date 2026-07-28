@@ -32,20 +32,21 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   chunking, gap spacers, full style translation (hex + named-ANSI colors, borders,
   padding), all 20 types, asset presets for spinner/bar, bubbles pointers in comments.
   Verified: gofmt-clean, compiles against real bubbletea+lipgloss, go test executes View().
-- [ ] **Fix Blessed exporter**:
-  - [ ] `safeIdent` + collision counter for variable names (root "Screen" currently
-    redeclares `const screen` → SyntaxError on every export)
-  - [ ] Append children to parent var, not flat `screen.append` for everything
-  - [ ] Use computed layout (top/left/width/height) instead of raw `props.width`
-  - [ ] Translate colors/styles (`style: { fg, bg, border: { fg } }`)
-- [ ] **Fix OpenTUI exporter**: text content silently dropped (`<Text />` self-closing with
-  no content); only 4 type mappings. Emit children/content, verify actual `@opentui/core`
-  API before mapping (current imports may be fictional).
+- [x] **Fix Blessed exporter** (2026-07-28, commit 6e6182a): new `exporters/blessed.ts` —
+  runs the studio LayoutEngine and emits absolute positions matching the canvas, real
+  widget types, collision-safe vars, colors/labels/borders. Runtime-verified against real
+  blessed under a pty (clean init, q-to-quit, exit 0).
+- [x] **Fix OpenTUI exporter** (2026-07-28, commit 6e6182a): rewritten against the real
+  `@opentui/react` API (lowercase box/text/input/select/tab-select intrinsics, Yoga
+  flexbox with flexGrow for fill, strong/em/u modifiers, createCliRenderer bootstrap).
+  Content no longer dropped; TSX esbuild-verified.
+- [x] **Surface unsupported features** (2026-07-28): `getExportWarnings(root, format)` +
+  amber banner in the export panel; BubbleTea skips Modals with a NOT-exported header
+  comment and warns on fill sizing instead of silently degrading.
 - [ ] **Ink exporter, one-line bug**: border color uses `node.style.color` instead of
   `node.style.borderColor` ([codeExporter.ts:278](src/utils/export/codeExporter.ts:278)).
-- [ ] **Gate broken exporters in the UI** until fixed: hide Textual/BubbleTea/Blessed/
-  OpenTUI from the dropdown or badge them "experimental". Broken export is worse than none.
-  (Cheap interim ship while the rebuilds land.)
+- [x] ~~Gate broken exporters in the UI~~ — obsolete: all exporters rebuilt (2026-07-28);
+  unsupported features surface via the warnings banner instead.
 - [x] **Fix lint failure**: resolved by PR #20's eslint-disable on `RatatuiExportSettings`
   (2026-07-28). `npm run lint` is clean.
 - [ ] **Validate `.tui` file on open**: `openTuiFile` feeds parsed JSON straight into
