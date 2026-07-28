@@ -154,8 +154,19 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   dispatches synthetic keydown/mouse events with empty `key`/`code`, which the app's own
   `.includes(e.key)` guard correctly rejects. Dispatching a real `KeyboardEvent`/`DragEvent`
   confirms nudge, resize, click-select, hover ring, context menu, and drag reorder/reparent
-  all work correctly; task dismissed as non-issue. Toolbar.tsx (981 lines) and
-  ComponentToolbar.tsx (710 lines) are the next decomposition candidates, not yet started.
+  all work correctly; task dismissed as non-issue.
+- [x] **Toolbar.tsx / ComponentToolbar.tsx decomposition** (2026-07-28, commit f4b6a59):
+  `Toolbar.tsx` was a 944-line kitchen sink of independent modals + the app menu — split
+  into `SaveDialog.tsx`, `ChangelogModal.tsx`, `HelpModal.tsx`, `AboutModal.tsx`,
+  `SettingsModal.tsx`, `AppMenu.tsx`, plus shared `useEscapeKey` hook and `accentColor.ts`
+  utils. `Toolbar.tsx` now just wires them together (944 → 195 lines). `ComponentToolbar.tsx`
+  is one cohesive component (not independent pieces), so only extracted the genuinely
+  self-contained drag-to-reposition/preset-position logic into `useToolbarPosition` and its
+  static data into `constants/componentToolbar.ts` (697 → 506 lines); left the
+  dropdown/hotkey/dock-mode render logic in place rather than force a split that would add
+  risk without reducing complexity. Verified in-browser: app menu, all 5 modals, accent
+  color live-apply, dock/undock round-trip, drag-reposition, position presets, and group
+  dropdown add-component all confirmed working post-split.
 - [x] **Code-split the bundle** (2026-07-28, commit 104c8ba): `ExportModal` (75KB — bundles
   all 7 exporters) and `CommandPalette` (4.9KB) converted to `React.lazy()`, gated at the
   JSX call site by their own `isOpen`/`open` flag so the dynamic import only fires on
