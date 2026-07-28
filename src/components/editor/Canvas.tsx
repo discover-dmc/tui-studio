@@ -407,6 +407,21 @@ const ComponentRenderer = memo(
     const selectedIds = selectionStore.selectedIds;
     const isSelected = selectedIds.has(node.id);
 
+    // Live-animate the Spinner preview on canvas, cycling through the preset's
+    // real frames at its real interval. This is purely a preview concern —
+    // node.props.frame stays untouched and still drives the single static
+    // frame that code/text exporters bake in.
+    const [spinnerFrame, setSpinnerFrame] = useState(0);
+    useEffect(() => {
+      if (node.type !== 'Spinner') return;
+      const preset =
+        SPINNER_PRESETS[(node.props.spinnerStyle as string) || 'dots'] || SPINNER_PRESETS.dots;
+      const timer = setInterval(() => {
+        setSpinnerFrame((f) => (f + 1) % preset.frames.length);
+      }, preset.interval);
+      return () => clearInterval(timer);
+    }, [node.type, node.props.spinnerStyle]);
+
     // Use the global toolbar theme for ANSI color resolution
     const activeTheme = THEMES[themeStore.currentTheme as keyof typeof THEMES] || THEMES.dracula;
 
@@ -641,10 +656,7 @@ const ComponentRenderer = memo(
         case 'Spinner': {
           const preset =
             SPINNER_PRESETS[(node.props.spinnerStyle as string) || 'dots'] || SPINNER_PRESETS.dots;
-          const idx = Math.max(
-            0,
-            Math.min(Number(node.props.frame ?? 0), preset.frames.length - 1)
-          );
+          const idx = spinnerFrame % preset.frames.length;
           const label = (node.props.label as string) ?? 'Loading...';
           return (
             <span className="font-mono">
