@@ -56,8 +56,20 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 
 ## P1 — Export parity & quality
 
-- [ ] **Decide Tview**: implement `tview-go` for real, or remove the claim from
-  README/CLAUDE.md permanently (PR #19 removes the type; docs must follow).
+- [x] **Tview implemented for real** (2026-07-28, commit 6e90ade): new
+  `exporters/tview.ts` against the verified real `rivo/tview` + `gdamore/tcell/v2`
+  API (pkg.go.dev + source-level checks for tag-parsing behavior, not guessed).
+  Handles tview's real constraints: Box-embedding return-type chaining trap (every
+  primitive is a named var, no chained Set* calls), tag-escaping rules that differ
+  per widget (List parses `[tags]`, Table/TreeView never do — `tview.Escape()`
+  applied uniformly since it's a harmless no-op elsewhere), the inverted
+  FlexRow/FlexColumn naming, and tcell.GetColor's native hex+W3C-name resolution
+  (only ANSI "bright" variants needed a manual palette-index map). Modal gets real
+  support via `tview.Pages` + a Grid-centering wrapper — better than any other
+  exporter can offer for Modal today. `ExportFormatId`, dropdown, extension,
+  README table all updated. Verified: `go build` + `go vet` against the real
+  packages (not just snapshots), plus a new CI step (`go-check-tview` in the
+  `verify-go` job) doing the same on every push.
 - [ ] **Shared exporter architecture**: extract per-framework exporters into
   `src/utils/export/exporters/` (ratatui.ts is already the pattern); common walk +
   style-translation layer so each new framework implements a widget map, not a tree walker.
