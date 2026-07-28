@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { ExportFormatId } from '../../../types';
 import { exportToCode, getExportWarnings } from '../codeExporter';
-import { kitchenSinkTree, emptyScreenTree, textOnlyTree } from './fixtures';
+import { kitchenSinkTree, emptyScreenTree, textOnlyTree, styleEdgeCasesTree } from './fixtures';
+
+const COLOR_MODE_FORMATS: ExportFormatId[] = ['ink', 'opentui', 'bubbletea', 'blessed', 'ratatui', 'tview'];
 
 const FORMATS: ExportFormatId[] = [
   'ink',
@@ -162,6 +164,109 @@ describe('getExportWarnings', () => {
 
   it('returns [] for a null root', () => {
     expect(getExportWarnings(null, 'bubbletea')).toEqual([]);
+  });
+});
+
+describe('style edge cases (gradient fallback, justify/align/gap)', () => {
+  for (const format of FORMATS) {
+    it(`${format}: style edge cases tree (truecolor)`, () => {
+      expect(exportToCode(styleEdgeCasesTree(), format)).toMatchSnapshot();
+    });
+  }
+
+  it('a background gradient degrades to its first stop as a flat color, everywhere', () => {
+    for (const format of FORMATS) {
+      const out = exportToCode(styleEdgeCasesTree(), format);
+      expect(out, `${format} should use the gradient's first stop`).toMatch(/ff0000|#ff0000|255, 0, 0|red/i);
+    }
+  });
+
+  it('getExportWarnings flags every gradient use, regardless of format', () => {
+    for (const format of FORMATS) {
+      const warnings = getExportWarnings(styleEdgeCasesTree(), format);
+      expect(warnings.some((w) => w.includes('gradient')), `${format} should warn about the gradient`).toBe(
+        true
+      );
+    }
+  });
+
+  it('OpenTUI: translates justify/align to real Yoga flexbox props', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'opentui');
+    expect(out).toContain('justifyContent: "center"');
+    expect(out).toContain('alignItems: "center"');
+    expect(out).toContain('justifyContent: "space-between"');
+  });
+
+  it('BubbleTea: cross-axis align becomes the lipgloss Join position argument', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'bubbletea');
+    expect(out).toContain('lipgloss.Center');
+  });
+
+  it('Ratatui: gap becomes a real .spacing() call', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'ratatui');
+    expect(out).toContain('.spacing(3)');
+  });
+
+  it('Ratatui: center/space-between justify emulated with Constraint::Fill(1) spacers', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'ratatui');
+    // centered row of 2 children -> [Fill, real, real, Fill] = 4 constraints
+    expect(out).toMatch(/constraints\(\[Constraint::Fill\(1\), Constraint::Min\(1\), Constraint::Min\(1\), Constraint::Fill\(1\)\]\)/);
+  });
+
+  it('Tview: gap becomes a fixed-size spacer Box between Flex items', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'tview');
+    expect(out).toContain('AddItem(tview.NewBox(), 3, 0, false)');
+  });
+
+  it('Ratatui: a background-only (unbordered) container still paints — regression for a real Block being skipped entirely', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'ratatui');
+    // Banner has a gradient (-> flat bg) and no border: must still get a Block to paint it
+    expect(out).toMatch(/Block::new\(\)\.style\(Style::default\(\)\.bg\(Color::Rgb\(255, 0, 0\)\)\)/);
+  });
+
+  it('Textual: named colors translate to real ansi_* TCSS names, not our internal convention (regression for a CSS parse error)', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'textual');
+    expect(out).toContain('ansi_bright_green'); // not the raw "brightGreen" we store internally
+    expect(out).not.toMatch(/color: brightGreen/);
+  });
+});
+
+describe('color-tier degradation (ansi16 mode)', () => {
+  it('resolves a 3-digit hex and a "bright" named color to a portable index/name per language', () => {
+    // #f00 (Text "A") and brightGreen (Text "B") in styleEdgeCasesTree
+    const ratatui = exportToCode(styleEdgeCasesTree(), 'ratatui', 'ansi16');
+    expect(ratatui).toContain('Color::Red'); // #f00 -> nearest ANSI16 -> red
+    expect(ratatui).toContain('Color::LightGreen'); // brightGreen
+
+    const bubbletea = exportToCode(styleEdgeCasesTree(), 'bubbletea', 'ansi16');
+    expect(bubbletea).toContain('lipgloss.Color("1")'); // red index
+    expect(bubbletea).toContain('lipgloss.Color("10")'); // brightGreen index
+
+    const tview = exportToCode(styleEdgeCasesTree(), 'tview', 'ansi16');
+    expect(tview).toContain('tcell.PaletteColor(1)');
+    expect(tview).toContain('tcell.PaletteColor(10)');
+
+    const blessed = exportToCode(styleEdgeCasesTree(), 'blessed', 'ansi16');
+    expect(blessed).toContain('"red"');
+    expect(blessed).toContain('"brightgreen"');
+  });
+
+  it('ansi16 mode never emits a raw hex color for any color-capable format', () => {
+    for (const format of COLOR_MODE_FORMATS) {
+      const out = exportToCode(styleEdgeCasesTree(), format, 'ansi16');
+      expect(out, `${format} should not contain raw hex in ansi16 mode`).not.toMatch(/#[0-9a-fA-F]{3,6}/);
+    }
+  });
+
+  it('truecolor mode (the default) is unaffected — still emits real hex', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'ratatui');
+    expect(out).toMatch(/Color::Rgb\(/);
+  });
+
+  it('OpenTUI ansi16 mode uses the real RGBA.fromIndex API, not a hex guess', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'opentui', 'ansi16');
+    expect(out).toContain('RGBA.fromIndex(');
+    expect(out).toContain('import { createCliRenderer, RGBA }');
   });
 });
 

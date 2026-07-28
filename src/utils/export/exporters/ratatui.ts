@@ -1,8 +1,9 @@
 import type { ComponentNode } from '../../../types';
 import { escRust } from '../escape';
 import { SPINNER_PRESETS } from '../../../constants/assets';
+import { type ExportColorMode, ansi16IndexOfName, nearestAnsi16, resolveBackgroundColor } from './shared';
 
-export function exportToRatatui(root: ComponentNode): string {
+export function exportToRatatui(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
   const usedWidgets = new Set<string>();
   collectUsedWidgets(root, usedWidgets);
 
@@ -40,7 +41,7 @@ fn main() -> io::Result<()> {
 
 fn ui(frame: &mut Frame) {
     let area = frame.area();
-${generateRatatuiNode(root, 1, 'area')}
+${generateRatatuiNode(root, 1, 'area', colorMode)}
 }
 `;
 }
@@ -89,9 +90,41 @@ function buildWidgetImports(used: Set<string>): string {
   return order.filter(w => used.has(w)).join(', ');
 }
 
+// ── Justify emulation ─────────────────────────────────────────────────────────
+// Ratatui's Layout is constraint-based, not flexbox — there's no justify-content.
+// The community-standard emulation: insert Constraint::Fill(1) "spacer" slots
+// around/between real children so leftover space lands where CSS justify would
+// put it. 'start'/'stretch'/unset are left as plain children (no behavior change).
+
+type Slot = { child: ComponentNode } | { spacer: true };
+
+const SPACER: Slot = { spacer: true };
+
+function layoutSlots(children: ComponentNode[], justify: string | undefined): Slot[] {
+  const kids: Slot[] = children.map((child) => ({ child }));
+  switch (justify) {
+    case 'center':
+      return [SPACER, ...kids, SPACER];
+    case 'end':
+      return [SPACER, ...kids];
+    case 'space-between':
+      if (kids.length <= 1) return kids;
+      return kids.flatMap((slot, i) => (i === 0 ? [slot] : [SPACER, slot]));
+    case 'space-around':
+      return kids.flatMap((slot) => [SPACER, slot]).concat(SPACER);
+    default:
+      return kids;
+  }
+}
+
 // ── Code generator ────────────────────────────────────────────────────────────
 
-function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: string): string {
+function generateRatatuiNode(
+  node: ComponentNode,
+  indent: number,
+  areaVar: string,
+  colorMode: ExportColorMode
+): string {
   if (node.hidden) return '';
   const sp = '    '.repeat(indent);
 
@@ -114,11 +147,14 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
     }
 
     // F1 — unique block_<area>/inner_<area> variable names (no bare `let block`/`let inner`)
-    if (node.type !== 'Screen' && node.style.border) {
+    // A Block is also needed for a background-only (unbordered) container — a
+    // container has no widget of its own to paint the space, unlike Text/Button/etc,
+    // which already get their bg via ratatuiStyle() on the widget itself.
+    if (node.type !== 'Screen' && (node.style.border || resolveBackgroundColor(node.style))) {
       const blockVar = `block_${targetArea.replace(/[^a-zA-Z0-9_]/g, '_')}`;
       const innerVar = `inner_${targetArea.replace(/[^a-zA-Z0-9_]/g, '_')}`;
       // N8: Block::new() — Block::default() is deprecated in ratatui 0.27+
-      out += `${sp}let ${blockVar} = ${ratatuiBlock(node)};\n`;
+      out += `${sp}let ${blockVar} = ${ratatuiBlock(node, colorMode)};\n`;
       out += `${sp}let ${innerVar} = ${blockVar}.inner(${targetArea});\n`;
       out += `${sp}frame.render_widget(${blockVar}, ${targetArea});\n`;
       targetArea = innerVar;
@@ -135,7 +171,7 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
         const childArea = `area_${child.id.replace(/[^a-zA-Z0-9_]/g, '_')}`;
         out += `${sp}let ${childArea} = Rect::new(${targetArea}.x + ${x}, ${targetArea}.y + ${y}, ${w}, ${h});\n`;
         // F8 — pass indent + 1 in recursive calls
-        out += generateRatatuiNode(child, indent + 1, childArea);
+        out += generateRatatuiNode(child, indent + 1, childArea, colorMode);
       }
       return out;
     }
@@ -144,10 +180,13 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
     if (node.type === 'Grid') {
       const columns = Math.max(1, Number(node.layout.columns ?? 2));
       const rows = Math.max(1, Number(node.layout.rows ?? Math.ceil(node.children.length / columns)));
+      const rowGap = Number(node.layout.rowGap ?? node.layout.gap ?? 0);
+      const colGap = Number(node.layout.columnGap ?? node.layout.gap ?? 0);
       const rowChunks = `grid_rows_${targetArea.replace(/[^a-zA-Z0-9_]/g, '_')}`;
       out += `${sp}let ${rowChunks} = Layout::default()\n`;
       out += `${sp}    .direction(Direction::Vertical)\n`;
       out += `${sp}    .constraints([${Array.from({ length: rows }, () => 'Constraint::Fill(1)').join(', ')}])\n`;
+      if (rowGap > 0) out += `${sp}    .spacing(${rowGap})\n`;
       out += `${sp}    .split(${targetArea});\n`;
       for (let row = 0; row < rows; row++) {
         const rowArea = `${rowChunks}[${row}]`;
@@ -155,12 +194,13 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
         out += `${sp}let ${colChunks} = Layout::default()\n`;
         out += `${sp}    .direction(Direction::Horizontal)\n`;
         out += `${sp}    .constraints([${Array.from({ length: columns }, () => 'Constraint::Fill(1)').join(', ')}])\n`;
+        if (colGap > 0) out += `${sp}    .spacing(${colGap})\n`;
         out += `${sp}    .split(${rowArea});\n`;
         for (let col = 0; col < columns; col++) {
           const childIndex = row * columns + col;
           const child = node.children[childIndex];
           // F8 — pass indent + 1
-          if (child) out += generateRatatuiNode(child, indent + 1, `${colChunks}[${col}]`);
+          if (child) out += generateRatatuiNode(child, indent + 1, `${colChunks}[${col}]`, colorMode);
         }
       }
       return out;
@@ -168,15 +208,21 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
 
     const dir = node.layout.direction === 'row' ? 'Horizontal' : 'Vertical';
     const axis: 'width' | 'height' = node.layout.direction === 'row' ? 'width' : 'height';
+    const gap = Number(node.layout.gap ?? 0);
     const chunks = `chunks_${targetArea.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-    const constraints = node.children.map(child => ratatuiConstraint(child, axis)).join(', ');
+    const slots = layoutSlots(node.children, node.layout.justify);
+    const constraints = slots
+      .map((slot) => ('spacer' in slot ? 'Constraint::Fill(1)' : ratatuiConstraint(slot.child, axis)))
+      .join(', ');
     out += `${sp}let ${chunks} = Layout::default()\n`;
     out += `${sp}    .direction(Direction::${dir})\n`;
     out += `${sp}    .constraints([${constraints}])\n`;
+    if (gap > 0) out += `${sp}    .spacing(${gap})\n`;
     out += `${sp}    .split(${targetArea});\n`;
-    node.children.forEach((child, i) => {
+    slots.forEach((slot, i) => {
+      if ('spacer' in slot) return; // Fill(1) placeholder — nothing to render
       // F8 — pass indent + 1
-      out += generateRatatuiNode(child, indent + 1, `${chunks}[${i}]`);
+      out += generateRatatuiNode(slot.child, indent + 1, `${chunks}[${i}]`, colorMode);
     });
     return out;
   }
@@ -188,38 +234,38 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
     let widget = content.includes('\n')
       ? `Paragraph::new(vec![${content.split('\n').map(line => `Line::from(${escRust(line)})`).join(', ')}])`
       : `Paragraph::new(${escRust(content)})`;
-    widget += `.style(${ratatuiStyle(node)})`;
-    if (node.style.border) widget += `.block(${ratatuiBlock(node)})`;
+    widget += `.style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     if (node.props.wrap) widget += `.wrap(Wrap { trim: false })`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
   if (node.type === 'Button') {
     let widget = `Paragraph::new(${escRust((node.props.label as string) || 'Button')})`;
-    widget += `.alignment(Alignment::Center).style(${ratatuiStyle(node)})`;
-    widget += `.block(${ratatuiBlock(node)})`;
+    widget += `.alignment(Alignment::Center).style(${ratatuiStyle(node, colorMode)})`;
+    widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
   if (node.type === 'TextInput') {
     const text = ratatuiTextInputText(node);
-    let widget = `Paragraph::new(${escRust(text)}).style(${ratatuiStyle(node)})`;
-    if (node.style.border) widget += `.block(${ratatuiBlock(node)})`;
+    let widget = `Paragraph::new(${escRust(text)}).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
   if (node.type === 'Checkbox' || node.type === 'Radio' || node.type === 'Toggle' || node.type === 'Select' || node.type === 'Spinner' || node.type === 'Breadcrumb') {
     const text = ratatuiInlineText(node);
-    let widget = `Paragraph::new(${escRust(text)}).style(${ratatuiStyle(node)})`;
-    if (node.style.border) widget += `.block(${ratatuiBlock(node)})`;
+    let widget = `Paragraph::new(${escRust(text)}).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
   if (node.type === 'ProgressBar') {
     const value = Number(node.props.value ?? 0);
     const max = Number(node.props.max ?? 100) || 100;
-    let widget = `Gauge::default().ratio(${Math.max(0, Math.min(1, value / max)).toFixed(3)}).style(${ratatuiStyle(node)})`;
-    if (node.style.border) widget += `.block(${ratatuiBlock(node)})`;
+    let widget = `Gauge::default().ratio(${Math.max(0, Math.min(1, value / max)).toFixed(3)}).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
@@ -227,15 +273,15 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
     const items = ratatuiListItems(node);
     // N5: omit .highlight_symbol() — it only works with render_stateful_widget;
     // selection is already shown via the inline '▶' marker in item text.
-    let widget = `List::new(vec![${items}]).style(${ratatuiStyle(node)})`;
-    if (node.style.border) widget += `.block(${ratatuiBlock(node)})`;
+    let widget = `List::new(vec![${items}]).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
   if (node.type === 'Tabs') {
     const tabs = ratatuiTabTitles(node);
-    let widget = `Tabs::new(vec![${tabs.map(t => escRust(t)).join(', ')}]).select(${Number(node.props.activeTab ?? 0)}).style(${ratatuiStyle(node)}).highlight_style(Style::default().add_modifier(Modifier::BOLD))`;
-    if (node.style.border) widget += `.block(${ratatuiBlock(node)})`;
+    let widget = `Tabs::new(vec![${tabs.map(t => escRust(t)).join(', ')}]).select(${Number(node.props.activeTab ?? 0)}).style(${ratatuiStyle(node, colorMode)}).highlight_style(Style::default().add_modifier(Modifier::BOLD))`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
@@ -243,8 +289,8 @@ function generateRatatuiNode(node: ComponentNode, indent: number, areaVar: strin
     const cols = ((node.props.columns as string[]) || ['Column 1', 'Column 2']).map(c => escRust(c)).join(', ');
     const rows = ratatuiTableRows(node);
     const widths = ((node.props.columns as string[]) || ['a', 'b']).map(() => 'Constraint::Fill(1)').join(', ');
-    let widget = `Table::new(vec![${rows}], [${widths}]).header(Row::new(vec![${cols}]).style(Style::default().add_modifier(Modifier::BOLD))).style(${ratatuiStyle(node)})`;
-    if (node.style.border) widget += `.block(${ratatuiBlock(node)})`;
+    let widget = `Table::new(vec![${rows}], [${widths}]).header(Row::new(vec![${cols}]).style(Style::default().add_modifier(Modifier::BOLD))).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }
 
@@ -266,11 +312,16 @@ function ratatuiConstraint(node: ComponentNode, axis: 'width' | 'height'): strin
 // ── Block / style helpers ─────────────────────────────────────────────────────
 
 // N8: Block::new() — Block::default() is deprecated in ratatui 0.27+
-function ratatuiBlock(node: ComponentNode): string {
-  let block = 'Block::new().borders(Borders::ALL)';
-  block += `.border_type(${ratatuiBorderType(node.style.borderStyle as string | undefined)})`;
-  if (node.name && node.name !== node.type) block += `.title(${escRust(node.name)})`;
-  if (node.style.borderColor) block += `.border_style(Style::default().fg(${ratatuiColor(node.style.borderColor)}))`;
+function ratatuiBlock(node: ComponentNode, colorMode: ExportColorMode): string {
+  let block = 'Block::new()';
+  if (node.style.border) {
+    block += `.borders(Borders::ALL)`;
+    block += `.border_type(${ratatuiBorderType(node.style.borderStyle as string | undefined)})`;
+    if (node.name && node.name !== node.type) block += `.title(${escRust(node.name)})`;
+    if (node.style.borderColor) block += `.border_style(Style::default().fg(${ratatuiColor(node.style.borderColor, colorMode)}))`;
+  }
+  const backgroundColor = resolveBackgroundColor(node.style);
+  if (backgroundColor) block += `.style(Style::default().bg(${ratatuiColor(backgroundColor, colorMode)}))`;
   return block;
 }
 
@@ -283,15 +334,39 @@ function ratatuiBorderType(style: string | undefined): string {
   }
 }
 
+// Real xterm/crossterm ANSI-16 mapping, index-aligned with shared.ts's ANSI16_NAMES.
+// Distinct from the truecolor `named` table below: index 7 (ANSI "white") is the
+// dim Color::Gray and index 15 (bright white) is Color::White, the standard
+// convention — this path only runs in ansi16 mode, so it can't affect existing
+// truecolor output or its snapshots.
+const RATATUI_ANSI16: string[] = [
+  'Color::Black', 'Color::Red', 'Color::Green', 'Color::Yellow',
+  'Color::Blue', 'Color::Magenta', 'Color::Cyan', 'Color::Gray',
+  'Color::DarkGray', 'Color::LightRed', 'Color::LightGreen', 'Color::LightYellow',
+  'Color::LightBlue', 'Color::LightMagenta', 'Color::LightCyan', 'Color::White',
+];
+
 // F4 — support 3-digit hex colours (#RGB → #RRGGBB)
-function ratatuiColor(value: string | undefined): string {
+function ratatuiColor(value: string | undefined, colorMode: ExportColorMode = 'truecolor'): string {
   if (!value) return 'Color::Reset';
+
+  if (colorMode === 'ansi16') {
+    const named = ansi16IndexOfName(value);
+    if (named != null) return RATATUI_ANSI16[named];
+    if (/^#[0-9a-fA-F]{3}$/.test(value) || /^#[0-9a-fA-F]{6}$/.test(value))
+      return RATATUI_ANSI16[nearestAnsi16(value)];
+  }
+
   const named: Record<string, string> = {
     black: 'Color::Black', white: 'Color::White', red: 'Color::Red', green: 'Color::Green',
     yellow: 'Color::Yellow', blue: 'Color::Blue', magenta: 'Color::Magenta', cyan: 'Color::Cyan',
     gray: 'Color::Gray', grey: 'Color::Gray', darkgray: 'Color::DarkGray',
     lightred: 'Color::LightRed', lightgreen: 'Color::LightGreen', lightyellow: 'Color::LightYellow',
     lightblue: 'Color::LightBlue', lightmagenta: 'Color::LightMagenta', lightcyan: 'Color::LightCyan',
+    // bright* aliases — same slots as light* above (ANSI16_NAMES uses the bright* spelling)
+    brightblack: 'Color::DarkGray', brightred: 'Color::LightRed', brightgreen: 'Color::LightGreen',
+    brightyellow: 'Color::LightYellow', brightblue: 'Color::LightBlue', brightmagenta: 'Color::LightMagenta',
+    brightcyan: 'Color::LightCyan', brightwhite: 'Color::White',
   };
   let s = String(value).trim();
   // Expand 3-digit hex to 6-digit before stripping
@@ -309,10 +384,11 @@ function ratatuiColor(value: string | undefined): string {
   return 'Color::Reset';
 }
 
-function ratatuiStyle(node: ComponentNode): string {
+function ratatuiStyle(node: ComponentNode, colorMode: ExportColorMode): string {
   let style = 'Style::default()';
-  if (node.style.color) style += `.fg(${ratatuiColor(node.style.color)})`;
-  if (node.style.backgroundColor) style += `.bg(${ratatuiColor(node.style.backgroundColor)})`;
+  if (node.style.color) style += `.fg(${ratatuiColor(node.style.color, colorMode)})`;
+  const backgroundColor = resolveBackgroundColor(node.style);
+  if (backgroundColor) style += `.bg(${ratatuiColor(backgroundColor, colorMode)})`;
   const mods: string[] = [];
   if (node.style.bold) mods.push('Modifier::BOLD');
   if (node.style.italic) mods.push('Modifier::ITALIC');

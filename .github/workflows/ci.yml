@@ -24,10 +24,12 @@ jobs:
           name: export-check
           path: export-check/
 
-  # The steps below hand the exporter's actual generated output to each
-  # target language's real toolchain — catching drift (a bad escape, a
-  # broken import, an upstream API change) that string-snapshot tests alone
-  # would miss. See scripts/generate-export-fixtures.mjs.
+  # The steps below hand the exporter's actual generated output — the
+  # kitchen-sink fixture, the style-edge-cases fixture (gradient/justify/
+  # align/gap), and its ansi16 color-tier variant — to each target
+  # language's real toolchain. This catches drift (a bad escape, a broken
+  # import, an upstream API change) that string-snapshot tests alone would
+  # miss. See scripts/generate-export-fixtures.mjs.
 
   verify-rust:
     needs: build
@@ -44,8 +46,12 @@ jobs:
           workspaces: rust-check
       - run: mkdir -p rust-check/src
       - run: cp scripts/ci-templates/rust/Cargo.toml rust-check/Cargo.toml
-      - run: cp export-check/ratatui.rs rust-check/src/main.rs
-      - run: cargo build --manifest-path rust-check/Cargo.toml
+      - name: build each Ratatui variant
+        run: |
+          for f in ratatui ratatui-edge ratatui-edge-ansi16; do
+            cp "export-check/$f.rs" rust-check/src/main.rs
+            cargo build --manifest-path rust-check/Cargo.toml
+          done
 
   verify-go:
     needs: build
@@ -66,15 +72,27 @@ jobs:
         run: |
           go mod init exportcheck
           go mod tidy
-          go test ./...
+      - name: test each Bubble Tea variant
+        working-directory: go-check
+        run: |
+          for f in bubbletea bubbletea-edge bubbletea-edge-ansi16; do
+            cp "../export-check/$f.go" main.go
+            go test ./...
+          done
       - run: mkdir -p go-check-tview
       - run: cp export-check/tview.go go-check-tview/main.go
       - working-directory: go-check-tview
         run: |
           go mod init tviewcheck
           go mod tidy
-          go build ./...
-          go vet ./...
+      - name: build each Tview variant
+        working-directory: go-check-tview
+        run: |
+          for f in tview tview-edge tview-edge-ansi16; do
+            cp "../export-check/$f.go" main.go
+            go build ./...
+            go vet ./...
+          done
 
   verify-python:
     needs: build
@@ -89,8 +107,12 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install textual
-      - run: python -m py_compile export-check/textual.py
-      - run: python scripts/ci-templates/textual/smoke.py export-check/textual.py
+      - name: compile + mount each Textual variant
+        run: |
+          for f in textual textual-edge; do
+            python -m py_compile "export-check/$f.py"
+            python scripts/ci-templates/textual/smoke.py "export-check/$f.py"
+          done
 
   verify-node-exports:
     needs: build
@@ -106,6 +128,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: node --check export-check/blessed.js
-      - run: node_modules/.bin/esbuild export-check/opentui.tsx --jsx=automatic --outfile=/dev/null
-      - run: node_modules/.bin/esbuild export-check/ink.tsx --jsx=automatic --outfile=/dev/null
+      - name: syntax-check each Blessed variant
+        run: |
+          for f in blessed blessed-edge blessed-edge-ansi16; do
+            node --check "export-check/$f.js"
+          done
+      - name: syntax-check each OpenTUI/Ink variant
+        run: |
+          for f in opentui opentui-edge opentui-edge-ansi16 ink ink-edge ink-edge-ansi16; do
+            node_modules/.bin/esbuild "export-check/$f.tsx" --jsx=automatic --outfile=/dev/null
+          done

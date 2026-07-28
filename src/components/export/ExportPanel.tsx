@@ -12,8 +12,12 @@ import {
 } from '../../utils/export';
 import { saveToDownloadFolder } from '../../utils/downloadManager';
 import type { ExportFormatId } from '../../types/export';
+import type { ExportColorMode } from '../../utils/export/codeExporter';
 
 type ExportMode = 'preview' | 'text' | 'code';
+
+// Textual's TCSS color story is deferred — see todo.md — so it doesn't get the toggle.
+const COLOR_MODE_FORMATS = new Set(['ink', 'opentui', 'bubbletea', 'blessed', 'ratatui', 'tview']);
 
 export function ExportPanel() {
   const componentStore = useComponentStore();
@@ -22,6 +26,7 @@ export function ExportPanel() {
   const [mode, setMode] = useState<ExportMode>('preview');
   const [textFormat, setTextFormat] = useState<'text' | 'ansi' | 'ansi256' | 'trueColor'>('ansi');
   const [codeFormat, setCodeFormat] = useState<ExportFormatId | 'text'>('opentui');
+  const [colorMode, setColorMode] = useState<ExportColorMode>('truecolor');
   const [copied, setCopied] = useState(false);
 
   const getOutput = () => {
@@ -29,7 +34,7 @@ export function ExportPanel() {
       if (codeFormat === 'html') {
         return exportToHtmlFile(componentStore.root, canvasStore.width, canvasStore.height);
       }
-      return exportToCode(componentStore.root, codeFormat);
+      return exportToCode(componentStore.root, codeFormat, colorMode);
     }
     return exportToText(componentStore.root, {
       format: textFormat,
@@ -49,7 +54,7 @@ export function ExportPanel() {
       mode === 'code'
         ? codeFormat === 'html'
           ? exportToHtmlFile(componentStore.root, canvasStore.width, canvasStore.height)
-          : exportToCode(componentStore.root, codeFormat)
+          : exportToCode(componentStore.root, codeFormat, colorMode)
         : exportToText(componentStore.root, {
             format: textFormat,
             width: canvasStore.width,
@@ -154,6 +159,20 @@ export function ExportPanel() {
             </select>
           </div>
         )}
+
+        {mode === 'code' && COLOR_MODE_FORMATS.has(codeFormat) && (
+          <div className="mt-3">
+            <label className="text-sm font-medium mb-2 block">Color Mode</label>
+            <select
+              value={colorMode}
+              onChange={(e) => setColorMode(e.target.value as ExportColorMode)}
+              className="w-full px-3 py-2 bg-secondary border border-border rounded text-sm"
+            >
+              <option value="truecolor">Truecolor (24-bit hex)</option>
+              <option value="ansi16">ANSI-16 (portable, theme-adaptive)</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Preview/Output */}
@@ -162,7 +181,7 @@ export function ExportPanel() {
         {mode === 'text' && (
           <TextOutput format={textFormat} width={canvasStore.width} height={canvasStore.height} />
         )}
-        {mode === 'code' && <CodeOutput format={codeFormat} />}
+        {mode === 'code' && <CodeOutput format={codeFormat} colorMode={colorMode} />}
       </div>
 
       {/* Actions */}
@@ -236,14 +255,14 @@ function TextOutput({ format, width, height }: { format: string; width: number; 
   );
 }
 
-function CodeOutput({ format }: { format: ExportFormatId | 'text' }) {
+function CodeOutput({ format, colorMode }: { format: ExportFormatId | 'text'; colorMode: ExportColorMode }) {
   const componentStore = useComponentStore();
   const canvasStore = useCanvasStore();
 
   const output =
     format === 'html'
       ? exportToHtmlFile(componentStore.root, canvasStore.width, canvasStore.height)
-      : exportToCode(componentStore.root, format as ExportFormatId);
+      : exportToCode(componentStore.root, format as ExportFormatId, colorMode);
   const warnings = format === 'html' ? [] : getExportWarnings(componentStore.root, format);
 
   return (

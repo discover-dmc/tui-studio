@@ -24,12 +24,16 @@ const EXTENSIONS = {
   ink: 'tsx',
 };
 
+// Formats with a real color-tier degradation path (see codeExporter.ts / shared.ts).
+// Textual's TCSS color story doesn't have an ansi16 mode (see todo.md), so it's excluded.
+const COLOR_MODE_FORMATS = new Set(['ratatui', 'bubbletea', 'tview', 'blessed', 'opentui', 'ink']);
+
 async function main() {
   const result = await build({
     stdin: {
       contents: `
         export { exportToCode } from '${path.join(repoRoot, 'src/utils/export/codeExporter')}';
-        export { kitchenSinkTree } from '${path.join(repoRoot, 'src/utils/export/__tests__/fixtures')}';
+        export { kitchenSinkTree, styleEdgeCasesTree } from '${path.join(repoRoot, 'src/utils/export/__tests__/fixtures')}';
       `,
       resolveDir: repoRoot,
       loader: 'ts',
@@ -42,16 +46,26 @@ async function main() {
 
   const bundlePath = path.join(os.tmpdir(), `export-check-bundle-${Date.now()}.mjs`);
   writeFileSync(bundlePath, result.outputFiles[0].text);
-  const { exportToCode, kitchenSinkTree } = await import(bundlePath);
+  const { exportToCode, kitchenSinkTree, styleEdgeCasesTree } = await import(bundlePath);
 
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
 
-  const tree = kitchenSinkTree();
+  const write = (name, code) => {
+    writeFileSync(path.join(outDir, name), code);
+    console.log(`wrote export-check/${name}`);
+  };
+
+  const kitchenTree = kitchenSinkTree();
+  const edgeTree = styleEdgeCasesTree();
   for (const [format, ext] of Object.entries(EXTENSIONS)) {
-    const code = exportToCode(tree, format);
-    writeFileSync(path.join(outDir, `${format}.${ext}`), code);
-    console.log(`wrote export-check/${format}.${ext}`);
+    write(`${format}.${ext}`, exportToCode(kitchenTree, format));
+    // The style-edge-cases fixture exercises gradient fallback and justify/align/gap —
+    // real code paths the kitchen-sink fixture alone doesn't hit (no gradient/justify there).
+    write(`${format}-edge.${ext}`, exportToCode(edgeTree, format));
+    if (COLOR_MODE_FORMATS.has(format)) {
+      write(`${format}-edge-ansi16.${ext}`, exportToCode(edgeTree, format, 'ansi16'));
+    }
   }
 }
 

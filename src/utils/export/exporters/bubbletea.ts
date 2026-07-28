@@ -1,6 +1,13 @@
 import type { ComponentNode } from '../../../types';
 import { escGo } from '../escape';
 import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
+import {
+  type ExportColorMode,
+  ansi16IndexOfName,
+  createIdentGenerator,
+  nearestAnsi16,
+  resolveBackgroundColor,
+} from './shared';
 
 // Generates a runnable Bubble Tea program: the tree becomes lipgloss
 // JoinVertical/JoinHorizontal compositions with per-node styles. Interactive
@@ -11,6 +18,7 @@ interface Ctx {
   stmts: string[];
   usedVars: Set<string>;
   skipped: string[];
+  colorMode: ExportColorMode;
 }
 
 /** Features of the design a static Bubble Tea view cannot express. */
@@ -28,11 +36,12 @@ export function getBubbleTeaWarnings(root: ComponentNode): string[] {
   return warnings;
 }
 
-export function exportToBubbleTea(root: ComponentNode): string {
+export function exportToBubbleTea(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
   const ctx: Ctx = {
     stmts: [],
     usedVars: new Set(['m', 'model', 'main', 'msg', 'p', 'err']),
     skipped: [],
+    colorMode,
   };
   const rootExpr = genNode(root, ctx);
 
@@ -113,7 +122,9 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       for (let i = 0; i < node.children.length; i += cols) {
         const cells = node.children.slice(i, i + cols).map((c) => genNode(c, ctx));
         rowExprs.push(
-          cells.length > 1 ? `lipgloss.JoinHorizontal(lipgloss.Top, ${cells.join(', ')})` : cells[0]
+          cells.length > 1
+            ? `lipgloss.JoinHorizontal(${joinPosition(node.layout.align, true)}, ${cells.join(', ')})`
+            : cells[0]
         );
       }
       return emitContainer(node, ctx, rowExprs, false);
@@ -123,18 +134,18 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       return '""';
 
     case 'Text':
-      return styled(node, escGoStr((node.props.content as string) || 'Text'));
+      return styled(node, escGoStr((node.props.content as string) || 'Text'), ctx);
 
     case 'Button': {
       const label = ` ${(node.props.label as string) || 'Button'} `;
-      const base = goStyle(node, ['Bold(true)', 'Reverse(true)']);
+      const base = goStyle(node, ctx, ['Bold(true)', 'Reverse(true)']);
       return `${base}.Render(${escGoStr(label)})`;
     }
 
     case 'TextInput': {
       // consider charmbracelet/bubbles/textinput for a live input
       const value = ((node.props.value as string) || (node.props.placeholder as string) || '') + '_';
-      return styled(node, escGoStr(value));
+      return styled(node, escGoStr(value), ctx);
     }
 
     case 'Checkbox': {
@@ -142,7 +153,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const icon = checked
         ? (node.props.checkedIcon as string) || '✓'
         : (node.props.uncheckedIcon as string) || ' ';
-      return styled(node, escGoStr(`[${icon}] ${(node.props.label as string) || 'Checkbox'}`));
+      return styled(node, escGoStr(`[${icon}] ${(node.props.label as string) || 'Checkbox'}`), ctx);
     }
 
     case 'Radio': {
@@ -150,18 +161,18 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const icon = selected
         ? (node.props.selectedIcon as string) || '●'
         : (node.props.unselectedIcon as string) || '○';
-      return styled(node, escGoStr(`(${icon}) ${(node.props.label as string) || 'Radio'}`));
+      return styled(node, escGoStr(`(${icon}) ${(node.props.label as string) || 'Radio'}`), ctx);
     }
 
     case 'Toggle': {
       const on = !!(node.props.value ?? node.props.checked);
-      return styled(node, escGoStr(`${on ? '[ON ]' : '[OFF]'} ${(node.props.label as string) || ''}`.trim()));
+      return styled(node, escGoStr(`${on ? '[ON ]' : '[OFF]'} ${(node.props.label as string) || ''}`.trim()), ctx);
     }
 
     case 'Select': {
       const options = (node.props.options as string[]) || ['Option 1'];
       const idx = Math.max(0, Math.min(Number(node.props.selectedIndex ?? 0), options.length - 1));
-      return styled(node, escGoStr(`${options[idx]} ▼`));
+      return styled(node, escGoStr(`${options[idx]} ▼`), ctx);
     }
 
     case 'Spinner': {
@@ -170,7 +181,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
         SPINNER_PRESETS[(node.props.spinnerStyle as string) || 'dots'] || SPINNER_PRESETS.dots;
       const idx = Math.max(0, Math.min(Number(node.props.frame ?? 0), preset.frames.length - 1));
       const label = (node.props.label as string) ?? 'Loading...';
-      return styled(node, escGoStr(label ? `${preset.frames[idx]} ${label}` : preset.frames[idx]));
+      return styled(node, escGoStr(label ? `${preset.frames[idx]} ${label}` : preset.frames[idx]), ctx);
     }
 
     case 'ProgressBar': {
@@ -182,7 +193,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const showPercent = (node.props.showPercent as boolean) ?? true;
       const styleName = (node.props.barStyle as string) || 'blocks';
       const bar = renderBar(styleName, width - (showPercent ? 5 : 0), pct);
-      return styled(node, escGoStr(showPercent ? `${bar} ${pct.toFixed(0)}%` : bar));
+      return styled(node, escGoStr(showPercent ? `${bar} ${pct.toFixed(0)}%` : bar), ctx);
     }
 
     case 'List':
@@ -198,7 +209,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
         const hotkey = d.hotkey ? `  ${d.hotkey}` : '';
         return `${marker}${icon}${d.label || 'Item'}${hotkey}`;
       });
-      return styled(node, escGoStr(lines.join('\n')));
+      return styled(node, escGoStr(lines.join('\n')), ctx);
     }
 
     case 'Tree': {
@@ -212,7 +223,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
         (d.children || []).forEach((c) => walk(c, depth + 1));
       };
       ((node.props.items as unknown[]) || []).forEach((i) => walk(i, 0));
-      return styled(node, escGoStr(lines.join('\n')));
+      return styled(node, escGoStr(lines.join('\n')), ctx);
     }
 
     case 'Table': {
@@ -225,7 +236,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
         columns.map(() => '─'.repeat(colW)).join('─┼─'),
         ...rows.map((row) => columns.map((_, ci) => fit(String(row[ci] ?? ''))).join(' │ ')),
       ];
-      return styled(node, escGoStr(lines.join('\n')));
+      return styled(node, escGoStr(lines.join('\n')), ctx);
     }
 
     case 'Tabs': {
@@ -249,12 +260,21 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const text = ((node.props.items as unknown[]) || [])
         .map((i) => (typeof i === 'string' ? i : (i as { label?: string }).label || ''))
         .join(sep);
-      return styled(node, escGoStr(text));
+      return styled(node, escGoStr(text), ctx);
     }
 
     default:
       return escGoStr(node.type);
   }
+}
+
+/** lipgloss.Join{Horizontal,Vertical}'s position arg is the cross-axis alignment. */
+function joinPosition(align: string | undefined, isRow: boolean): string {
+  const start = isRow ? 'lipgloss.Top' : 'lipgloss.Left';
+  const end = isRow ? 'lipgloss.Bottom' : 'lipgloss.Right';
+  if (align === 'center') return 'lipgloss.Center';
+  if (align === 'end') return end;
+  return start; // 'start' | 'stretch' | undefined — lipgloss has no stretch equivalent
 }
 
 function emitContainer(node: ComponentNode, ctx: Ctx, childExprs: string[], isRow: boolean): string {
@@ -263,34 +283,36 @@ function emitContainer(node: ComponentNode, ctx: Ctx, childExprs: string[], isRo
   else if (childExprs.length === 1) expr = childExprs[0];
   else
     expr = isRow
-      ? `lipgloss.JoinHorizontal(lipgloss.Top, ${childExprs.join(', ')})`
-      : `lipgloss.JoinVertical(lipgloss.Left, ${childExprs.join(', ')})`;
+      ? `lipgloss.JoinHorizontal(${joinPosition(node.layout.align, true)}, ${childExprs.join(', ')})`
+      : `lipgloss.JoinVertical(${joinPosition(node.layout.align, false)}, ${childExprs.join(', ')})`;
 
-  const style = goStyle(node);
+  const style = goStyle(node, ctx);
   if (style) expr = `${style}.Render(${expr})`;
   return assignVar(node, ctx, expr);
 }
 
 function assignVar(node: ComponentNode, ctx: Ctx, expr: string): string {
   if (expr === '""') return expr;
-  const name = goIdent(node.name, ctx);
+  const ident = createIdentGenerator(ctx.usedVars, 'v');
+  const name = ident(node.name);
   ctx.stmts.push(`\t${name} := ${expr}`);
   return name;
 }
 
 /** Wrap a leaf expression in its style, if any. */
-function styled(node: ComponentNode, expr: string): string {
-  const style = goStyle(node);
+function styled(node: ComponentNode, expr: string, ctx: Ctx): string {
+  const style = goStyle(node, ctx);
   return style ? `${style}.Render(${expr})` : expr;
 }
 
 /** Build a lipgloss.NewStyle() chain from node style/layout; '' when default. */
-function goStyle(node: ComponentNode, extra: string[] = []): string {
+function goStyle(node: ComponentNode, ctx: Ctx, extra: string[] = []): string {
   const parts: string[] = [...extra];
   const s = node.style;
 
-  if (s.color) pushColor(parts, 'Foreground', s.color);
-  if (s.backgroundColor) pushColor(parts, 'Background', s.backgroundColor);
+  if (s.color) pushColor(parts, 'Foreground', s.color, ctx.colorMode);
+  const backgroundColor = resolveBackgroundColor(s);
+  if (backgroundColor) pushColor(parts, 'Background', backgroundColor, ctx.colorMode);
   if (s.bold && !extra.includes('Bold(true)')) parts.push('Bold(true)');
   if (s.italic) parts.push('Italic(true)');
   if (s.underline) parts.push('Underline(true)');
@@ -305,7 +327,7 @@ function goStyle(node: ComponentNode, extra: string[] = []): string {
       hidden: 'lipgloss.HiddenBorder()',
     };
     parts.push(`Border(${borderMap[s.borderStyle || 'single'] || 'lipgloss.NormalBorder()'})`);
-    if (s.borderColor) pushColor(parts, 'BorderForeground', s.borderColor);
+    if (s.borderColor) pushColor(parts, 'BorderForeground', s.borderColor, ctx.colorMode);
   }
 
   const pad = node.layout.padding;
@@ -317,37 +339,23 @@ function goStyle(node: ComponentNode, extra: string[] = []): string {
   return parts.length ? `lipgloss.NewStyle().${parts.join('.')}` : '';
 }
 
-function pushColor(parts: string[], method: string, value: string): void {
-  const color = goColor(value);
+function pushColor(parts: string[], method: string, value: string, colorMode: ExportColorMode): void {
+  const color = goColor(value, colorMode);
   if (color) parts.push(`${method}(lipgloss.Color(${color}))`);
 }
 
-/** lipgloss.Color takes hex strings or ANSI palette index strings. */
-function goColor(value: string): string | null {
-  const named: Record<string, number> = {
-    black: 0, red: 1, green: 2, yellow: 3, blue: 4, magenta: 5, cyan: 6, white: 7,
-    brightblack: 8, gray: 8, grey: 8, darkgray: 8,
-    brightred: 9, lightred: 9, brightgreen: 10, lightgreen: 10,
-    brightyellow: 11, lightyellow: 11, brightblue: 12, lightblue: 12,
-    brightmagenta: 13, lightmagenta: 13, brightcyan: 14, lightcyan: 14, brightwhite: 15,
-  };
-  let v = String(value).trim();
-  if (/^#[0-9a-fA-F]{3}$/.test(v)) v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
-  if (/^#[0-9a-fA-F]{6}$/.test(v)) return `"${v}"`;
-  const idx = named[v.toLowerCase().replace(/[^a-z]/g, '')];
-  return idx != null ? `"${idx}"` : null;
-}
-
-function goIdent(name: string, ctx: Ctx): string {
-  let base = name.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ')
-    .map((w, i) => (i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : w.charAt(0).toUpperCase() + w.slice(1)))
-    .join('');
-  if (!base || /^[0-9]/.test(base)) base = `v${base}`;
-  let ident = base;
-  let n = 2;
-  while (ctx.usedVars.has(ident)) ident = `${base}${n++}`;
-  ctx.usedVars.add(ident);
-  return ident;
+/** lipgloss.Color takes hex strings or ANSI palette index strings ("0"-"255"). */
+function goColor(value: string, colorMode: ExportColorMode): string | null {
+  const named = ansi16IndexOfName(value);
+  if (named != null) return `"${named}"`;
+  if (!/^#[0-9a-fA-F]{3}$/.test(value) && !/^#[0-9a-fA-F]{6}$/.test(value)) return null;
+  // ansi16 mode: force even a hex input down to its nearest indexed slot, so
+  // the terminal's own palette (not a fixed RGB) determines the final color.
+  if (colorMode === 'ansi16') return `"${nearestAnsi16(value)}"`;
+  const v = /^#[0-9a-fA-F]{3}$/.test(value)
+    ? '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3]
+    : value;
+  return `"${v}"`;
 }
 
 function escGoStr(s: string): string {

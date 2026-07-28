@@ -1,5 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escPy } from '../escape';
+import { ANSI16_NAMES, ansi16IndexOfName, resolveBackgroundColor } from './shared';
 
 // Generates a runnable Textual app: containers preserve the tree, widgets map to
 // real Textual classes, styles become TCSS in App.CSS, and data widgets
@@ -300,8 +301,9 @@ function registerStyles(
 function tcssRules(node: ComponentNode, isScreen: boolean): string[] {
   const rules: string[] = [];
   const s = node.style;
-  if (s.color) rules.push(`color: ${s.color};`);
-  if (s.backgroundColor) rules.push(`background: ${s.backgroundColor};`);
+  if (s.color) rules.push(`color: ${textualColor(s.color)};`);
+  const backgroundColor = resolveBackgroundColor(s);
+  if (backgroundColor) rules.push(`background: ${textualColor(backgroundColor)};`);
 
   const textStyles = [
     s.bold && 'bold',
@@ -320,7 +322,9 @@ function tcssRules(node: ComponentNode, isScreen: boolean): string[] {
       hidden: 'none',
     };
     const kind = borderMap[s.borderStyle || 'single'] || 'solid';
-    rules.push(kind === 'none' ? 'border: none;' : `border: ${kind} ${s.borderColor || 'white'};`);
+    rules.push(
+      kind === 'none' ? 'border: none;' : `border: ${kind} ${textualColor(s.borderColor || 'white')};`
+    );
   }
 
   if (!isScreen) {
@@ -334,6 +338,20 @@ function tcssRules(node: ComponentNode, isScreen: boolean): string[] {
   if (typeof pad === 'number' && pad > 0) rules.push(`padding: ${pad};`);
 
   return rules;
+}
+
+/**
+ * Textual's TCSS accepts hex (3 or 6 digit) directly, but named colors must be
+ * "ansi_red"/"ansi_bright_green" etc, not our internal "red"/"brightGreen"
+ * convention — a raw pass-through (the previous behavior) breaks CSS parsing
+ * on any bright/aliased name. Textual's own ANSI_COLORS list is index-aligned
+ * with shared.ts's ANSI16_NAMES, so this is a direct name transform.
+ */
+function textualColor(value: string): string {
+  const idx = ansi16IndexOfName(value);
+  if (idx == null) return value; // hex, or an unrecognized name — pass through as-is
+  const base = ANSI16_NAMES[idx % 8].toLowerCase();
+  return idx < 8 ? `ansi_${base}` : `ansi_bright_${base}`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

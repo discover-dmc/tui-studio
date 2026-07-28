@@ -1,10 +1,20 @@
 import type { ComponentNode } from '../../../types';
 import { LayoutEngine } from '../../layout';
 import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
+import {
+  type ExportColorMode,
+  ANSI16_NAMES,
+  ansi16IndexOfName,
+  createIdentGenerator,
+  nearestAnsi16,
+  resolveBackgroundColor,
+} from './shared';
 
 // Generates a runnable blessed program. Blessed positions widgets absolutely,
 // so we run the studio's own LayoutEngine and emit each node's computed
-// top/left/width/height relative to its parent — the output matches the canvas.
+// top/left/width/height relative to its parent — the output matches the canvas
+// (including gap/justify/align, which the engine already bakes into position —
+// no separate handling needed here, unlike the flexbox-based exporters).
 
 const DEFAULT_WIDTH = 80;
 const DEFAULT_HEIGHT = 25;
@@ -13,15 +23,18 @@ interface Ctx {
   engine: LayoutEngine;
   stmts: string[];
   usedVars: Set<string>;
+  colorMode: ExportColorMode;
+  ident: (name: string) => string;
 }
 
-export function exportToBlessed(root: ComponentNode): string {
+export function exportToBlessed(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
   const width = typeof root.props.width === 'number' ? root.props.width : DEFAULT_WIDTH;
   const height = typeof root.props.height === 'number' ? root.props.height : DEFAULT_HEIGHT;
   const engine = new LayoutEngine();
   engine.calculateLayout(root, width, height);
 
-  const ctx: Ctx = { engine, stmts: [], usedVars: new Set(['blessed', 'screen', 'process']) };
+  const usedVars = new Set(['blessed', 'screen', 'process']);
+  const ctx: Ctx = { engine, stmts: [], usedVars, colorMode, ident: createIdentGenerator(usedVars, 'w') };
   for (const child of root.type === 'Screen' ? root.children : [root]) {
     genNode(child, ctx, 'screen', root.type === 'Screen' ? layoutOf(root, ctx) : null, false);
   }
@@ -68,7 +81,7 @@ function genNode(
   const top = parentBox ? box.y - parentBox.y - inset : box.y;
   const left = parentBox ? box.x - parentBox.x - inset : box.x;
 
-  const varName = ident(node.name, ctx);
+  const varName = ctx.ident(node.name);
   const opts: string[] = [
     `parent: ${parentVar}`,
     `top: ${top}`,
@@ -78,15 +91,17 @@ function genNode(
   ];
 
   const style: string[] = [];
-  if (node.style.color) style.push(`fg: ${js(node.style.color)}`);
-  if (node.style.backgroundColor) style.push(`bg: ${js(node.style.backgroundColor)}`);
+  if (node.style.color) style.push(`fg: ${js(resolveColor(node.style.color, ctx.colorMode))}`);
+  const backgroundColor = resolveBackgroundColor(node.style);
+  if (backgroundColor) style.push(`bg: ${js(resolveColor(backgroundColor, ctx.colorMode))}`);
   if (node.style.bold) style.push(`bold: true`);
   if (node.style.underline) style.push(`underline: true`);
 
   const bordered = !!node.style.border;
   if (bordered) {
     opts.push(`border: { type: 'line' }`);
-    if (node.style.borderColor) style.push(`border: { fg: ${js(node.style.borderColor)} }`);
+    if (node.style.borderColor)
+      style.push(`border: { fg: ${js(resolveColor(node.style.borderColor, ctx.colorMode))} }`);
     if (node.name && node.name !== node.type) opts.push(`label: ${js(` ${node.name} `)}`);
   }
 
@@ -267,16 +282,13 @@ function genNode(
   }
 }
 
-function ident(name: string, ctx: Ctx): string {
-  let base = name.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ')
-    .map((w, i) => (i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : w.charAt(0).toUpperCase() + w.slice(1)))
-    .join('');
-  if (!base || /^[0-9]/.test(base)) base = `w${base}`;
-  let id = base;
-  let n = 2;
-  while (ctx.usedVars.has(id)) id = `${base}${n++}`;
-  ctx.usedVars.add(id);
-  return id;
+/** blessed accepts both hex and its own named colors ("light" and "bright" prefixes) directly. */
+function resolveColor(value: string, colorMode: ExportColorMode): string {
+  if (colorMode !== 'ansi16') return value;
+  const named = ansi16IndexOfName(value);
+  if (named != null) return ANSI16_NAMES[named].toLowerCase();
+  if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return ANSI16_NAMES[nearestAnsi16(value)].toLowerCase();
+  return value;
 }
 
 function js(s: string): string {

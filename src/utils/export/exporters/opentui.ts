@@ -1,9 +1,19 @@
 import type { ComponentNode } from '../../../types';
 import { escJsx } from '../escape';
 import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
+import {
+  type ExportColorMode,
+  ansi16IndexOfName,
+  nearestAnsi16,
+  resolveBackgroundColor,
+} from './shared';
 
 // Generates an @opentui/react app using its real intrinsic elements
 // (<box>, <text>, <input>, <select>, <tab-select>) and Yoga flexbox styles.
+//
+// Ansi16 color mode uses OpenTUI's real indexed-color API, RGBA.fromIndex(0-15)
+// — verified against opentui.com's colors doc — rather than a hex approximation,
+// so the terminal's own palette (not a fixed guess) determines the final color.
 
 export function getOpenTuiWarnings(root: ComponentNode): string[] {
   const warnings: string[] = [];
@@ -17,10 +27,11 @@ export function getOpenTuiWarnings(root: ComponentNode): string[] {
   return warnings;
 }
 
-export function exportToOpenTUI(root: ComponentNode): string {
-  const body = genNode(root, 1);
+export function exportToOpenTUI(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
+  const body = genNode(root, 1, colorMode);
+  const coreImports = colorMode === 'ansi16' ? 'createCliRenderer, RGBA' : 'createCliRenderer';
 
-  return `import { createCliRenderer } from "@opentui/core";
+  return `import { ${coreImports} } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 
 function App() {
@@ -33,7 +44,7 @@ createRoot(renderer).render(<App />);
 `;
 }
 
-function genNode(node: ComponentNode, indent: number): string {
+function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode): string {
   if (node.hidden) return '';
   const sp = '  '.repeat(indent + 1);
 
@@ -41,8 +52,8 @@ function genNode(node: ComponentNode, indent: number): string {
     case 'Screen':
     case 'Box':
     case 'Modal': {
-      const attrs = boxAttrs(node);
-      const children = node.children.map((c) => genNode(c, indent + 1)).join('');
+      const attrs = boxAttrs(node, colorMode);
+      const children = node.children.map((c) => genNode(c, indent + 1, colorMode)).join('');
       const comment = node.type === 'Modal' ? '{/* Modal: render conditionally on top */}\n' + sp : '';
       return children
         ? `${sp}${comment}<box${attrs}>\n${children}${sp}</box>\n`
@@ -55,22 +66,22 @@ function genNode(node: ComponentNode, indent: number): string {
       for (let i = 0; i < node.children.length; i += cols) {
         const cells = node.children
           .slice(i, i + cols)
-          .map((c) => genNode(c, indent + 2))
+          .map((c) => genNode(c, indent + 2, colorMode))
           .join('');
         rows.push(`${sp}  <box style={{ flexDirection: "row" }}>\n${cells}${sp}  </box>\n`);
       }
-      return `${sp}<box${boxAttrs(node)}>\n${rows.join('')}${sp}</box>\n`;
+      return `${sp}<box${boxAttrs(node, colorMode)}>\n${rows.join('')}${sp}</box>\n`;
     }
 
     case 'Spacer':
       return `${sp}<box style={{ flexGrow: 1 }} />\n`;
 
     case 'Text':
-      return `${sp}${textEl(node, (node.props.content as string) || 'Text')}\n`;
+      return `${sp}${textEl(node, (node.props.content as string) || 'Text', colorMode)}\n`;
 
     case 'Button': {
       const label = (node.props.label as string) || 'Button';
-      return `${sp}<box border borderStyle="${node.style.borderStyle === 'double' ? 'double' : 'single'}">\n${sp}  ${textEl(node, ` ${label} `, true)}\n${sp}</box>\n`;
+      return `${sp}<box border borderStyle="${node.style.borderStyle === 'double' ? 'double' : 'single'}">\n${sp}  ${textEl(node, ` ${label} `, colorMode, true)}\n${sp}</box>\n`;
     }
 
     case 'TextInput': {
@@ -99,7 +110,7 @@ function genNode(node: ComponentNode, indent: number): string {
       const icon = checked
         ? (node.props.checkedIcon as string) || '✓'
         : (node.props.uncheckedIcon as string) || ' ';
-      return `${sp}${textEl(node, `[${icon}] ${(node.props.label as string) || 'Checkbox'}`)}\n`;
+      return `${sp}${textEl(node, `[${icon}] ${(node.props.label as string) || 'Checkbox'}`, colorMode)}\n`;
     }
 
     case 'Radio': {
@@ -107,12 +118,12 @@ function genNode(node: ComponentNode, indent: number): string {
       const icon = selected
         ? (node.props.selectedIcon as string) || '●'
         : (node.props.unselectedIcon as string) || '○';
-      return `${sp}${textEl(node, `(${icon}) ${(node.props.label as string) || 'Radio'}`)}\n`;
+      return `${sp}${textEl(node, `(${icon}) ${(node.props.label as string) || 'Radio'}`, colorMode)}\n`;
     }
 
     case 'Toggle': {
       const on = !!(node.props.value ?? node.props.checked);
-      return `${sp}${textEl(node, `${on ? '[ON ]' : '[OFF]'} ${(node.props.label as string) || ''}`.trim())}\n`;
+      return `${sp}${textEl(node, `${on ? '[ON ]' : '[OFF]'} ${(node.props.label as string) || ''}`.trim(), colorMode)}\n`;
     }
 
     case 'Spinner': {
@@ -120,7 +131,7 @@ function genNode(node: ComponentNode, indent: number): string {
         SPINNER_PRESETS[(node.props.spinnerStyle as string) || 'dots'] || SPINNER_PRESETS.dots;
       const idx = Math.max(0, Math.min(Number(node.props.frame ?? 0), preset.frames.length - 1));
       const label = (node.props.label as string) ?? 'Loading...';
-      return `${sp}${textEl(node, label ? `${preset.frames[idx]} ${label}` : preset.frames[idx])}\n`;
+      return `${sp}${textEl(node, label ? `${preset.frames[idx]} ${label}` : preset.frames[idx], colorMode)}\n`;
     }
 
     case 'ProgressBar': {
@@ -130,7 +141,7 @@ function genNode(node: ComponentNode, indent: number): string {
       const pct = Math.min(100, Math.max(0, (value / max) * 100));
       const showPercent = (node.props.showPercent as boolean) ?? true;
       const bar = renderBar((node.props.barStyle as string) || 'blocks', width - (showPercent ? 5 : 0), pct);
-      return `${sp}${textEl(node, showPercent ? `${bar} ${pct.toFixed(0)}%` : bar)}\n`;
+      return `${sp}${textEl(node, showPercent ? `${bar} ${pct.toFixed(0)}%` : bar, colorMode)}\n`;
     }
 
     case 'List':
@@ -144,7 +155,7 @@ function genNode(node: ComponentNode, indent: number): string {
         const marker = i === selectedIndex ? '▶ ' : '  ';
         return `${marker}${d.icon ? `${d.icon} ` : ''}${d.label || 'Item'}${d.hotkey ? `  ${d.hotkey}` : ''}`;
       });
-      return `${sp}<box${boxAttrs(node)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, false, true)}`).join('\n')}\n${sp}</box>\n`;
+      return `${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
     }
 
     case 'Tree': {
@@ -158,7 +169,7 @@ function genNode(node: ComponentNode, indent: number): string {
         (d.children || []).forEach((c) => walk(c, depth + 1));
       };
       ((node.props.items as unknown[]) || []).forEach((i) => walk(i, 0));
-      return `${sp}<box${boxAttrs(node)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, false, true)}`).join('\n')}\n${sp}</box>\n`;
+      return `${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
     }
 
     case 'Table': {
@@ -171,7 +182,7 @@ function genNode(node: ComponentNode, indent: number): string {
         columns.map(() => '─'.repeat(colW)).join('─┼─'),
         ...rows.map((row) => columns.map((_, ci) => fit(String(row[ci] ?? ''))).join(' │ ')),
       ];
-      return `${sp}<box${boxAttrs(node)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, false, true)}`).join('\n')}\n${sp}</box>\n`;
+      return `${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
     }
 
     case 'Breadcrumb': {
@@ -179,7 +190,7 @@ function genNode(node: ComponentNode, indent: number): string {
       const text = ((node.props.items as unknown[]) || [])
         .map((i) => (typeof i === 'string' ? i : (i as { label?: string }).label || ''))
         .join(sep);
-      return `${sp}${textEl(node, text)}\n`;
+      return `${sp}${textEl(node, text, colorMode)}\n`;
     }
 
     default:
@@ -187,8 +198,22 @@ function genNode(node: ComponentNode, indent: number): string {
   }
 }
 
+/** Resolve a color for OpenTUI, respecting the color-tier mode. Ansi16 uses the real RGBA.fromIndex(0-15) API so the terminal's palette wins, not a fixed hex guess. */
+function colorValue(value: string, colorMode: ExportColorMode): string {
+  if (colorMode !== 'ansi16') return JSON.stringify(value);
+  const named = ansi16IndexOfName(value);
+  const idx = named ?? (/^#[0-9a-fA-F]{3,6}$/.test(value) ? nearestAnsi16(value) : null);
+  return idx != null ? `RGBA.fromIndex(${idx})` : JSON.stringify(value);
+}
+
 /** <text> element with fg/bg and strong/em/u wrappers from node style. */
-function textEl(node: ComponentNode, content: string, forceBold = false, plain = false): string {
+function textEl(
+  node: ComponentNode,
+  content: string,
+  colorMode: ExportColorMode,
+  forceBold = false,
+  plain = false
+): string {
   let inner = escJsx(content);
   if (!plain) {
     if (node.style.bold || forceBold) inner = `<strong>${inner}</strong>`;
@@ -196,13 +221,14 @@ function textEl(node: ComponentNode, content: string, forceBold = false, plain =
     if (node.style.underline) inner = `<u>${inner}</u>`;
   }
   const attrs: string[] = [];
-  if (node.style.color) attrs.push(`fg=${JSON.stringify(node.style.color)}`);
-  if (node.style.backgroundColor && !plain)
-    attrs.push(`style={{ bg: ${JSON.stringify(node.style.backgroundColor)} }}`);
+  if (node.style.color) attrs.push(`fg={${colorValue(node.style.color, colorMode)}}`);
+  const backgroundColor = resolveBackgroundColor(node.style);
+  if (backgroundColor && !plain)
+    attrs.push(`style={{ bg: ${colorValue(backgroundColor, colorMode)} }}`);
   return `<text${attrs.length ? ' ' + attrs.join(' ') : ''}>${inner}</text>`;
 }
 
-function boxAttrs(node: ComponentNode): string {
+function boxAttrs(node: ComponentNode, colorMode: ExportColorMode): string {
   const attrs: string[] = [];
   const style: string[] = [];
 
@@ -213,12 +239,26 @@ function boxAttrs(node: ComponentNode): string {
   const pad = node.layout.padding;
   if (typeof pad === 'number' && pad > 0) style.push(`padding: ${pad}`);
 
+  const jMap: Record<string, string> = {
+    center: 'center',
+    end: 'flex-end',
+    'space-between': 'space-between',
+    around: 'space-around',
+    'space-around': 'space-around',
+  };
+  const justify = (node.layout.justify as string) || '';
+  if (jMap[justify]) style.push(`justifyContent: "${jMap[justify]}"`);
+
+  const aMap: Record<string, string> = { center: 'center', end: 'flex-end', stretch: 'stretch' };
+  const align = (node.layout.align as string) || '';
+  if (aMap[align]) style.push(`alignItems: "${aMap[align]}"`);
+
   if (typeof node.props.width === 'number') style.push(`width: ${node.props.width}`);
   else if (node.props.width === 'fill') style.push(`flexGrow: 1`);
   if (typeof node.props.height === 'number') style.push(`height: ${node.props.height}`);
 
-  if (node.style.backgroundColor)
-    style.push(`backgroundColor: ${JSON.stringify(node.style.backgroundColor)}`);
+  const backgroundColor = resolveBackgroundColor(node.style);
+  if (backgroundColor) style.push(`backgroundColor: ${colorValue(backgroundColor, colorMode)}`);
 
   if (node.style.border) {
     attrs.push('border');
@@ -232,7 +272,7 @@ function boxAttrs(node: ComponentNode): string {
     if (bs && bs !== 'single') attrs.push(`borderStyle="${bs}"`);
     if (node.name && node.name !== node.type)
       attrs.push(`title={${JSON.stringify(` ${node.name} `)}}`);
-    if (node.style.borderColor) style.push(`borderColor: ${JSON.stringify(node.style.borderColor)}`);
+    if (node.style.borderColor) style.push(`borderColor: ${colorValue(node.style.borderColor, colorMode)}`);
   }
 
   if (style.length) attrs.push(`style={{ ${style.join(', ')} }}`);

@@ -40,6 +40,53 @@ export function emptyScreenTree(): ComponentNode {
 }
 
 /**
+ * Exercises the round-trip fidelity fixes: a background gradient (should
+ * degrade to its first stop as a flat color, with a warning), a 3-digit hex
+ * and a "bright" named color (ansi16 resolution), and justify/align/gap on
+ * both axes (Fill-spacer emulation in Ratatui, lipgloss Join position in
+ * BubbleTea, Yoga flexbox in OpenTUI).
+ */
+export function styleEdgeCasesTree(): ComponentNode {
+  return node('Screen', 'Screen', {}, [
+    node(
+      'Box',
+      'Banner',
+      {},
+      [],
+      {
+        backgroundGradient: {
+          type: 'linear',
+          angle: 90,
+          stops: [
+            { color: '#ff0000', position: 0 },
+            { color: '#0000ff', position: 100 },
+          ],
+        },
+      }
+    ),
+    node(
+      'Box',
+      'CenteredRow',
+      {},
+      [
+        node('Text', 'A', { content: 'A' }, [], { color: '#800' }), // 3-digit hex, nearest-matches dim "red"
+        node('Text', 'B', { content: 'B' }, [], { color: 'brightGreen' }),
+      ],
+      {},
+      { direction: 'row', justify: 'center', align: 'center', gap: 3 }
+    ),
+    node(
+      'Box',
+      'SpacedColumn',
+      {},
+      [node('Text', 'C', { content: 'C' }), node('Text', 'D', { content: 'D' })],
+      {},
+      { direction: 'column', justify: 'space-between' }
+    ),
+  ]);
+}
+
+/**
  * One tree touching every component type, nested containers, a Grid, a Modal,
  * duplicate names (collision-safe var/id generation), quotes and angle
  * brackets in text (escaping), hex + named colors, gap/padding, and fill

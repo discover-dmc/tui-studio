@@ -1,6 +1,13 @@
 import type { ComponentNode } from '../../../types';
 import { escGo } from '../escape';
 import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
+import {
+  type ExportColorMode,
+  ansi16IndexOfName,
+  createIdentGenerator,
+  nearestAnsi16,
+  resolveBackgroundColor,
+} from './shared';
 
 // Generates a runnable tview (github.com/rivo/tview) program.
 //
@@ -22,28 +29,22 @@ import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
 // a no-op when there's no literal "[", so this is always safe and one rule
 // to remember beats tracking per-widget exceptions.
 
-const BRIGHT_PALETTE_INDEX: Record<string, number> = {
-  brightblack: 8,
-  brightred: 9,
-  brightgreen: 10,
-  brightyellow: 11,
-  brightblue: 12,
-  brightmagenta: 13,
-  brightcyan: 14,
-  brightwhite: 15,
-};
-
 interface Ctx {
   stmts: string[];
   usedVars: Set<string>;
   modals: { pageName: string; gridVar: string }[];
+  colorMode: ExportColorMode;
+  ident: (name: string) => string;
 }
 
-export function exportToTview(root: ComponentNode): string {
+export function exportToTview(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
+  const usedVars = new Set(['app', 'tview', 'tcell', 'main', 'event']);
   const ctx: Ctx = {
     stmts: [],
-    usedVars: new Set(['app', 'tview', 'tcell', 'main', 'event']),
+    usedVars,
     modals: [],
+    colorMode,
+    ident: createIdentGenerator(usedVars, 'v'),
   };
 
   const topNodes = root.type === 'Screen' ? root.children : [root];
@@ -51,10 +52,15 @@ export function exportToTview(root: ComponentNode): string {
   const rootVar = ident('root', ctx);
   ctx.stmts.push(`${rootVar} := tview.NewFlex()`);
   ctx.stmts.push(`${rootVar}.SetDirection(tview.${rootDirection})`);
+  const rootGap = Number(root.layout.gap ?? 0);
+  const rootIsRow = root.layout.direction === 'row';
+  let rootFirst = true;
   for (const child of topNodes) {
     const expr = genNode(child, ctx);
     if (!expr) continue; // Modal — registered as its own page instead
-    const [fixedSize, proportion] = itemSizing(child, root.layout.direction === 'row');
+    if (!rootFirst && rootGap > 0) addSpacer(rootVar, ctx, rootGap);
+    rootFirst = false;
+    const [fixedSize, proportion] = itemSizing(child, rootIsRow);
     ctx.stmts.push(`${rootVar}.AddItem(${expr}, ${fixedSize}, ${proportion}, false)`);
   }
 
@@ -139,7 +145,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
     case 'Button': {
       const varName = ident(node.name, ctx);
       ctx.stmts.push(`${varName} := tview.NewButton(${tviewText((node.props.label as string) || 'Button')})`);
-      if (node.style.color) ctx.stmts.push(`${varName}.SetLabelColor(${colorExpr(node.style.color)})`);
+      if (node.style.color) ctx.stmts.push(`${varName}.SetLabelColor(${colorExpr(node.style.color, ctx.colorMode)})`);
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -340,14 +346,23 @@ function buildBoxLike(node: ComponentNode, ctx: Ctx): string {
   const varName = ident(node.name, ctx);
   ctx.stmts.push(`${varName} := tview.NewFlex()`);
   ctx.stmts.push(`${varName}.SetDirection(tview.${isRow ? 'FlexColumn' : 'FlexRow'})`);
+  const gap = Number(node.layout.gap ?? 0);
+  let first = true;
   for (const child of node.children) {
     const expr = genNode(child, ctx);
     if (!expr) continue; // Modal — registered as its own page
+    if (!first && gap > 0) addSpacer(varName, ctx, gap);
+    first = false;
     const [fixedSize, proportion] = itemSizing(child, isRow);
     ctx.stmts.push(`${varName}.AddItem(${expr}, ${fixedSize}, ${proportion}, false)`);
   }
   applyBoxStyle(varName, node, ctx);
   return varName;
+}
+
+/** tview.Flex has no gap concept — approximate with a fixed-size tview.NewBox() spacer between items. */
+function addSpacer(parentVar: string, ctx: Ctx, size: number): void {
+  ctx.stmts.push(`${parentVar}.AddItem(tview.NewBox(), ${size}, 0, false)`);
 }
 
 function buildGrid(node: ComponentNode, ctx: Ctx): string {
@@ -383,16 +398,21 @@ function buildTreeNode(item: unknown, ctx: Ctx, scope: string): string {
   return varName;
 }
 
-/** Border/title/border-color — the only Box-level styling applied after a primitive's own Set* calls. */
+/** Border/title/border-color/background — the Box-level styling applied after a primitive's own Set* calls. */
 function applyBoxStyle(varName: string, node: ComponentNode, ctx: Ctx): void {
+  const backgroundColor = resolveBackgroundColor(node.style);
+  if (backgroundColor)
+    ctx.stmts.push(`${varName}.SetBackgroundColor(${colorExpr(backgroundColor, ctx.colorMode)})`);
+
   if (!node.style.border) return;
   ctx.stmts.push(`${varName}.SetBorder(true)`);
-  if (node.style.borderColor) ctx.stmts.push(`${varName}.SetBorderColor(${colorExpr(node.style.borderColor)})`);
+  if (node.style.borderColor)
+    ctx.stmts.push(`${varName}.SetBorderColor(${colorExpr(node.style.borderColor, ctx.colorMode)})`);
   if (node.name && node.name !== node.type) ctx.stmts.push(`${varName}.SetTitle(${tviewText(` ${node.name} `)})`);
 }
 
 function applyTextColor(varName: string, node: ComponentNode, ctx: Ctx): void {
-  if (node.style.color) ctx.stmts.push(`${varName}.SetTextColor(${colorExpr(node.style.color)})`);
+  if (node.style.color) ctx.stmts.push(`${varName}.SetTextColor(${colorExpr(node.style.color, ctx.colorMode)})`);
 }
 
 /** [fixedSize, proportion] for Flex.AddItem, based on the child's size along the flex axis. */
@@ -402,10 +422,23 @@ function itemSizing(node: ComponentNode, isRow: boolean): [number, number] {
   return [0, 1];
 }
 
-function colorExpr(value: string): string {
-  const key = value.toLowerCase().replace(/[^a-z]/g, '');
-  const paletteIndex = BRIGHT_PALETTE_INDEX[key];
-  if (paletteIndex != null) return `tcell.PaletteColor(${paletteIndex})`;
+function colorExpr(value: string, colorMode: ExportColorMode): string {
+  const idx = ansi16IndexOfName(value);
+
+  if (colorMode === 'ansi16') {
+    // Uniformly indexed (tcell.PaletteColor) so the terminal's own palette
+    // decides the final RGB — that's the whole point of ansi16 mode. Whether
+    // tcell.GetColor("red") happens to resolve to a fixed W3C RGB or an
+    // adaptive index isn't documented, so PaletteColor is the only form
+    // guaranteed to be palette-relative for every one of the 16 slots.
+    if (idx != null) return `tcell.PaletteColor(${idx})`;
+    if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return `tcell.PaletteColor(${nearestAnsi16(value)})`;
+  } else if (idx != null && idx >= 8) {
+    // Truecolor mode: "bright" names aren't real W3C names GetColor understands,
+    // so they still need the palette-index form even here.
+    return `tcell.PaletteColor(${idx})`;
+  }
+
   return `tcell.GetColor(${goStr(value)})`;
 }
 
@@ -422,16 +455,5 @@ function slug(s: string): string {
 }
 
 function ident(name: string, ctx: Ctx): string {
-  let base = name
-    .replace(/[^a-zA-Z0-9]+/g, ' ')
-    .trim()
-    .split(' ')
-    .map((w, i) => (i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : w.charAt(0).toUpperCase() + w.slice(1)))
-    .join('');
-  if (!base || /^[0-9]/.test(base)) base = `v${base}`;
-  let out = base;
-  let n = 2;
-  while (ctx.usedVars.has(out)) out = `${base}${n++}`;
-  ctx.usedVars.add(out);
-  return out;
+  return ctx.ident(name);
 }
