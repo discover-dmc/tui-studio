@@ -1,6 +1,31 @@
 // Validation utilities for component properties
 
 import type { ComponentNode, ComponentType } from '../types';
+import { COMPONENT_LIBRARY } from '../constants/components';
+
+const VALID_COMPONENT_TYPES = new Set(Object.keys(COMPONENT_LIBRARY));
+
+/**
+ * Validate that an unknown value has the shape of a ComponentNode tree
+ * (recursively). Used at the .tui file-open boundary, where the JSON is
+ * untrusted — a malformed tree fed straight into the store crashes the
+ * layout engine and renderer, which assume these fields exist.
+ */
+export function isValidComponentTree(node: unknown): node is ComponentNode {
+  if (typeof node !== 'object' || node === null) return false;
+  const n = node as Record<string, unknown>;
+
+  if (typeof n.id !== 'string' || !n.id) return false;
+  if (typeof n.type !== 'string' || !VALID_COMPONENT_TYPES.has(n.type)) return false;
+  if (typeof n.name !== 'string') return false;
+  if (typeof n.props !== 'object' || n.props === null) return false;
+  if (typeof n.layout !== 'object' || n.layout === null) return false;
+  if (typeof n.style !== 'object' || n.style === null) return false;
+  if (typeof n.events !== 'object' || n.events === null) return false;
+  if (!Array.isArray(n.children)) return false;
+
+  return n.children.every(isValidComponentTree);
+}
 
 /**
  * Validate if a component name is valid

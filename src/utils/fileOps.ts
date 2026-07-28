@@ -3,6 +3,7 @@
 import { useComponentStore } from '../stores/componentStore';
 import { useThemeStore } from '../stores/themeStore';
 import { useSelectionStore } from '../stores/selectionStore';
+import { isValidComponentTree } from './validation';
 
 /** Build the JSON payload + suggested filename from current store state. */
 export function buildTuiData(): { json: string; suggestedName: string } | null {
@@ -58,7 +59,7 @@ export async function openTuiFile(): Promise<void> {
   const load = (text: string) => {
     try {
       const data = JSON.parse(text);
-      if (data.version === '1' && data.tree) {
+      if (data.version === '1' && isValidComponentTree(data.tree)) {
         useComponentStore.getState().setRoot(data.tree);
         if (data.meta?.theme) useThemeStore.getState().setTheme(data.meta.theme);
         useSelectionStore.getState().clearSelection();
