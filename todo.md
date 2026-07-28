@@ -131,24 +131,52 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 
 ## P2 — Editor UX & robustness
 
-- [ ] **Autosave**: design tree is lost on refresh — only settings persist to localStorage.
-  Persist `componentStore.root` (+ theme) with zustand persist middleware, debounced;
-  "restore last session?" on load.
-- [ ] **Flexbox `stretch` sizing**: unimplemented
-  ([flexbox.ts:216](src/utils/layout/flexbox.ts:216) TODO returns 0).
+- [x] **Autosave** (2026-07-28, commit 8913271): `src/utils/autosave.ts` subscribes to
+  componentStore and debounce-writes `{version, meta:{theme}, tree}` to localStorage
+  (reuses fileOps.ts's exact .tui shape). Restores silently on load — no prompt, matching
+  Figma/Excalidraw/VS Code — validated through the same `isValidComponentTree` check used
+  for opened .tui files. Plain manual localStorage read/write, not zustand persist
+  middleware (nothing else in the codebase uses that pattern). Verified end-to-end in the
+  browser: add component → wait past debounce → confirm write → reload → confirmed restored.
+- [x] **Flexbox `stretch` sizing** (2026-07-28, commit 4025525): an item with
+  `align: 'stretch'` and no explicit cross-axis size now fills the container's cross
+  dimension (real CSS semantic) instead of a no-op default. Explicit sizes still win;
+  limited to the common single-line case (multiple wrapped lines can't each stretch to
+  the full container without overlapping). Verified directly against
+  `calculateFlexboxLayout`; `src/utils/layout/__tests__/flexbox.test.ts` added.
 - [ ] **Canvas.tsx decomposition**: 1,370 lines mixing render/selection/drag/keyboard.
   Split into hooks (useCanvasDrag, useCanvasSelection, useCanvasKeyboard) before adding
-  features. Toolbar.tsx (981) and ComponentToolbar.tsx (710) next.
-- [ ] **Code-split the bundle**: single 970 KB chunk; lazy-load ExportPanel + CommandPalette.
-- [ ] **Cross-window event cleanup**: custom `window` events (`toolbar-docked-changed`,
-  `open-command-palette`) as ad-hoc bus — migrate to store state.
+  features. Toolbar.tsx (981) and ComponentToolbar.tsx (710) next. Deliberately not
+  attempted in the same pass as the rest of P2 — no test coverage exists for canvas
+  drag/select/keyboard interactions, so a full decomposition needs its own careful,
+  isolated pass with heavy manual browser verification, not folded into a batch of
+  otherwise-independent fixes.
+- [x] **Code-split the bundle** (2026-07-28, commit 104c8ba): `ExportModal` (75KB — bundles
+  all 7 exporters) and `CommandPalette` (4.9KB) converted to `React.lazy()`, gated at the
+  JSX call site by their own `isOpen`/`open` flag so the dynamic import only fires on
+  first actual open. Verified: build output shows them as separate chunks; both open
+  correctly in the browser post-split.
+- [x] **Cross-window event cleanup** (2026-07-28, commit 2bdef6d): new `src/stores/uiStore.ts`
+  replaces `toolbar-docked-changed`, `open-save-dialog`, `command-export/settings/help/
+  changelog/about`, and `open-command-palette` — 6 booleans + 7 window-event effects in
+  Toolbar.tsx alone collapse into 3 store selectors (`toolbarDocked`, `commandPaletteOpen`,
+  `activeDialog: DialogName | null`). Surfaced and fixed a dead wire along the way (command
+  palette's Save action fired an event nothing listened for); deliberately left the
+  Copy/Paste menu items' identical dead-wire bug alone (flagged separately as
+  `task_7b18da74` — needs new clipboard plumbing, not just an event-to-store swap).
+  Verified in the browser: every dialog opens via shortcut + app menu, dock toggle
+  round-trips between producer and both consumers, survives reload.
 - [x] Spinner + progress bar asset libraries (2026-07-28, commit 7e579fe): 46 cli-spinners
   presets (terminal-safe subset) and 13 bar charsets incl. smooth eighth-block partials, in
   `src/constants/assets.ts`; wired through canvas, export renderer, PropertyPanel dropdowns,
   Ink (ink-spinner type passthrough) and Ratatui exporters.
 - [ ] Component wishlist (from skill's catalog, matching real TUI needs): Sparkline, Gauge
   (labeled), Log/viewport, StatusBar/footer keybinding hints, Separator/Rule.
-- [ ] Animate spinner preview on canvas (presets carry `interval`; currently static frame).
+- [x] Animate spinner preview on canvas (2026-07-28, commit dcdf514): `ComponentRenderer`
+  ticks a local `spinnerFrame` state via `setInterval` at the preset's real interval,
+  scoped per-instance. `node.props.frame` (the exporters' static frame) is untouched —
+  purely a canvas preview concern. Verified live: sampled the rendered glyph twice ~300ms
+  apart and confirmed it changed.
 
 ## P3 — Housekeeping
 
