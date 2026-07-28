@@ -43,8 +43,7 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 - [x] **Surface unsupported features** (2026-07-28): `getExportWarnings(root, format)` +
   amber banner in the export panel; BubbleTea skips Modals with a NOT-exported header
   comment and warns on fill sizing instead of silently degrading.
-- [ ] **Ink exporter, one-line bug**: border color uses `node.style.color` instead of
-  `node.style.borderColor` ([codeExporter.ts:278](src/utils/export/codeExporter.ts:278)).
+- [x] **Ink borderColor bug** fixed (2026-07-28, commit 208b511).
 - [x] ~~Gate broken exporters in the UI~~ — obsolete: all exporters rebuilt (2026-07-28);
   unsupported features surface via the warnings banner instead.
 - [x] **Fix lint failure**: resolved by PR #20's eslint-disable on `RatatuiExportSettings`
