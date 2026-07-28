@@ -87,9 +87,9 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 - [ ] Delete dead `wailsjs/` (no src references; abandoned Wails wrapper)
 - [ ] Delete or archive stale `docs/TUI_DESIGNER_*` planning docs (pre-implementation, misleading)
 - [ ] Sync `package.json` version (0.0.1) with release tags (v0.3.6)
-- [ ] Commit pending `react-router-dom` removal (already edited, uncommitted)
-- [ ] `.gitignore`: add `tsconfig.tsbuildinfo`, decide `skills/` (see Skill track),
-  `.DS_Store` already covered; consider upstream PR #16 (same territory)
+- [x] Commit pending `react-router-dom` removal (2026-07-28)
+- [ ] `.gitignore`: add + untrack `tsconfig.tsbuildinfo`; consider upstream PR #16
+  (same territory). `skills/` ignored 2026-07-28.
 - [ ] Add `.claude/launch.json` (dev server on 5173) for one-command preview
 - [ ] `npx update-browserslist-db` (build warning)
 - [ ] README: correct the export-framework claims to match reality (7 → what actually works)
@@ -115,7 +115,7 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 ## Process / repo
 
 - [x] Fork to `discover-dmc/tui-studio`, rewire `origin`, add `upstream` remote (2026-07-28)
-- [ ] Push current local main + this todo/audit to fork
+- [x] Push local main + todo/audit to fork (2026-07-28)
 - [ ] Triage remaining upstream PRs: #8–#11 (close as superseded by #20), #16 (cherry-pick
   or redo), #19/#20 (adopt — see P0)
 - [ ] Decide contribution posture: PR fixes back to upstream (inactive ~2 months) vs
