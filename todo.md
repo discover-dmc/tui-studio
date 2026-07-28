@@ -70,22 +70,64 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   README table all updated. Verified: `go build` + `go vet` against the real
   packages (not just snapshots), plus a new CI step (`go-check-tview` in the
   `verify-go` job) doing the same on every push.
-- [ ] **Shared exporter architecture**: extract per-framework exporters into
-  `src/utils/export/exporters/` (ratatui.ts is already the pattern); common walk +
-  style-translation layer so each new framework implements a widget map, not a tree walker.
-- [ ] **Wire ExportSettings into the UI**: indent size, include-comments, color mode
-  (ansi/hex/rgb) exist as dead types — implement or delete per framework.
-- [ ] **Color-tier degradation in code exports**: exporters emit truecolor hex only. Offer
-  ANSI-16 named-color mapping (the tui-design skill's tier model is the spec; ratatui's
-  `ratatuiColor` named-color table is a starting point).
+- [x] **Shared exporter architecture** (2026-07-28, commit d526a02): extracted Ink into
+  `exporters/ink.ts` (the last one still inline in codeExporter.ts) and added
+  `exporters/shared.ts` — consolidates logic that was genuinely duplicated across 3+
+  files (a byte-identical ident generator in tview/blessed/bubbletea, ANSI16 name/index
+  table, hex-nearest-neighbor matcher, gradient fallback). Deliberately did NOT build a
+  single universal tree-walker/widget-map abstraction across all 7 languages — Rust
+  widget dispatch, Python containers, Go Box-embedding chains, and JSX nesting are
+  different enough that forcing one shape would be the premature abstraction the audit
+  originally warned about. Consolidated only what was concretely duplicated.
+- [x] **Wire ExportSettings into the UI** (2026-07-28, commit d526a02): deleted the fully
+  dead `ExportSettings`/6 subtypes/`ExportFormat`/`ProjectExportData` (verified zero
+  consumers anywhere). Replaced with one real, wired setting — see color-tier below —
+  rather than resurrecting speculative fields (`indentSize`, `useAsyncIO`, etc.) that
+  were never implemented and don't obviously matter to users.
+- [x] **Color-tier degradation in code exports** (2026-07-28, commit d526a02): real
+  `truecolor | ansi16` mode, dropdown in the export panel, threaded through
+  `exportToCode`. Every exporter except Textual (TCSS ansi16 needs separate design,
+  excluded rather than faked — see "Deferred" below). Each language verified against real
+  docs: Ratatui's Color enum table, lipgloss indexed color strings, Tview's
+  `tcell.PaletteColor` (chosen over `GetColor` since palette-index is the only
+  guaranteed-adaptive form), Ink's chalk `xBright` suffix (verified distinct from the
+  `brightX` prefix used elsewhere), OpenTUI's real `RGBA.fromIndex` API instead of a
+  hex guess.
 - [x] **Export snapshot tests** (2026-07-28, commit e36c799): vitest added (native Vite 7
   compat). Snapshot coverage of all 6 code formats × 3 fixtures (kitchen-sink, empty
   screen, text-only) in `src/utils/export/__tests__/`. Plus explicit regression assertions
   locking in this session's fixes (Blessed var collision, Textual indentation, OpenTUI
   content/intrinsics, Ink borderColor, Ratatui import gating, BubbleTea warnings).
-  Compile-checking generated output in CI (rustc/go/python) is still open — see below.
-- [ ] **Round-trip fidelity pass**: canvas preview vs generated code for gap audit per
-  framework (padding, gap, justify/align, borders, gradients).
+  Compile-checking generated output in CI (rustc/go/python) is done — see the CI section.
+- [x] **Round-trip fidelity pass** (2026-07-28, commit d526a02): audited padding/gap/
+  justify/align/borders/gradients against every exporter, fixed real gaps —
+  background gradient now degrades everywhere to its first stop as a flat color (with
+  a warning) instead of being silently dropped; OpenTUI/BubbleTea translate
+  justify/align to real Yoga props / lipgloss Join position; Ratatui emulates justify
+  with `Constraint::Fill(1)` spacers and gets real gap via `Layout::spacing()`; Tview
+  gets gap via a spacer Box (Flex has no native gap). Surfaced two real bugs, both
+  fixed + regression-tested: Ratatui was skipping the Block entirely for an unbordered
+  background-only container (nothing painted); Textual was emitting our internal
+  color names ("brightGreen") as literal TCSS, which doesn't parse — real
+  `ansi_bright_green` convention verified and wired in. Deferred: Tview/Blessed/Textual
+  justify-content-style space distribution beyond what's listed above (no clean 1:1
+  mapping in those layout models — see "Deferred" below).
+
+## Deferred (deliberate, not forgotten)
+
+- **Textual ansi16 color mode**: TCSS has its own `ansi_*` named-color convention
+  (verified this session, now used for truecolor named-color translation) but no
+  established "force everything to 16 colors" idiom the way `tcell.PaletteColor` or
+  `RGBA.fromIndex` do for the other exporters — needs its own design pass, not a
+  copy-paste of the pattern used elsewhere.
+- **Tview/Blessed justify-content-style space distribution** (center/space-between
+  distributing extra space, not just cross-axis align): Blessed doesn't need it — the
+  LayoutEngine already bakes justify into absolute positions. Tview's Flex has no
+  built-in weighted-space-distribution primitive; would need the same
+  Fill-spacer-emulation technique Ratatui got, just not done yet.
+- **Textual justify/align**: Textual's `align: <h> <v>` positions a container's
+  children as one block, not a per-item distribution — doesn't map to CSS
+  justify-content at all without a structural rework.
 
 ## P2 — Editor UX & robustness
 
@@ -159,3 +201,7 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   TSX). All reproduced locally first (installed rust via brew for this); ratatui.rs
   had never actually been rustc-verified before — it compiles cleanly. First full
   run green: https://github.com/discover-dmc/tui-studio/actions/runs/30375505811
+  Extended 2026-07-28 (commit d526a02) to cover 3 fixture variants per format
+  (kitchen-sink, style-edge-cases, ansi16) — 19 generated files total, all reproduced
+  locally before the workflow change. This is what caught the Ratatui/Textual bugs
+  above for real, not just via snapshot string-matching.
