@@ -45,6 +45,12 @@ export function calculateFlexboxLayout(
     ? collectFlexLines(flexItems, mainSize, gap, isRow)
     : [{ items: flexItems, crossSize: 0 }];
 
+  // The cross dimension items stretch to fill — the container's own cross size
+  // for the common single-line case, matching CSS flexbox's align-items:stretch.
+  // Multiple wrapped lines can't each stretch to the full container without
+  // overlapping, so they fall back to their natural (max-of-items) cross size.
+  const containerCrossSize = isRow ? contentHeight : contentWidth;
+
   let crossOffset = padding;
 
   lines.forEach((line) => {
@@ -54,10 +60,13 @@ export function calculateFlexboxLayout(
     const sizes = resolveFlexItemSizes(line.items, mainSize, gap, isRow);
 
     // Calculate cross size for this line
-    const lineCrossSize = line.items.reduce((max, item) => {
-      const size = isRow ? resolveHeight(item) : resolveWidth(item);
-      return Math.max(max, size);
-    }, 0);
+    const lineCrossSize =
+      align === 'stretch' && lines.length === 1
+        ? containerCrossSize
+        : line.items.reduce((max, item) => {
+            const size = isRow ? resolveHeight(item) : resolveWidth(item);
+            return Math.max(max, size);
+          }, 0);
 
     // Apply justify-content
     const totalMainSize = sizes.reduce((sum, size) => sum + size, 0);
@@ -70,7 +79,14 @@ export function calculateFlexboxLayout(
     // Position each item
     line.items.forEach((item, i) => {
       const itemMainSize = sizes[i];
-      const itemCrossSize = isRow ? resolveHeight(item) : resolveWidth(item);
+      // An explicit cross-axis size always wins; otherwise stretch fills the line.
+      const hasExplicitCrossSize = typeof (isRow ? item.height : item.width) === 'number';
+      const itemCrossSize =
+        align === 'stretch' && !hasExplicitCrossSize
+          ? lineCrossSize
+          : isRow
+            ? resolveHeight(item)
+            : resolveWidth(item);
 
       // Calculate cross-axis alignment
       const crossAlignOffset = calculateAlignOffset(align, lineCrossSize, itemCrossSize);
@@ -213,7 +229,7 @@ function calculateAlignOffset(align: string, containerSize: number, itemSize: nu
     case 'end':
       return containerSize - itemSize;
     case 'stretch':
-      return 0; // TODO: stretch item size
+      return 0; // item's cross size is already set to fill the line, so no offset
     default: // 'start'
       return 0;
   }
