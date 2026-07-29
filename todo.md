@@ -194,15 +194,26 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
 
 ## P3 — Housekeeping
 
-- [ ] Delete dead `wailsjs/` (no src references; abandoned Wails wrapper)
-- [ ] Delete or archive stale `docs/TUI_DESIGNER_*` planning docs (pre-implementation, misleading)
-- [ ] Sync `package.json` version (0.0.1) with release tags (v0.3.6)
+- [x] **Delete dead `wailsjs/`** (2026-07-29, commit 34875aa): confirmed zero references
+  anywhere in src/, package.json, or vite.config.ts before removing.
+- [x] **Delete stale `docs/TUI_DESIGNER_*` planning docs** (2026-07-29, commit c365cdd):
+  5 pre-implementation files (dated 2026-02-09, "working title"), only cross-referenced each
+  other, not linked from README/CLAUDE.md/code. Deleted outright (git history keeps them if
+  ever needed) rather than archived.
+- [x] **Sync `package.json` version with CHANGELOG** (2026-07-29, commit 574b1e8): was stuck
+  at `0.0.1` vs CHANGELOG's `0.3.6` — also fixes the About dialog's version display, which
+  reads `__APP_VERSION__` from `package.json` at build time (a real, if minor, user-visible bug).
 - [x] Commit pending `react-router-dom` removal (2026-07-28)
-- [ ] `.gitignore`: add + untrack `tsconfig.tsbuildinfo`; consider upstream PR #16
-  (same territory). `skills/` ignored 2026-07-28.
-- [ ] Add `.claude/launch.json` (dev server on 5173) for one-command preview
-- [ ] `npx update-browserslist-db` (build warning)
-- [ ] README: correct the export-framework claims to match reality (7 → what actually works)
+- [x] **`.gitignore`: add + untrack `tsconfig.tsbuildinfo`** (2026-07-29, commits 574b1e8,
+  2eb46ca). Upstream PR #16 not adopted separately — same outcome achieved directly.
+- [x] **`.claude/launch.json`** — already existed from an earlier session (commit 7e579fe);
+  confirmed present and correct, no new work needed.
+- [x] **`npx update-browserslist-db`** (2026-07-29, commit 574b1e8): caniuse-lite refreshed,
+  build warning gone.
+- [x] **README export-framework claims** (2026-07-29, commit b680d0e): the export table itself
+  was already accurate (all 7 exporters fixed in P0/P1) — nothing to change there. Found and
+  fixed a related real bug instead: the clone URL and Issues link both pointed at the inactive
+  `jalonsogo/tui-studio` upstream instead of this fork.
 
 ## P4 — Component wishlist (new component types)
 
