@@ -379,10 +379,24 @@ Lower-confidence or exploratory ideas, not yet sized or committed to a priority 
 
 - [x] Fork to `discover-dmc/tui-studio`, rewire `origin`, add `upstream` remote (2026-07-28)
 - [x] Push local main + todo/audit to fork (2026-07-28)
-- [ ] Triage remaining upstream PRs: #8–#11 superseded by adopted #20 (nothing to do on the
-  fork; closing them is upstream's call), #16 (cherry-pick or redo). #19/#20 adopted 2026-07-28.
-- [ ] Decide contribution posture: PR fixes back to upstream (inactive ~2 months) vs
-  diverge on fork. Default: land on fork, offer upstream PRs opportunistically.
+- [x] **Triage remaining upstream PRs** (2026-07-29): confirmed we only have read access to
+  upstream (`push: false` via `gh api repos/jalonsogo/tui-studio` — permissions object).
+  #8–#11 (Demwunz's staged Ratatui fidelity chain: baseline → layout → input-widget →
+  nav/data) fully superseded by jalonsogo's own #20, already adopted (commit c9403f4) —
+  nothing to backport; can't close them ourselves, that's upstream's call. #16 (tembo-bot:
+  gitignore `tsconfig.tsbuildinfo` + package-lock peer-flag cleanup) fully moot — verified
+  our current `package-lock.json` already has zero `"peer": true` entries (stale-npm-version
+  lockfile artifact, not a real fix to port) and the gitignore half was already done directly
+  in P3. #19/#20 (jalonsogo's own) already adopted 2026-07-28; remain open upstream since we
+  can't merge there.
+- [x] **Decide contribution posture** (2026-07-29): land on fork, no new upstream PRs for
+  now. Evidence, not assumption: upstream's last push was 2026-06-10 (opening #19/#20), last
+  actual merge 2026-04-07 — even the maintainer's own PRs sit with 0–1 comments and no merge
+  after 7 weeks; 11 open issues, no recent activity. A dormant maintainer sitting on their
+  own unreviewed PRs won't review ours either. Revisit if jalonsogo shows renewed activity
+  (merges #19/#20, comments, pushes). Tradeoff accepted: forgoes upstream credit/visibility
+  for the P0/P1 exporter rewrites, but that cost is low given nothing is being merged there
+  regardless.
 - [x] CI on fork (2026-07-28, commit e36c799): `.github/workflows/ci.yml` runs
   lint + test + build on push/PR, Node 22. First run green: https://github.com/discover-dmc/tui-studio/actions/runs/30374434316
 - [x] CI compile-checks generated output for real (2026-07-28, commit 3504160):
