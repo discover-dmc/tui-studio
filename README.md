@@ -40,7 +40,7 @@ A Figma-like visual editor for designing Terminal UI applications. Drag-and-drop
 ## Quick Start
 
 ```bash
-git clone https://github.com/jalonsogo/tui-studio.git
+git clone https://github.com/discover-dmc/tui-studio.git
 cd tui-studio
 npm install
 npm run dev
@@ -117,7 +117,7 @@ npm run preview  # Preview production build
 
 ---
 
-**Issues**: [GitHub Issues](https://github.com/jalonsogo/tui-studio/issues)
+**Issues**: [GitHub Issues](https://github.com/discover-dmc/tui-studio/issues)
 
 ## LOLcense
 
