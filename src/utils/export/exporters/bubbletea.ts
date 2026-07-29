@@ -5,6 +5,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  tailLines,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -232,6 +233,13 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const width = typeof node.props.width === 'number' ? node.props.width : 20;
       const max = typeof node.props.max === 'number' ? node.props.max : undefined;
       return styled(node, escGoStr(renderSparkline(data, width, max)), ctx);
+    }
+
+    case 'Log': {
+      // consider charmbracelet/bubbles/viewport for real scrolling behavior
+      const lines = (node.props.lines as string[]) || [];
+      const height = typeof node.props.height === 'number' ? node.props.height : 6;
+      return styled(node, escGoStr(tailLines(lines, height).join('\n')), ctx);
     }
 
     case 'List':

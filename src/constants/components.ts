@@ -385,6 +385,34 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
     },
   },
 
+  Log: {
+    type: 'Log',
+    name: 'Log',
+    description: 'Scrolling log/output panel',
+    icon: 'ScrollText',
+    category: 'display',
+    defaultProps: {
+      lines: [
+        'Starting up...',
+        'Connected to server',
+        'GET /api/users 200 OK',
+        'Processing job #42',
+        'Task completed successfully',
+      ],
+      width: 30,
+      height: 6,
+    },
+    defaultLayout: {
+      type: 'none',
+    },
+    defaultStyle: {
+      color: 'white',
+      border: true,
+      borderStyle: 'single',
+      borderColor: 'white',
+    },
+  },
+
   // Data Components
   Table: {
     type: 'Table',

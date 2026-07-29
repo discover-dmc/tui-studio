@@ -176,6 +176,25 @@ export function renderSparkline(data: number[], width: number, max?: number): st
     .join('');
 }
 
+/**
+ * Tail a log's lines to fit a fixed visible height, most-recent-at-bottom
+ * (like a real log viewer scrolled to the end) — blank-padded at the top
+ * when there are fewer lines than the height. Pass `width` to also
+ * truncate/pad each line for a fixed character-grid render (the canvas
+ * preview and ANSI/text export); omit it for code exporters, which should
+ * let the real target framework's own wrapping/clipping handle width.
+ */
+export function tailLines(lines: string[], height: number, width?: number): string[] {
+  const visible = lines.slice(-Math.max(1, height));
+  const blankLine = width !== undefined ? ' '.repeat(width) : '';
+  const padTop = Array(Math.max(0, height - visible.length)).fill(blankLine);
+  const body =
+    width !== undefined
+      ? visible.map((l) => (l.length > width ? l.slice(0, width) : l.padEnd(width)))
+      : visible;
+  return [...padTop, ...body];
+}
+
 /** Box-drawing characters for the Separator component, per line style and orientation. */
 export const SEPARATOR_CHARS: Record<string, { horizontal: string; vertical: string }> = {
   single: { horizontal: '─', vertical: '│' },

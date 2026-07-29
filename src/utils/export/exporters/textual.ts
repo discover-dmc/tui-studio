@@ -252,6 +252,18 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       return `${sp}yield Sparkline([${data.join(', ')}], summary_function=max${idArg(id)})\n`;
     }
 
+    case 'Log': {
+      // Real textual.widgets.RichLog — confirmed via textual.textualize.io/widgets/rich_log.
+      // write() appends content, so lines are pushed in on_mount in order.
+      ctx.widgets.add('RichLog');
+      const id = registerStyles(node, ctx, [], true)!;
+      const lines = (node.props.lines as string[]) || [];
+      lines.forEach((line) => {
+        ctx.mount.push(`self.query_one("#${id}", RichLog).write(${escPyStr(line)})`);
+      });
+      return `${sp}yield RichLog(${idArg(id, true)})\n`;
+    }
+
     case 'List': {
       ctx.widgets.add('ListView');
       ctx.widgets.add('ListItem');

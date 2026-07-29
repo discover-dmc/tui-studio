@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escRust } from '../escape';
-import { SPINNER_PRESETS, getSeparatorChar } from '../../../constants/assets';
+import { SPINNER_PRESETS, getSeparatorChar, tailLines } from '../../../constants/assets';
 import { type ExportColorMode, ansi16IndexOfName, nearestAnsi16, resolveBackgroundColor } from './shared';
 
 export function exportToRatatui(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
@@ -63,6 +63,9 @@ function collectUsedWidgets(node: ComponentNode, used: Set<string>): void {
       break;
     case 'Sparkline':
       used.add('Sparkline');
+      break;
+    case 'Log':
+      used.add('Line');
       break;
     case 'List':
     case 'Menu':
@@ -318,6 +321,18 @@ function generateRatatuiNode(
     let widget = `Sparkline::default().data(&[${data.join(', ')}])`;
     if (max !== undefined) widget += `.max(${max})`;
     widget += `.style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
+    return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
+  }
+
+  if (node.type === 'Log') {
+    // Height and content are both known at export time, so the tail is
+    // pre-sliced here rather than using Paragraph's real .scroll() offset
+    // (which would only matter if the content could still change at runtime).
+    const lines = (node.props.lines as string[]) || [];
+    const height = typeof node.props.height === 'number' ? node.props.height : 6;
+    const visible = tailLines(lines, height);
+    let widget = `Paragraph::new(vec![${visible.map((l) => `Line::from(${escRust(l)})`).join(', ')}]).style(${ratatuiStyle(node, colorMode)})`;
     if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }

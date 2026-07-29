@@ -19,6 +19,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  tailLines,
   getSeparatorChar,
 } from '../../constants/assets';
 import { THEMES } from '../../stores/themeStore';
@@ -531,6 +532,17 @@ const ComponentRenderer = memo(
           const width = typeof node.props.width === 'number' ? node.props.width : 20;
           const max = typeof node.props.max === 'number' ? node.props.max : undefined;
           return <span className="font-mono">{renderSparkline(data, width, max)}</span>;
+        }
+        case 'Log': {
+          const lines = (node.props.lines as string[]) || [];
+          const visible = tailLines(lines, Math.max(1, layout.height));
+          return (
+            <div className="font-mono text-xs whitespace-pre leading-tight w-full h-full">
+              {visible.map((l, i) => (
+                <div key={i}>{l.length > layout.width ? l.slice(0, layout.width) : l}</div>
+              ))}
+            </div>
+          );
         }
         case 'Checkbox': {
           const checkedIcon = (node.props.checkedIcon as string) || '✓';

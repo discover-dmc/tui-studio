@@ -10,6 +10,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  tailLines,
   getSeparatorChar,
 } from '../../constants/assets';
 
@@ -71,6 +72,9 @@ export function renderComponent(
       break;
     case 'Sparkline':
       content = renderSparklineComponent(node, width, height);
+      break;
+    case 'Log':
+      content = renderLog(node, width, height);
       break;
     case 'Spinner':
       content = renderSpinner(node, width, height);
@@ -356,6 +360,15 @@ function renderSparklineComponent(node: ComponentNode, width: number, height: nu
   }
 
   return lines;
+}
+
+function renderLog(node: ComponentNode, width: number, height: number): string[] {
+  const lines = (node.props.lines as string[]) || [];
+  const contentArea = node.style.border
+    ? getContentArea(width, height, { style: 'single' })
+    : { width, height };
+
+  return tailLines(lines, contentArea.height, contentArea.width);
 }
 
 function renderSpinner(node: ComponentNode, width: number, height: number): string[] {

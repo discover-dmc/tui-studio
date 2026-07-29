@@ -4,6 +4,7 @@ import {
   PROGRESSBAR_STYLES,
   renderGauge,
   renderSparkline,
+  tailLines,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -176,6 +177,16 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
       const max = typeof node.props.max === 'number' ? node.props.max : undefined;
       const bar = renderSparkline(data, width, max);
       return `${sp}<Text${inkTextProps(node, colorMode)}>{${JSON.stringify(bar)}}</Text>\n`;
+    }
+
+    case 'Log': {
+      const lines = (node.props.lines as string[]) || [];
+      const height = typeof node.props.height === 'number' ? node.props.height : 6;
+      const visible = tailLines(lines, height);
+      const rows = visible
+        .map((l, i) => `${sp}  <Text key={${i}}>${escJsx(l)}</Text>`)
+        .join('\n');
+      return `${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${rows}\n${sp}</Box>\n`;
     }
 
     case 'List': {

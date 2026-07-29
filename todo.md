@@ -287,11 +287,25 @@ Suggested order (simplest/most-reusable first, to prove the full pipeline cheapl
   field, canvas rendering (both the default upsampled data and a hand-entered triangular
   series), width-only resize, and both the Textual and Ratatui code export tabs showing the
   real widget calls.
-- [ ] **Log / viewport** — scrolling log/output panel. Real per-framework primitives differ a
-  lot: Textual has `RichLog`; BubbleTea has `bubbles/viewport`; Blessed has `log`/
-  `scrollablebox`; Ratatui/Tview have no built-in scrollback (hand-rolled `Paragraph`/TextView
-  + scroll offset). Needs static placeholder content in the canvas since there's no real log
-  stream at design time.
+- [x] **Log / viewport** (2026-07-29): scrolling log/output panel (`lines: string[]`). Real
+  per-framework primitives verified — more frameworks had native support than this item's own
+  original guess assumed. Textual's real `RichLog` (`.write()` per line in `on_mount`).
+  Blessed's real `log` widget (`scrollable: true, alwaysScroll: true` — genuine tail-scroll,
+  not hand-rolled). Tview's real `TextView.SetScrollable(true)` + `.ScrollToEnd()` (confirmed:
+  "discards lines moving out of the visible area at the top" — an actual native log-tail
+  mechanism, not a guess). OpenTUI's real `<scrollbox>` intrinsic (confirmed via
+  opentui.com/docs/components/scrollbox). Only BubbleTea and Ink have no native fit: BubbleTea
+  gets a static preview + a `bubbles/viewport` pointer comment (matching this file's existing
+  convention for Spinner/ProgressBar); Ink hand-rolls a `Box` column of `Text` lines. Ratatui
+  uses a real multi-line `Paragraph` — since both content and height are known at export time,
+  the visible tail is pre-sliced there rather than using Paragraph's real runtime `.scroll()`
+  offset (which would only matter if content could still change after export). All 7
+  exporters' generated output verified against real toolchains (cargo build, go
+  test/build+vet, py_compile + a real headless Textual mount, node --check, esbuild) — the
+  Textual variant's real `RichLog` mounted cleanly. Verified live in the browser: add via
+  search, editable "one per line" textarea, canvas rendering (bottom-anchored tail), full
+  resize (unlike the single-line Gauge/Sparkline/ProgressBar, Log resizes in both axes), and
+  the Textual/Tview code export tabs showing the real widget calls.
 - [ ] **StatusBar / footer keybinding hints** — bottom bar showing keybindings (e.g.
   `^Q Quit  ^S Save`). Open design question before coding: does this need a real new
   `ComponentType`, or is it already achievable today by composing existing Box+Text? Decide

@@ -296,6 +296,22 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       return varName;
     }
 
+    case 'Log': {
+      // Real tview.TextView scrolling: SetScrollable(true) discards lines
+      // above the visible area, and ScrollToEnd() is tview's actual
+      // "jump to bottom" API — confirmed via rivo/tview's docs/source,
+      // not a hand-rolled tail slice like the other 4 exporters need.
+      const lines = (node.props.lines as string[]) || [];
+      const varName = ident(node.name, ctx);
+      ctx.stmts.push(`${varName} := tview.NewTextView()`);
+      ctx.stmts.push(`${varName}.SetScrollable(true)`);
+      ctx.stmts.push(`${varName}.SetText(${tviewText(lines.join('\n'))})`);
+      ctx.stmts.push(`${varName}.ScrollToEnd()`);
+      applyTextColor(varName, node, ctx);
+      applyBoxStyle(varName, node, ctx);
+      return varName;
+    }
+
     case 'List':
     case 'Menu': {
       const varName = ident(node.name, ctx);

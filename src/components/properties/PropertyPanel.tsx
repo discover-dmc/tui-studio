@@ -848,6 +848,26 @@ function ComponentProps({ component }: { component: import('../../types').Compon
         </>
       )}
 
+      {/* Log Properties */}
+      {component.type === 'Log' && (
+        <div>
+          <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+            Lines (one per line)
+          </label>
+          <textarea
+            value={
+              Array.isArray(component.props.lines) ? (component.props.lines as string[]).join('\n') : ''
+            }
+            onChange={(e) =>
+              componentStore.updateProps(component.id, { lines: e.target.value.split('\n') })
+            }
+            rows={6}
+            placeholder="Starting up...&#10;Connected to server&#10;GET /api/users 200 OK"
+            className="w-full px-2 py-1 bg-input border border-border/50 rounded text-[11px] font-mono resize-none focus:border-primary focus:outline-none"
+          />
+        </div>
+      )}
+
       {/* Spinner Properties */}
       {component.type === 'Spinner' && (
         <>

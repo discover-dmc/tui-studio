@@ -182,6 +182,14 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       return `${sp}${textEl(node, renderSparkline(data, width, max), colorMode)}\n`;
     }
 
+    case 'Log': {
+      // Real @opentui/react <scrollbox> intrinsic — confirmed via
+      // opentui.com/docs/components/scrollbox, not a hand-rolled fallback.
+      const lines = (node.props.lines as string[]) || [];
+      const rows = lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n');
+      return `${sp}<scrollbox${boxAttrs(node, colorMode)}>\n${rows}\n${sp}</scrollbox>\n`;
+    }
+
     case 'List':
     case 'Menu': {
       const selectedIndex = Number(node.props.selectedIndex ?? -1);

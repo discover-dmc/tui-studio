@@ -20,6 +20,7 @@ export type ComponentType =
   | 'ProgressBar'
   | 'Gauge'
   | 'Sparkline'
+  | 'Log'
   // Data
   | 'Table'
   | 'List'

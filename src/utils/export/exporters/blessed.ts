@@ -236,6 +236,15 @@ function genNode(
       break;
     }
 
+    case 'Log': {
+      // blessed's real log widget (extends ScrollableText) — scrollable +
+      // alwaysScroll give genuine tail-scrolling behavior, not a hand-rolled one.
+      widget = 'log';
+      extraOpts = [`scrollable: true`, `alwaysScroll: true`];
+      content = ((node.props.lines as string[]) || []).join('\n');
+      break;
+    }
+
     case 'List':
     case 'Menu': {
       widget = 'list';
