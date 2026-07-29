@@ -12,6 +12,7 @@ import {
   Loader2,
   Activity,
   Gauge as GaugeIcon,
+  BarChart3,
   Table2,
   List,
   GitBranch,
@@ -63,6 +64,8 @@ export function getComponentIcon(type: ComponentType) {
       return <Activity {...iconProps} />;
     case 'Gauge':
       return <GaugeIcon {...iconProps} />;
+    case 'Sparkline':
+      return <BarChart3 {...iconProps} />;
 
     // Data
     case 'Table':

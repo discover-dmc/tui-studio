@@ -19,6 +19,7 @@ export type ComponentType =
   | 'Spinner'
   | 'ProgressBar'
   | 'Gauge'
+  | 'Sparkline'
   // Data
   | 'Table'
   | 'List'

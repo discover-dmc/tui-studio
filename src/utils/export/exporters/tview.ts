@@ -1,6 +1,12 @@
 import type { ComponentNode } from '../../../types';
 import { escGo } from '../escape';
-import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../../constants/assets';
+import {
+  SPINNER_PRESETS,
+  renderBar,
+  renderGauge,
+  renderSparkline,
+  getSeparatorChar,
+} from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -272,6 +278,19 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName} := tview.NewTextView()`);
       ctx.stmts.push(
         `${varName}.SetText(${tviewText(bar)}) // tview has no built-in gauge; update this text as the value changes`
+      );
+      applyBoxStyle(varName, node, ctx);
+      return varName;
+    }
+
+    case 'Sparkline': {
+      const data = (node.props.data as number[]) || [];
+      const width = typeof node.props.width === 'number' ? node.props.width : 20;
+      const max = typeof node.props.max === 'number' ? node.props.max : undefined;
+      const varName = ident(node.name, ctx);
+      ctx.stmts.push(`${varName} := tview.NewTextView()`);
+      ctx.stmts.push(
+        `${varName}.SetText(${tviewText(renderSparkline(data, width, max))}) // tview has no built-in sparkline; update this text as data changes`
       );
       applyBoxStyle(varName, node, ctx);
       return varName;

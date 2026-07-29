@@ -148,6 +148,34 @@ export function renderGauge(styleName: string, width: number, percentage: number
   return bar.join('');
 }
 
+// The 8 non-empty eighths-block levels ratatui's default Sparkline bar_set
+// (symbols::bar::NINE_LEVELS) uses, plus a blank 0th level for zero/empty.
+const SPARKLINE_CHARS = [' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+
+/**
+ * Render a numeric series as a row of block-height characters, bucketing
+ * (max-per-bucket, matching Textual's own `summary_function=max` convention)
+ * when the series is longer than the target width.
+ */
+export function renderSparkline(data: number[], width: number, max?: number): string {
+  if (!data.length || width <= 0) return ' '.repeat(Math.max(0, width));
+
+  const bucketed: number[] = [];
+  for (let i = 0; i < width; i++) {
+    const start = Math.floor((i * data.length) / width);
+    const end = Math.max(start + 1, Math.floor(((i + 1) * data.length) / width));
+    bucketed.push(Math.max(...data.slice(start, end)));
+  }
+
+  const effectiveMax = max ?? Math.max(...data, 1);
+  return bucketed
+    .map((v) => {
+      const level = effectiveMax > 0 ? Math.round((Math.max(0, v) / effectiveMax) * 8) : 0;
+      return SPARKLINE_CHARS[Math.min(8, Math.max(0, level))];
+    })
+    .join('');
+}
+
 /** Box-drawing characters for the Separator component, per line style and orientation. */
 export const SEPARATOR_CHARS: Record<string, { horizontal: string; vertical: string }> = {
   single: { horizontal: '─', vertical: '│' },

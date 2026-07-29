@@ -108,6 +108,7 @@ export class LayoutEngine {
       'Spinner',
       'ProgressBar',
       'Gauge',
+      'Sparkline',
       'Text',
       'Breadcrumb',
     ];
@@ -573,6 +574,7 @@ export class LayoutEngine {
       case 'Spinner':
       case 'ProgressBar':
       case 'Gauge':
+      case 'Sparkline':
         return node.style.border ? 3 : 1;
       case 'Text': {
         const content = (node.props.content as string) || '';

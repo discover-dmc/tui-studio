@@ -1,6 +1,12 @@
 import type { ComponentNode } from '../../../types';
 import { LayoutEngine } from '../../layout';
-import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../../constants/assets';
+import {
+  SPINNER_PRESETS,
+  renderBar,
+  renderGauge,
+  renderSparkline,
+  getSeparatorChar,
+} from '../../../constants/assets';
 import {
   type ExportColorMode,
   ANSI16_NAMES,
@@ -219,6 +225,14 @@ function genNode(
       const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
       const innerW = box.width - (bordered ? 2 : 0);
       content = renderGauge((node.props.barStyle as string) || 'blocks', innerW, pct, overlayText);
+      break;
+    }
+
+    case 'Sparkline': {
+      const data = (node.props.data as number[]) || [];
+      const max = typeof node.props.max === 'number' ? node.props.max : undefined;
+      const innerW = box.width - (bordered ? 2 : 0);
+      content = renderSparkline(data, innerW, max);
       break;
     }
 

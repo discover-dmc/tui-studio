@@ -811,6 +811,43 @@ function ComponentProps({ component }: { component: import('../../types').Compon
         </>
       )}
 
+      {/* Sparkline Properties */}
+      {component.type === 'Sparkline' && (
+        <>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Data (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={((component.props.data as number[]) || []).join(', ')}
+              onChange={(e) => {
+                const parsed = e.target.value
+                  .split(',')
+                  .map((s) => Number(s.trim()))
+                  .filter((n) => !Number.isNaN(n));
+                componentStore.updateProps(component.id, { data: parsed });
+              }}
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] font-mono focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Max (blank = auto)
+            </label>
+            <input
+              type="text"
+              value={typeof component.props.max === 'number' ? String(component.props.max) : ''}
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                componentStore.updateProps(component.id, { max: v === '' ? undefined : Number(v) });
+              }}
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+            />
+          </div>
+        </>
+      )}
+
       {/* Spinner Properties */}
       {component.type === 'Spinner' && (
         <>

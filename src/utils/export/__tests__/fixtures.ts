@@ -171,6 +171,7 @@ export function kitchenSinkTree(): ComponentNode {
         node('Spinner', 'Load', { spinnerStyle: 'bouncingBar', frame: 4, label: 'Working' }),
         node('ProgressBar', 'Prog', { value: 67, max: 100, width: 24, barStyle: 'equals' }),
         node('Gauge', 'CPU', { label: 'CPU', value: 42, max: 100, width: 24, barStyle: 'blocks' }),
+        node('Sparkline', 'Trend', { data: [1, 3, 2, 5, 4, 8, 6, 9, 7, 10], width: 10 }),
         node('Breadcrumb', 'Crumb', {
           items: [{ label: 'Home' }, { label: 'Docs' }],
           separator: ' / ',

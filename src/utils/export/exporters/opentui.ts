@@ -1,6 +1,12 @@
 import type { ComponentNode } from '../../../types';
 import { escJsx } from '../escape';
-import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../../constants/assets';
+import {
+  SPINNER_PRESETS,
+  renderBar,
+  renderGauge,
+  renderSparkline,
+  getSeparatorChar,
+} from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -167,6 +173,13 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
       const bar = renderGauge((node.props.barStyle as string) || 'blocks', width, pct, overlayText);
       return `${sp}${textEl(node, bar, colorMode)}\n`;
+    }
+
+    case 'Sparkline': {
+      const data = (node.props.data as number[]) || [];
+      const width = typeof node.props.width === 'number' ? node.props.width : 20;
+      const max = typeof node.props.max === 'number' ? node.props.max : undefined;
+      return `${sp}${textEl(node, renderSparkline(data, width, max), colorMode)}\n`;
     }
 
     case 'List':

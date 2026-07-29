@@ -1,6 +1,11 @@
 import type { ComponentNode } from '../../../types';
 import { escJsx } from '../escape';
-import { PROGRESSBAR_STYLES, renderGauge, getSeparatorChar } from '../../../constants/assets';
+import {
+  PROGRESSBAR_STYLES,
+  renderGauge,
+  renderSparkline,
+  getSeparatorChar,
+} from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -162,6 +167,14 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
       const label = (node.props.label as string) || 'Gauge';
       const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
       const bar = renderGauge((node.props.barStyle as string) || 'blocks', width, pct, overlayText);
+      return `${sp}<Text${inkTextProps(node, colorMode)}>{${JSON.stringify(bar)}}</Text>\n`;
+    }
+
+    case 'Sparkline': {
+      const data = (node.props.data as number[]) || [];
+      const width = typeof node.props.width === 'number' ? node.props.width : 20;
+      const max = typeof node.props.max === 'number' ? node.props.max : undefined;
+      const bar = renderSparkline(data, width, max);
       return `${sp}<Text${inkTextProps(node, colorMode)}>{${JSON.stringify(bar)}}</Text>\n`;
     }
 

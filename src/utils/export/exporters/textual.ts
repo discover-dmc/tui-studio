@@ -243,6 +243,15 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       );
     }
 
+    case 'Sparkline': {
+      // Real textual.widgets.Sparkline — confirmed via textual.textualize.io/widgets/sparkline,
+      // not a hand-rolled fallback like the other 5 exporters need.
+      ctx.widgets.add('Sparkline');
+      const id = registerStyles(node, ctx, [], true)!;
+      const data = (node.props.data as number[]) || [];
+      return `${sp}yield Sparkline([${data.join(', ')}], summary_function=max${idArg(id)})\n`;
+    }
+
     case 'List': {
       ctx.widgets.add('ListView');
       ctx.widgets.add('ListItem');

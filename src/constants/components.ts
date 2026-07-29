@@ -367,6 +367,24 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
     },
   },
 
+  Sparkline: {
+    type: 'Sparkline',
+    name: 'Sparkline',
+    description: 'Inline mini bar chart from a numeric series',
+    icon: 'BarChart3',
+    category: 'display',
+    defaultProps: {
+      data: [1, 3, 2, 5, 4, 8, 6, 9, 7, 10, 8, 5],
+      width: 20,
+    },
+    defaultLayout: {
+      type: 'none',
+    },
+    defaultStyle: {
+      color: 'white',
+    },
+  },
+
   // Data Components
   Table: {
     type: 'Table',

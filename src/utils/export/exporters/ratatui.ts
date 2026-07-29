@@ -61,6 +61,9 @@ function collectUsedWidgets(node: ComponentNode, used: Set<string>): void {
     case 'Gauge':
       used.add('Gauge');
       break;
+    case 'Sparkline':
+      used.add('Sparkline');
+      break;
     case 'List':
     case 'Menu':
     case 'Tree':
@@ -89,7 +92,7 @@ function buildWidgetImports(used: Set<string>): string {
   // Canonical order matching ratatui's widget module
   const order = [
     'Block', 'BorderType', 'Borders', 'Gauge',
-    'List', 'ListItem', 'Paragraph', 'Row', 'Table', 'Tabs', 'Wrap',
+    'List', 'ListItem', 'Paragraph', 'Row', 'Sparkline', 'Table', 'Tabs', 'Wrap',
   ];
   return order.filter(w => used.has(w)).join(', ');
 }
@@ -302,6 +305,19 @@ function generateRatatuiNode(
     const showPercent = (node.props.showPercent as boolean) ?? true;
     const labelText = showPercent ? `${label} ${Math.round(ratio * 100)}%` : label;
     let widget = `Gauge::default().ratio(${ratio.toFixed(3)}).label(${escRust(labelText)}).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
+    return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
+  }
+
+  if (node.type === 'Sparkline') {
+    // Real ratatui::widgets::Sparkline — .data() takes u64s, so values are
+    // rounded and clamped non-negative. Direction is left at its default
+    // (LeftToRight) rather than specified explicitly.
+    const data = ((node.props.data as number[]) || []).map((v) => Math.max(0, Math.round(v)));
+    const max = typeof node.props.max === 'number' ? Math.round(node.props.max) : undefined;
+    let widget = `Sparkline::default().data(&[${data.join(', ')}])`;
+    if (max !== undefined) widget += `.max(${max})`;
+    widget += `.style(${ratatuiStyle(node, colorMode)})`;
     if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }

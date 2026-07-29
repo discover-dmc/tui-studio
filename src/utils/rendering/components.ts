@@ -5,7 +5,13 @@ import { CharCanvas } from './canvas';
 import { renderBox, getContentArea, BORDER_STYLES } from './borders';
 import { wrapText, alignText, padText, truncateText } from './text';
 import { generateAnsiCodes } from './ansi';
-import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../constants/assets';
+import {
+  SPINNER_PRESETS,
+  renderBar,
+  renderGauge,
+  renderSparkline,
+  getSeparatorChar,
+} from '../../constants/assets';
 
 /**
  * Render a component to a character canvas
@@ -62,6 +68,9 @@ export function renderComponent(
       break;
     case 'Gauge':
       content = renderGaugeComponent(node, width, height);
+      break;
+    case 'Sparkline':
+      content = renderSparklineComponent(node, width, height);
       break;
     case 'Spinner':
       content = renderSpinner(node, width, height);
@@ -325,6 +334,22 @@ function renderGaugeComponent(node: ComponentNode, width: number, height: number
   const overlayText = showPercent ? `${label} ${percentage.toFixed(0)}%` : label;
   const text = renderGauge((node.props.barStyle as string) || 'blocks', contentArea.width, percentage, overlayText);
 
+  const lines = [text.slice(0, contentArea.width).padEnd(contentArea.width)];
+  while (lines.length < contentArea.height) {
+    lines.push(' '.repeat(contentArea.width));
+  }
+
+  return lines;
+}
+
+function renderSparklineComponent(node: ComponentNode, width: number, height: number): string[] {
+  const data = (node.props.data as number[]) || [];
+  const max = typeof node.props.max === 'number' ? node.props.max : undefined;
+  const contentArea = node.style.border
+    ? getContentArea(width, height, { style: 'single' })
+    : { width, height };
+
+  const text = renderSparkline(data, contentArea.width, max);
   const lines = [text.slice(0, contentArea.width).padEnd(contentArea.width)];
   while (lines.length < contentArea.height) {
     lines.push(' '.repeat(contentArea.width));

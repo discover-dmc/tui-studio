@@ -14,7 +14,13 @@ import { useCanvasKeyboardNudge } from '../../hooks/useCanvasKeyboard';
 import { useComponentSelection } from '../../hooks/useComponentSelection';
 import { useComponentDrag } from '../../hooks/useComponentDrag';
 import { COMPONENT_LIBRARY } from '../../constants/components';
-import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../constants/assets';
+import {
+  SPINNER_PRESETS,
+  renderBar,
+  renderGauge,
+  renderSparkline,
+  getSeparatorChar,
+} from '../../constants/assets';
 import { THEMES } from '../../stores/themeStore';
 import { interpolateGradientColor } from '../../utils/rendering/ansi';
 import { ComponentToolbar } from './ComponentToolbar';
@@ -520,6 +526,12 @@ const ComponentRenderer = memo(
           const bar = renderGauge((node.props.barStyle as string) || 'blocks', 24, pct, overlayText);
           return <span className="font-mono">{bar}</span>;
         }
+        case 'Sparkline': {
+          const data = (node.props.data as number[]) || [];
+          const width = typeof node.props.width === 'number' ? node.props.width : 20;
+          const max = typeof node.props.max === 'number' ? node.props.max : undefined;
+          return <span className="font-mono">{renderSparkline(data, width, max)}</span>;
+        }
         case 'Checkbox': {
           const checkedIcon = (node.props.checkedIcon as string) || '✓';
           const uncheckedIcon = (node.props.uncheckedIcon as string) || ' ';
@@ -920,6 +932,7 @@ const ComponentRenderer = memo(
         'Select',
         'ProgressBar',
         'Gauge',
+        'Sparkline',
         'Spinner',
         'Checkbox',
         'Radio',

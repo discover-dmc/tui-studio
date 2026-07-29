@@ -270,10 +270,23 @@ Suggested order (simplest/most-reusable first, to prove the full pipeline cheapl
   browser: add via search, Label/Value/Max/Style/Show-percentage controls, canvas rendering,
   width-only resize, and the Ratatui code export tab showing the real
   `Gauge::default().ratio(0.450).label("CPU 45%")` call.
-- [ ] **Sparkline** — inline mini bar/line chart from a numeric array. Ratatui has a native
-  `Sparkline` widget; BubbleTea/Textual/Tview/Blessed/OpenTUI/Ink have no built-in equivalent
-  and would need hand-rolled Unicode block rendering (can likely reuse the existing
-  progress-bar block-character presets in `constants/assets.ts`).
+- [x] **Sparkline** (2026-07-29): inline mini bar chart from a numeric series (`data`, optional
+  `max`). Correction to this item's own assumption: **Textual also has a native `Sparkline`
+  widget** (confirmed via textual.textualize.io/widgets/sparkline) — used directly
+  (`Sparkline(data, summary_function=max)`), not hand-rolled like originally guessed. Ratatui
+  uses its real `widgets::Sparkline` (`.data(&[u64...]).max(n)`, confirmed via docs.rs; values
+  rounded/clamped to u64, direction left at its documented default rather than specified).
+  BubbleTea/Tview/Blessed/OpenTUI/Ink have no native primitive, so they share one new helper,
+  `renderSparkline()` (`constants/assets.ts`) — buckets the series into `width` columns
+  (max-per-bucket, matching Textual's own `summary_function=max` convention) and maps each to
+  one of the 8 eighths-block levels (▁▂▃▄▅▆▇█), the same default character set ratatui's real
+  Sparkline uses (`symbols::bar::NINE_LEVELS`). All 7 exporters' generated output verified
+  against real toolchains (cargo build, go test/build+vet, py_compile + a real headless
+  Textual mount, node --check, esbuild) — the Textual variant mounted the real Sparkline
+  widget cleanly. Verified live in the browser: add via search, editable comma-separated data
+  field, canvas rendering (both the default upsampled data and a hand-entered triangular
+  series), width-only resize, and both the Textual and Ratatui code export tabs showing the
+  real widget calls.
 - [ ] **Log / viewport** — scrolling log/output panel. Real per-framework primitives differ a
   lot: Textual has `RichLog`; BubbleTea has `bubbles/viewport`; Blessed has `log`/
   `scrollablebox`; Ratatui/Tview have no built-in scrollback (hand-rolled `Paragraph`/TextView
