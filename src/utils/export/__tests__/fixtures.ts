@@ -170,6 +170,7 @@ export function kitchenSinkTree(): ComponentNode {
         node('Select', 'Sel', { options: ['One', 'Two'], selectedIndex: 1 }),
         node('Spinner', 'Load', { spinnerStyle: 'bouncingBar', frame: 4, label: 'Working' }),
         node('ProgressBar', 'Prog', { value: 67, max: 100, width: 24, barStyle: 'equals' }),
+        node('Gauge', 'CPU', { label: 'CPU', value: 42, max: 100, width: 24, barStyle: 'blocks' }),
         node('Breadcrumb', 'Crumb', {
           items: [{ label: 'Home' }, { label: 'Docs' }],
           separator: ' / ',

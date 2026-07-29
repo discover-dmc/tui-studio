@@ -213,9 +213,18 @@ const prog = blessed.box({
   content: "[==========>      ] 67%",
 });
 
-const crumb = blessed.box({
+const cPU = blessed.box({
   parent: controls,
   top: 9,
+  left: 0,
+  width: 24,
+  height: 1,
+  content: "████████CPU 42%░░░░░░░░░",
+});
+
+const crumb = blessed.box({
+  parent: controls,
+  top: 10,
   left: 0,
   width: 1,
   height: 1,
@@ -224,7 +233,7 @@ const crumb = blessed.box({
 
 const div = blessed.line({
   parent: controls,
-  top: 11,
+  top: 12,
   left: 0,
   width: 1,
   height: 1,
@@ -367,7 +376,7 @@ func (m model) View() string {
 	nav := lipgloss.JoinHorizontal(lipgloss.Top, " Dashboard ", lipgloss.NewStyle().Bold(true).Underline(true).Render(" Agent "))
 	header := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#414868")).Padding(1).Render(lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Foreground(lipgloss.Color("#7dcfff")).Bold(true).Render("Say \\"hi\\" to <all>"), "  ", nav))
 	body := lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("1")).Render("▶ • main.rs  1\\n  • lib.rs  2"), "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested", "PID            │ CPU           \\n───────────────┼───────────────\\n123            │ 45%           \\n456            │ 2%            ", "  ⌂ Home  ^H")
-	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", "[✓] Enable"), lipgloss.JoinHorizontal(lipgloss.Top, "(●) Choice A", "[ON ] Dark mode"), lipgloss.JoinHorizontal(lipgloss.Top, "Two ▼", "[====] Working"), lipgloss.JoinHorizontal(lipgloss.Top, "[==========>      ] 67%", "Home / Docs"), lipgloss.JoinHorizontal(lipgloss.Top, "", "════════════════════"))
+	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", "[✓] Enable"), lipgloss.JoinHorizontal(lipgloss.Top, "(●) Choice A", "[ON ] Dark mode"), lipgloss.JoinHorizontal(lipgloss.Top, "Two ▼", "[====] Working"), lipgloss.JoinHorizontal(lipgloss.Top, "[==========>      ] 67%", lipgloss.NewStyle().Width(24).Render("████████CPU 42%░░░░░░░░░")), lipgloss.JoinHorizontal(lipgloss.Top, "Home / Docs", ""), "════════════════════")
 	empty := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render("")
 	screen := lipgloss.JoinVertical(lipgloss.Left, header, body, controls, empty)
 	return screen
@@ -489,6 +498,7 @@ function App() {
         <Text>
           {"["}{'='.repeat(Math.round(67 / 100 * 24))}{' '.repeat(24 - Math.round(67 / 100 * 24))}{"]"} 67%
         </Text>
+        <Text>{"████████CPU 42%░░░░░░░░░"}</Text>
         <Text>{"Home  /  Docs"}</Text>
         <Box flexGrow={1} />
         <Text>{"════════════════════"}</Text>
@@ -594,10 +604,13 @@ function App() {
         </box>
         <box style={{ flexDirection: "row" }}>
           <text>[==========&gt;      ] 67%</text>
-          <text>Home / Docs</text>
+          <text>████████CPU 42%░░░░░░░░░</text>
         </box>
         <box style={{ flexDirection: "row" }}>
+          <text>Home / Docs</text>
           <box style={{ flexGrow: 1 }} />
+        </box>
+        <box style={{ flexDirection: "row" }}>
           <text>════════════════════</text>
         </box>
       </box>
@@ -723,7 +736,7 @@ fn ui(frame: &mut Frame) {
             frame.render_widget(List::new(vec![ListItem::new("▶ ⌂ Home  ^H")]).style(Style::default()), chunks_chunks_area_1_[3]);
         let grid_rows_chunks_area_2_ = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
+            .constraints([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
             .split(chunks_area[2]);
         let grid_cols_chunks_area_2__0 = Layout::default()
             .direction(Direction::Horizontal)
@@ -754,12 +767,17 @@ fn ui(frame: &mut Frame) {
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[4]);
             frame.render_widget(Gauge::default().ratio(0.670).style(Style::default()), grid_cols_chunks_area_2__4[0]);
-            frame.render_widget(Paragraph::new("Home / Docs").style(Style::default()), grid_cols_chunks_area_2__4[1]);
+            frame.render_widget(Gauge::default().ratio(0.420).label("CPU 42%").style(Style::default()), grid_cols_chunks_area_2__4[1]);
         let grid_cols_chunks_area_2__5 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[5]);
-            frame.render_widget(Paragraph::new("═".repeat(grid_cols_chunks_area_2__5[1].width as usize)).style(Style::default()), grid_cols_chunks_area_2__5[1]);
+            frame.render_widget(Paragraph::new("Home / Docs").style(Style::default()), grid_cols_chunks_area_2__5[0]);
+        let grid_cols_chunks_area_2__6 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(grid_rows_chunks_area_2_[6]);
+            frame.render_widget(Paragraph::new("═".repeat(grid_cols_chunks_area_2__6[0].width as usize)).style(Style::default()), grid_cols_chunks_area_2__6[0]);
         let block_chunks_area_3_ = Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("Empty");
         let inner_chunks_area_3_ = block_chunks_area_3_.inner(chunks_area[3]);
         frame.render_widget(block_chunks_area_3_, chunks_area[3]);
@@ -876,7 +894,7 @@ class MyApp(App):
     }
 
     #controls {
-        grid-size: 2 6;
+        grid-size: 2 7;
     }
 
     #ok {
@@ -884,6 +902,10 @@ class MyApp(App):
     }
 
     #prog {
+        width: 24;
+    }
+
+    #cpu {
         width: 24;
     }
 
@@ -928,6 +950,9 @@ class MyApp(App):
             yield Select([("One", 0), ("Two", 1)], allow_blank=False, value=1)
             yield LoadingIndicator()
             yield ProgressBar(total=100, show_eta=False, id="prog")
+            with Horizontal():
+                yield Static("CPU")
+                yield ProgressBar(total=100, show_eta=False, id="cpu")
             yield Static("Home / Docs")
             yield Static("", classes="spacer")
             yield Rule.horizontal(line_style="double")
@@ -946,6 +971,7 @@ class MyApp(App):
         table_stats.add_columns("PID", "CPU")
         table_stats.add_rows([("123", "45%"), ("456", "2%")])
         self.query_one("#prog", ProgressBar).update(total=100, progress=67)
+        self.query_one("#cpu", ProgressBar).update(total=100, progress=42)
         self.push_screen(ConfirmModal())
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -1067,7 +1093,7 @@ func main() {
 	body.AddItem(nav2, 0, 1, false)
 	root.AddItem(body, 0, 1, false)
 	controls := tview.NewGrid()
-	controls.SetRows(0, 0, 0, 0, 0, 0)
+	controls.SetRows(0, 0, 0, 0, 0, 0, 0)
 	controls.SetColumns(0, 0)
 	oK := tview.NewButton(tview.Escape("OK"))
 	controls.AddItem(oK, 0, 0, 1, 1, 0, 0, false)
@@ -1105,13 +1131,16 @@ func main() {
 	prog := tview.NewTextView()
 	prog.SetText(tview.Escape("[==========>      ] 67%")) // tview has no built-in progress bar; update this text as work completes
 	controls.AddItem(prog, 4, 0, 1, 1, 0, 0, false)
+	cPU := tview.NewTextView()
+	cPU.SetText(tview.Escape("████████CPU 42%░░░░░░░░░")) // tview has no built-in gauge; update this text as the value changes
+	controls.AddItem(cPU, 4, 1, 1, 1, 0, 0, false)
 	crumb := tview.NewTextView()
 	crumb.SetText(tview.Escape("Home / Docs"))
-	controls.AddItem(crumb, 4, 1, 1, 1, 0, 0, false)
-	controls.AddItem(tview.NewBox(), 5, 0, 1, 1, 0, 0, false)
+	controls.AddItem(crumb, 5, 0, 1, 1, 0, 0, false)
+	controls.AddItem(tview.NewBox(), 5, 1, 1, 1, 0, 0, false)
 	div := tview.NewTextView()
 	div.SetText(tview.Escape("════════════════════"))
-	controls.AddItem(div, 5, 1, 1, 1, 0, 0, false)
+	controls.AddItem(div, 6, 0, 1, 1, 0, 0, false)
 	root.AddItem(controls, 0, 1, false)
 	empty := tview.NewFlex()
 	empty.SetDirection(tview.FlexRow)

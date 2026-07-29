@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { LayoutEngine } from '../../layout';
-import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../../constants/assets';
+import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ANSI16_NAMES,
@@ -207,6 +207,18 @@ function genNode(
       const innerW = box.width - (bordered ? 2 : 0) - (showPercent ? 5 : 0);
       const bar = renderBar((node.props.barStyle as string) || 'blocks', innerW, pct);
       content = showPercent ? `${bar} ${pct.toFixed(0)}%` : bar;
+      break;
+    }
+
+    case 'Gauge': {
+      const value = Number(node.props.value ?? 0);
+      const max = Number(node.props.max ?? 100) || 100;
+      const pct = Math.min(100, Math.max(0, (value / max) * 100));
+      const showPercent = (node.props.showPercent as boolean) ?? true;
+      const label = (node.props.label as string) || 'Gauge';
+      const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
+      const innerW = box.width - (bordered ? 2 : 0);
+      content = renderGauge((node.props.barStyle as string) || 'blocks', innerW, pct, overlayText);
       break;
     }
 

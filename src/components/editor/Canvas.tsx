@@ -14,7 +14,7 @@ import { useCanvasKeyboardNudge } from '../../hooks/useCanvasKeyboard';
 import { useComponentSelection } from '../../hooks/useComponentSelection';
 import { useComponentDrag } from '../../hooks/useComponentDrag';
 import { COMPONENT_LIBRARY } from '../../constants/components';
-import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../constants/assets';
+import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../constants/assets';
 import { THEMES } from '../../stores/themeStore';
 import { interpolateGradientColor } from '../../utils/rendering/ansi';
 import { ComponentToolbar } from './ComponentToolbar';
@@ -510,6 +510,16 @@ const ComponentRenderer = memo(
             </span>
           );
         }
+        case 'Gauge': {
+          const value = (node.props.value as number) || 0;
+          const max = (node.props.max as number) || 100;
+          const pct = Math.min(100, Math.max(0, (value / max) * 100));
+          const showPercent = (node.props.showPercent as boolean) ?? true;
+          const label = (node.props.label as string) || 'Gauge';
+          const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
+          const bar = renderGauge((node.props.barStyle as string) || 'blocks', 24, pct, overlayText);
+          return <span className="font-mono">{bar}</span>;
+        }
         case 'Checkbox': {
           const checkedIcon = (node.props.checkedIcon as string) || '✓';
           const uncheckedIcon = (node.props.uncheckedIcon as string) || ' ';
@@ -909,6 +919,7 @@ const ComponentRenderer = memo(
         'TextInput',
         'Select',
         'ProgressBar',
+        'Gauge',
         'Spinner',
         'Checkbox',
         'Radio',

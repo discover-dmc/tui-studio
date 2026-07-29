@@ -5,7 +5,7 @@ import { CharCanvas } from './canvas';
 import { renderBox, getContentArea, BORDER_STYLES } from './borders';
 import { wrapText, alignText, padText, truncateText } from './text';
 import { generateAnsiCodes } from './ansi';
-import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../constants/assets';
+import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../constants/assets';
 
 /**
  * Render a component to a character canvas
@@ -59,6 +59,9 @@ export function renderComponent(
       break;
     case 'ProgressBar':
       content = renderProgressBar(node, width, height);
+      break;
+    case 'Gauge':
+      content = renderGaugeComponent(node, width, height);
       break;
     case 'Spinner':
       content = renderSpinner(node, width, height);
@@ -300,6 +303,27 @@ function renderProgressBar(node: ComponentNode, width: number, height: number): 
   const barWidth = contentArea.width - (showPercent ? 5 : 0);
   const bar = renderBar((node.props.barStyle as string) || 'blocks', barWidth, percentage);
   const text = showPercent ? `${bar} ${percentage.toFixed(0)}%` : bar;
+
+  const lines = [text.slice(0, contentArea.width).padEnd(contentArea.width)];
+  while (lines.length < contentArea.height) {
+    lines.push(' '.repeat(contentArea.width));
+  }
+
+  return lines;
+}
+
+function renderGaugeComponent(node: ComponentNode, width: number, height: number): string[] {
+  const value = (node.props.value as number) || 0;
+  const max = (node.props.max as number) || 100;
+  const showPercent = (node.props.showPercent as boolean) ?? true;
+  const label = (node.props.label as string) || 'Gauge';
+  const contentArea = node.style.border
+    ? getContentArea(width, height, { style: 'single' })
+    : { width, height };
+
+  const percentage = Math.min(100, Math.max(0, (value / max) * 100));
+  const overlayText = showPercent ? `${label} ${percentage.toFixed(0)}%` : label;
+  const text = renderGauge((node.props.barStyle as string) || 'blocks', contentArea.width, percentage, overlayText);
 
   const lines = [text.slice(0, contentArea.width).padEnd(contentArea.width)];
   while (lines.length < contentArea.height) {

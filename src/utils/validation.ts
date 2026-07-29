@@ -141,6 +141,7 @@ export function canHaveChildren(type: ComponentType): boolean {
     'Text',
     'Spinner',
     'ProgressBar',
+    'Gauge',
     'Spacer',
     'Separator',
   ];

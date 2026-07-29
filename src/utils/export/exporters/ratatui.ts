@@ -58,6 +58,7 @@ function collectUsedWidgets(node: ComponentNode, used: Set<string>): void {
 
   switch (node.type) {
     case 'ProgressBar':
+    case 'Gauge':
       used.add('Gauge');
       break;
     case 'List':
@@ -286,6 +287,21 @@ function generateRatatuiNode(
     const value = Number(node.props.value ?? 0);
     const max = Number(node.props.max ?? 100) || 100;
     let widget = `Gauge::default().ratio(${Math.max(0, Math.min(1, value / max)).toFixed(3)}).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
+    return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
+  }
+
+  if (node.type === 'Gauge') {
+    // Real ratatui::widgets::Gauge::label() centers custom text in the bar,
+    // replacing its default percentage display — this is what makes Gauge
+    // a distinct widget rather than a re-skinned ProgressBar.
+    const value = Number(node.props.value ?? 0);
+    const max = Number(node.props.max ?? 100) || 100;
+    const ratio = Math.max(0, Math.min(1, value / max));
+    const label = (node.props.label as string) || 'Gauge';
+    const showPercent = (node.props.showPercent as boolean) ?? true;
+    const labelText = showPercent ? `${label} ${Math.round(ratio * 100)}%` : label;
+    let widget = `Gauge::default().ratio(${ratio.toFixed(3)}).label(${escRust(labelText)}).style(${ratatuiStyle(node, colorMode)})`;
     if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }

@@ -11,6 +11,7 @@ import {
   FileText,
   Loader2,
   Activity,
+  Gauge as GaugeIcon,
   Table2,
   List,
   GitBranch,
@@ -60,6 +61,8 @@ export function getComponentIcon(type: ComponentType) {
       return <Loader2 {...iconProps} />;
     case 'ProgressBar':
       return <Activity {...iconProps} />;
+    case 'Gauge':
+      return <GaugeIcon {...iconProps} />;
 
     // Data
     case 'Table':

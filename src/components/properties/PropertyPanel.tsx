@@ -743,6 +743,74 @@ function ComponentProps({ component }: { component: import('../../types').Compon
         </>
       )}
 
+      {/* Gauge Properties */}
+      {component.type === 'Gauge' && (
+        <>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Label
+            </label>
+            <input
+              type="text"
+              value={(component.props.label as string) ?? 'Gauge'}
+              onChange={(e) => componentStore.updateProps(component.id, { label: e.target.value })}
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Value
+            </label>
+            <NumericInput
+              value={(component.props.value as number) ?? 0}
+              onChange={(v) => componentStore.updateProps(component.id, { value: v })}
+              min={0}
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Max
+            </label>
+            <NumericInput
+              value={(component.props.max as number) ?? 100}
+              onChange={(v) => componentStore.updateProps(component.id, { max: v })}
+              min={1}
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Style
+            </label>
+            <select
+              value={(component.props.barStyle as string) || 'blocks'}
+              onChange={(e) => componentStore.updateProps(component.id, { barStyle: e.target.value })}
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] font-mono focus:border-primary focus:outline-none"
+            >
+              {PROGRESSBAR_STYLE_NAMES.map((name) => (
+                <option key={name} value={name}>
+                  {name} {renderBar(name, 10, 60)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={(component.props.showPercent as boolean) ?? true}
+              onChange={(e) =>
+                componentStore.updateProps(component.id, { showPercent: e.target.checked })
+              }
+              className="w-3 h-3"
+            />
+            <span className="text-[9px] text-muted-foreground uppercase tracking-wide flex-1">
+              Show percentage
+            </span>
+          </div>
+        </>
+      )}
+
       {/* Spinner Properties */}
       {component.type === 'Spinner' && (
         <>

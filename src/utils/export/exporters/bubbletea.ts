@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escGo } from '../escape';
-import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../../constants/assets';
+import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -207,6 +207,18 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const styleName = (node.props.barStyle as string) || 'blocks';
       const bar = renderBar(styleName, width - (showPercent ? 5 : 0), pct);
       return styled(node, escGoStr(showPercent ? `${bar} ${pct.toFixed(0)}%` : bar), ctx);
+    }
+
+    case 'Gauge': {
+      const value = Number(node.props.value ?? 0);
+      const max = Number(node.props.max ?? 100) || 100;
+      const width = typeof node.props.width === 'number' ? node.props.width : 24;
+      const pct = Math.min(100, Math.max(0, (value / max) * 100));
+      const showPercent = (node.props.showPercent as boolean) ?? true;
+      const label = (node.props.label as string) || 'Gauge';
+      const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
+      const bar = renderGauge((node.props.barStyle as string) || 'blocks', width, pct, overlayText);
+      return styled(node, escGoStr(bar), ctx);
     }
 
     case 'List':

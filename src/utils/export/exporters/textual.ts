@@ -222,6 +222,27 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       return `${sp}yield ProgressBar(total=${max}, show_eta=False${idArg(id)})\n`;
     }
 
+    case 'Gauge': {
+      // Textual's ProgressBar has no free-text label slot, so a labeled
+      // gauge is a Horizontal of a Static label + a real ProgressBar —
+      // the same composition this file already uses for a labeled Toggle.
+      ctx.widgets.add('ProgressBar');
+      ctx.widgets.add('Static');
+      ctx.containers.add('Horizontal');
+      const id = registerStyles(node, ctx, [], true)!;
+      const label = (node.props.label as string) || 'Gauge';
+      const value = Number(node.props.value ?? 0);
+      const max = Number(node.props.max ?? 100) || 100;
+      ctx.mount.push(
+        `self.query_one("#${id}", ProgressBar).update(total=${max}, progress=${value})`
+      );
+      return (
+        `${sp}with Horizontal():\n` +
+        `${sp}    yield Static(${py(label, 'Gauge')})\n` +
+        `${sp}    yield ProgressBar(total=${max}, show_eta=False${idArg(id)})\n`
+      );
+    }
+
     case 'List': {
       ctx.widgets.add('ListView');
       ctx.widgets.add('ListItem');

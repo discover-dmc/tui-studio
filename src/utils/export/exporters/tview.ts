@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escGo } from '../escape';
-import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../../constants/assets';
+import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -254,6 +254,24 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName} := tview.NewTextView()`);
       ctx.stmts.push(
         `${varName}.SetText(${tviewText(showPercent ? `${bar} ${pct.toFixed(0)}%` : bar)}) // tview has no built-in progress bar; update this text as work completes`
+      );
+      applyBoxStyle(varName, node, ctx);
+      return varName;
+    }
+
+    case 'Gauge': {
+      const value = Number(node.props.value ?? 0);
+      const max = Number(node.props.max ?? 100) || 100;
+      const width = typeof node.props.width === 'number' ? node.props.width : 24;
+      const pct = Math.min(100, Math.max(0, (value / max) * 100));
+      const showPercent = (node.props.showPercent as boolean) ?? true;
+      const label = (node.props.label as string) || 'Gauge';
+      const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
+      const bar = renderGauge((node.props.barStyle as string) || 'blocks', width, pct, overlayText);
+      const varName = ident(node.name, ctx);
+      ctx.stmts.push(`${varName} := tview.NewTextView()`);
+      ctx.stmts.push(
+        `${varName}.SetText(${tviewText(bar)}) // tview has no built-in gauge; update this text as the value changes`
       );
       applyBoxStyle(varName, node, ctx);
       return varName;

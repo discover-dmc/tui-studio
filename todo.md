@@ -252,9 +252,24 @@ Suggested order (simplest/most-reusable first, to prove the full pipeline cheapl
   vertical + all 4 line styles), resize-handle restriction, and both the Text/ANSI and Code
   export tabs (Textual `Rule.vertical(line_style="double")`, Ratatui's runtime-width
   expression) end to end.
-- [ ] **Gauge (labeled)** — ProgressBar variant with a label and distinct framing. Ratatui has
-  a native `Gauge` widget; other frameworks likely map to a styled ProgressBar composition
-  rather than a distinct primitive — verify per-framework before assuming a 1:1 widget exists.
+- [x] **Gauge (labeled)** (2026-07-29): ProgressBar-like widget with a `label`, overlaid/centered
+  on the bar rather than trailing it — real per-framework APIs verified rather than assumed.
+  Ratatui uses its native `Gauge::label()` directly (confirmed via docs.rs — replaces the
+  default percentage text, exactly the feature that makes Gauge distinct from a re-skinned
+  ProgressBar). Textual's `ProgressBar` has no free-text label slot (confirmed via its docs),
+  so it composes `Horizontal(Static(label) + ProgressBar)` — the same pattern this file
+  already uses for a labeled Toggle. BubbleTea/Tview/Blessed/OpenTUI/Ink have no gauge
+  primitive, so they share one new helper, `renderGauge()` (`constants/assets.ts`), which
+  splices the label text into the center of a rendered bar — mirroring how ratatui's real
+  `Gauge::label()` behaves and how terminal resource meters (htop/btop) typically render.
+  Also required layout-engine changes ProgressBar already needed (leaf auto-height,
+  width-only resize handle) since Gauge follows the same no-explicit-height convention.
+  All 7 exporters' generated output verified against real toolchains (cargo build, go
+  test/build+vet, py_compile + a real headless Textual mount, node --check, esbuild) — the
+  Textual variant's `Horizontal(Static+ProgressBar)` mounted cleanly. Verified live in the
+  browser: add via search, Label/Value/Max/Style/Show-percentage controls, canvas rendering,
+  width-only resize, and the Ratatui code export tab showing the real
+  `Gauge::default().ratio(0.450).label("CPU 45%")` call.
 - [ ] **Sparkline** — inline mini bar/line chart from a numeric array. Ratatui has a native
   `Sparkline` widget; BubbleTea/Textual/Tview/Blessed/OpenTUI/Ink have no built-in equivalent
   and would need hand-rolled Unicode block rendering (can likely reuse the existing

@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escJsx } from '../escape';
-import { PROGRESSBAR_STYLES, getSeparatorChar } from '../../../constants/assets';
+import { PROGRESSBAR_STYLES, renderGauge, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -151,6 +151,18 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
         `{'${style.empty}'.repeat(${width} - Math.round(${value} / ${max} * ${width}))}{${JSON.stringify(style.rightCap || '')}}${showPercent ? ` ${Math.round((value / max) * 100)}%` : ''}\n` +
         `${sp}</Text>\n`
       );
+    }
+
+    case 'Gauge': {
+      const value = (node.props.value as number) ?? 0;
+      const max = (node.props.max as number) ?? 100;
+      const width = typeof node.props.width === 'number' ? node.props.width : 24;
+      const pct = Math.min(100, Math.max(0, (value / max) * 100));
+      const showPercent = (node.props.showPercent as boolean) ?? true;
+      const label = (node.props.label as string) || 'Gauge';
+      const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
+      const bar = renderGauge((node.props.barStyle as string) || 'blocks', width, pct, overlayText);
+      return `${sp}<Text${inkTextProps(node, colorMode)}>{${JSON.stringify(bar)}}</Text>\n`;
     }
 
     case 'List': {

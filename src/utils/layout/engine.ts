@@ -107,6 +107,7 @@ export class LayoutEngine {
       'Select',
       'Spinner',
       'ProgressBar',
+      'Gauge',
       'Text',
       'Breadcrumb',
     ];
@@ -571,6 +572,7 @@ export class LayoutEngine {
       case 'Select':
       case 'Spinner':
       case 'ProgressBar':
+      case 'Gauge':
         return node.style.border ? 3 : 1;
       case 'Text': {
         const content = (node.props.content as string) || '';

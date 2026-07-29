@@ -132,6 +132,22 @@ export function renderBar(styleName: string, barWidth: number, percentage: numbe
   return `${s.leftCap || ''}${bar}${s.rightCap || ''}`;
 }
 
+/**
+ * Render a progress bar with a text label overlaid/centered on top of it —
+ * the Gauge component's distinguishing look (matches how ratatui's real
+ * `Gauge::label()` centers text in the bar, and how terminal resource
+ * meters like htop/btop typically render a labeled meter).
+ */
+export function renderGauge(styleName: string, width: number, percentage: number, label: string): string {
+  const bar = renderBar(styleName, width, percentage).split('');
+  const text = label.slice(0, width);
+  const start = Math.max(0, Math.floor((width - text.length) / 2));
+  for (let i = 0; i < text.length && start + i < bar.length; i++) {
+    bar[start + i] = text[i];
+  }
+  return bar.join('');
+}
+
 /** Box-drawing characters for the Separator component, per line style and orientation. */
 export const SEPARATOR_CHARS: Record<string, { horizontal: string; vertical: string }> = {
   single: { horizontal: '─', vertical: '│' },

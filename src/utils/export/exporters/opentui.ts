@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escJsx } from '../escape';
-import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../../constants/assets';
+import { SPINNER_PRESETS, renderBar, renderGauge, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -155,6 +155,18 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       const showPercent = (node.props.showPercent as boolean) ?? true;
       const bar = renderBar((node.props.barStyle as string) || 'blocks', width - (showPercent ? 5 : 0), pct);
       return `${sp}${textEl(node, showPercent ? `${bar} ${pct.toFixed(0)}%` : bar, colorMode)}\n`;
+    }
+
+    case 'Gauge': {
+      const value = Number(node.props.value ?? 0);
+      const max = Number(node.props.max ?? 100) || 100;
+      const width = typeof node.props.width === 'number' ? node.props.width : 24;
+      const pct = Math.min(100, Math.max(0, (value / max) * 100));
+      const showPercent = (node.props.showPercent as boolean) ?? true;
+      const label = (node.props.label as string) || 'Gauge';
+      const overlayText = showPercent ? `${label} ${pct.toFixed(0)}%` : label;
+      const bar = renderGauge((node.props.barStyle as string) || 'blocks', width, pct, overlayText);
+      return `${sp}${textEl(node, bar, colorMode)}\n`;
     }
 
     case 'List':

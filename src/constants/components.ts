@@ -342,6 +342,31 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
     },
   },
 
+  Gauge: {
+    type: 'Gauge',
+    name: 'Gauge',
+    description: 'Labeled progress metric (e.g. CPU, memory)',
+    icon: 'Gauge',
+    category: 'display',
+    defaultProps: {
+      label: 'Gauge',
+      value: 45,
+      max: 100,
+      width: 24,
+      barStyle: 'blocks',
+      showPercent: true,
+    },
+    defaultLayout: {
+      type: 'none',
+    },
+    defaultStyle: {
+      color: 'white',
+      border: true,
+      borderStyle: 'single',
+      borderColor: 'white',
+    },
+  },
+
   // Data Components
   Table: {
     type: 'Table',
