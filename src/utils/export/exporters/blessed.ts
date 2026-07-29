@@ -5,6 +5,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  renderStatusBar,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -242,6 +243,13 @@ function genNode(
       widget = 'log';
       extraOpts = [`scrollable: true`, `alwaysScroll: true`];
       content = ((node.props.lines as string[]) || []).join('\n');
+      break;
+    }
+
+    case 'StatusBar': {
+      const items = (node.props.items as { key?: string; label?: string }[]) || [];
+      const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
+      content = renderStatusBar(items, gap);
       break;
     }
 

@@ -14,6 +14,7 @@ import {
   Gauge as GaugeIcon,
   BarChart3,
   ScrollText,
+  PanelBottom,
   Table2,
   List,
   GitBranch,
@@ -85,6 +86,8 @@ export function getComponentIcon(type: ComponentType) {
       return <FolderTree {...iconProps} />;
     case 'Breadcrumb':
       return <Navigation {...iconProps} />;
+    case 'StatusBar':
+      return <PanelBottom {...iconProps} />;
 
     // Overlay
     case 'Modal':

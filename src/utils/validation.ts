@@ -144,6 +144,7 @@ export function canHaveChildren(type: ComponentType): boolean {
     'Gauge',
     'Sparkline',
     'Log',
+    'StatusBar',
     'Spacer',
     'Separator',
   ];

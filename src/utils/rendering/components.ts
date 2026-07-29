@@ -10,6 +10,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  renderStatusBar,
   tailLines,
   getSeparatorChar,
 } from '../../constants/assets';
@@ -75,6 +76,9 @@ export function renderComponent(
       break;
     case 'Log':
       content = renderLog(node, width, height);
+      break;
+    case 'StatusBar':
+      content = renderStatusBarComponent(node, width, height);
       break;
     case 'Spinner':
       content = renderSpinner(node, width, height);
@@ -369,6 +373,22 @@ function renderLog(node: ComponentNode, width: number, height: number): string[]
     : { width, height };
 
   return tailLines(lines, contentArea.height, contentArea.width);
+}
+
+function renderStatusBarComponent(node: ComponentNode, width: number, height: number): string[] {
+  const items = (node.props.items as { key?: string; label?: string }[]) || [];
+  const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
+  const contentArea = node.style.border
+    ? getContentArea(width, height, { style: 'single' })
+    : { width, height };
+
+  const text = renderStatusBar(items, gap);
+  const lines = [text.slice(0, contentArea.width).padEnd(contentArea.width)];
+  while (lines.length < contentArea.height) {
+    lines.push(' '.repeat(contentArea.width));
+  }
+
+  return lines;
 }
 
 function renderSpinner(node: ComponentNode, width: number, height: number): string[] {

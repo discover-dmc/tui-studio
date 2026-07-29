@@ -5,6 +5,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  renderStatusBar,
   tailLines,
   getSeparatorChar,
 } from '../../../constants/assets';
@@ -240,6 +241,13 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const lines = (node.props.lines as string[]) || [];
       const height = typeof node.props.height === 'number' ? node.props.height : 6;
       return styled(node, escGoStr(tailLines(lines, height).join('\n')), ctx);
+    }
+
+    case 'StatusBar': {
+      // consider charmbracelet/bubbles/help for a live, keymap-driven footer
+      const items = (node.props.items as { key?: string; label?: string }[]) || [];
+      const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
+      return styled(node, escGoStr(renderStatusBar(items, gap)), ctx);
     }
 
     case 'List':

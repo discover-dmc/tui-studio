@@ -5,6 +5,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  renderStatusBar,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -307,6 +308,17 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName}.SetScrollable(true)`);
       ctx.stmts.push(`${varName}.SetText(${tviewText(lines.join('\n'))})`);
       ctx.stmts.push(`${varName}.ScrollToEnd()`);
+      applyTextColor(varName, node, ctx);
+      applyBoxStyle(varName, node, ctx);
+      return varName;
+    }
+
+    case 'StatusBar': {
+      const items = (node.props.items as { key?: string; label?: string }[]) || [];
+      const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
+      const varName = ident(node.name, ctx);
+      ctx.stmts.push(`${varName} := tview.NewTextView()`);
+      ctx.stmts.push(`${varName}.SetText(${tviewText(renderStatusBar(items, gap))})`);
       applyTextColor(varName, node, ctx);
       applyBoxStyle(varName, node, ctx);
       return varName;

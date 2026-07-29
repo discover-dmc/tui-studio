@@ -195,6 +195,17 @@ export function tailLines(lines: string[], height: number, width?: number): stri
   return [...padTop, ...body];
 }
 
+/**
+ * Render a StatusBar's key/label hints as one gap-separated line
+ * (e.g. "^Q Quit  ^S Save  ^H Help"). Shared by every exporter except
+ * Textual, which has a real Footer+BINDINGS mechanism instead.
+ */
+export function renderStatusBar(items: { key?: string; label?: string }[], gap: number): string {
+  return items
+    .map((it) => `${it.key || ''} ${it.label || ''}`.trim())
+    .join(' '.repeat(Math.max(1, gap)));
+}
+
 /** Box-drawing characters for the Separator component, per line style and orientation. */
 export const SEPARATOR_CHARS: Record<string, { horizontal: string; vertical: string }> = {
   single: { horizontal: '─', vertical: '│' },

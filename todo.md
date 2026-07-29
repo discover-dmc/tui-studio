@@ -306,10 +306,33 @@ Suggested order (simplest/most-reusable first, to prove the full pipeline cheapl
   search, editable "one per line" textarea, canvas rendering (bottom-anchored tail), full
   resize (unlike the single-line Gauge/Sparkline/ProgressBar, Log resizes in both axes), and
   the Textual/Tview code export tabs showing the real widget calls.
-- [ ] **StatusBar / footer keybinding hints** — bottom bar showing keybindings (e.g.
-  `^Q Quit  ^S Save`). Open design question before coding: does this need a real new
-  `ComponentType`, or is it already achievable today by composing existing Box+Text? Decide
-  that first — may turn out to need zero exporter work.
+- [x] **StatusBar / footer keybinding hints** (2026-07-29): bottom bar showing keybindings
+  (`items: { key, label }[]`, e.g. `^Q Quit  ^S Save`). Resolved this item's own open design
+  question — decided a real `ComponentType` over Box+Text composition specifically *because*
+  two frameworks have a genuinely more powerful native mechanism a generic composition could
+  never produce: Textual's real `Footer` widget auto-renders from a `BINDINGS` class attribute
+  (confirmed via textual.textualize.io/widgets/footer) — used directly, generating a real
+  `BINDINGS = [("ctrl+q", "exit", "Exit"), ...]` list on `MyApp` (our "^Q" caret notation is
+  converted to Textual's real "ctrl+q" key-name convention; each label is slugified into a
+  Python-identifier-safe action name — no matching `action_*` methods are required for the
+  app to mount, confirmed by the real headless mount test). BubbleTea's `bubbles/help`
+  package (`key.Map`/`ShortHelp()`) is the analogous real primitive there, but — matching
+  this file's existing Spinner/ProgressBar convention — gets a static preview + a pointer
+  comment rather than a live keymap, since help.Model needs a running Bubble Tea program to
+  drive it. The other 5 frameworks have no comparable primitive, so they share one new
+  helper, `renderStatusBar()` (`constants/assets.ts`), joining key+label pairs with
+  gap-separated spaces. All 7 exporters' generated output verified against real toolchains
+  (cargo build, go test/build+vet, py_compile + a real headless Textual mount, node --check,
+  esbuild) — the Textual variant's real `Footer`+`BINDINGS` mounted cleanly with no stub
+  action methods defined, confirming the earlier hypothesis. Verified live in the browser:
+  add via search (Navigation category), a key/label items editor (add/edit/remove), canvas
+  rendering (full-width colored bar), width-only resize, and the Textual code export tab
+  showing the real `BINDINGS`/`Footer()` output with a live-edited label reflected in both
+  the binding description and its auto-generated action name.
+
+This closes out the P4 component wishlist (Separator, Gauge, Sparkline, Log, StatusBar) that
+this file's own P2 wishlist entry was extracted into — see the P4 section above for the full
+per-component breakdown and verification notes.
 
 ## Wishlist — unscoped ideas
 

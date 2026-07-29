@@ -5,6 +5,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  renderStatusBar,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -188,6 +189,12 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       const lines = (node.props.lines as string[]) || [];
       const rows = lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n');
       return `${sp}<scrollbox${boxAttrs(node, colorMode)}>\n${rows}\n${sp}</scrollbox>\n`;
+    }
+
+    case 'StatusBar': {
+      const items = (node.props.items as { key?: string; label?: string }[]) || [];
+      const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
+      return `${sp}${textEl(node, renderStatusBar(items, gap), colorMode)}\n`;
     }
 
     case 'List':

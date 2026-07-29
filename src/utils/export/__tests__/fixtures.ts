@@ -177,6 +177,13 @@ export function kitchenSinkTree(): ComponentNode {
           width: 20,
           height: 3,
         }),
+        node('StatusBar', 'Footer', {
+          items: [
+            { key: '^Q', label: 'Quit' },
+            { key: '^S', label: 'Save' },
+          ],
+          gap: 2,
+        }),
         node('Breadcrumb', 'Crumb', {
           items: [{ label: 'Home' }, { label: 'Docs' }],
           separator: ' / ',

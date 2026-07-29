@@ -29,6 +29,7 @@ export type ComponentType =
   | 'Menu'
   | 'Tabs'
   | 'Breadcrumb'
+  | 'StatusBar'
   // Overlay
   | 'Modal';
 

@@ -556,6 +556,31 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
     },
   },
 
+  StatusBar: {
+    type: 'StatusBar',
+    name: 'Status Bar',
+    description: 'Footer bar showing keybinding hints',
+    icon: 'PanelBottom',
+    category: 'navigation',
+    defaultProps: {
+      items: [
+        { key: '^Q', label: 'Quit' },
+        { key: '^S', label: 'Save' },
+        { key: '^H', label: 'Help' },
+      ],
+      gap: 2,
+      width: 'fill',
+      height: 1,
+    },
+    defaultLayout: {
+      type: 'none',
+    },
+    defaultStyle: {
+      color: 'white',
+      backgroundColor: 'blue',
+    },
+  },
+
   Breadcrumb: {
     type: 'Breadcrumb',
     name: 'Breadcrumb',

@@ -1002,6 +1002,14 @@ function ComponentProps({ component }: { component: import('../../types').Compon
         />
       )}
 
+      {/* StatusBar Properties */}
+      {component.type === 'StatusBar' && (
+        <StatusBarEditor
+          items={(component.props.items as any[]) || []}
+          onChange={(items) => componentStore.updateProps(component.id, { items })}
+        />
+      )}
+
       {/* Tabs Properties */}
       {component.type === 'Tabs' && (
         <div className="space-y-3">
@@ -1417,6 +1425,68 @@ function BreadcrumbEditor({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// StatusBar Items Editor
+function StatusBarEditor({
+  items,
+  onChange,
+}: {
+  items: any[];
+  onChange: (items: any[]) => void;
+}) {
+  const updateItem = (i: number, patch: object) => {
+    onChange(items.map((item, idx) => (idx === i ? { ...item, ...patch } : item)));
+  };
+  const addItem = () => {
+    onChange([...items, { key: '^X', label: 'Action' }]);
+  };
+  const removeItem = (i: number) => {
+    onChange(items.filter((_, idx) => idx !== i));
+  };
+
+  const inputCls =
+    'px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none';
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1">
+        <span className="text-[9px] text-muted-foreground uppercase tracking-wide flex-1">
+          Items
+        </span>
+        <button
+          onClick={addItem}
+          className="text-[10px] px-1.5 py-0.5 bg-primary/10 hover:bg-primary/20 text-primary rounded"
+        >
+          + Item
+        </button>
+      </div>
+      <div className="space-y-1">
+        {items.map((item: any, i: number) => (
+          <div key={i} className="flex items-center gap-1">
+            <input
+              value={item.key || ''}
+              onChange={(e) => updateItem(i, { key: e.target.value })}
+              className={inputCls + ' w-12 text-center font-mono'}
+              placeholder="^Q"
+            />
+            <input
+              value={item.label || ''}
+              onChange={(e) => updateItem(i, { label: e.target.value })}
+              className={inputCls + ' flex-1 min-w-0'}
+              placeholder="Quit"
+            />
+            <button
+              onClick={() => removeItem(i)}
+              className="text-muted-foreground hover:text-destructive flex-shrink-0"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

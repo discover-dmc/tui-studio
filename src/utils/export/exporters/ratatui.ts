@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escRust } from '../escape';
-import { SPINNER_PRESETS, getSeparatorChar, tailLines } from '../../../constants/assets';
+import { SPINNER_PRESETS, getSeparatorChar, tailLines, renderStatusBar } from '../../../constants/assets';
 import { type ExportColorMode, ansi16IndexOfName, nearestAnsi16, resolveBackgroundColor } from './shared';
 
 export function exportToRatatui(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
@@ -333,6 +333,14 @@ function generateRatatuiNode(
     const height = typeof node.props.height === 'number' ? node.props.height : 6;
     const visible = tailLines(lines, height);
     let widget = `Paragraph::new(vec![${visible.map((l) => `Line::from(${escRust(l)})`).join(', ')}]).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
+    return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
+  }
+
+  if (node.type === 'StatusBar') {
+    const items = (node.props.items as { key?: string; label?: string }[]) || [];
+    const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
+    let widget = `Paragraph::new(${escRust(renderStatusBar(items, gap))}).style(${ratatuiStyle(node, colorMode)})`;
     if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }

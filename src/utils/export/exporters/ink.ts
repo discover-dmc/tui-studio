@@ -4,6 +4,7 @@ import {
   PROGRESSBAR_STYLES,
   renderGauge,
   renderSparkline,
+  renderStatusBar,
   tailLines,
   getSeparatorChar,
 } from '../../../constants/assets';
@@ -187,6 +188,13 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
         .map((l, i) => `${sp}  <Text key={${i}}>${escJsx(l)}</Text>`)
         .join('\n');
       return `${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${rows}\n${sp}</Box>\n`;
+    }
+
+    case 'StatusBar': {
+      const items = (node.props.items as { key?: string; label?: string }[]) || [];
+      const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
+      const text = renderStatusBar(items, gap);
+      return `${sp}<Text${inkTextProps(node, colorMode)}>{${JSON.stringify(text)}}</Text>\n`;
     }
 
     case 'List': {

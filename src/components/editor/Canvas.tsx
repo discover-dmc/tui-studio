@@ -19,6 +19,7 @@ import {
   renderBar,
   renderGauge,
   renderSparkline,
+  renderStatusBar,
   tailLines,
   getSeparatorChar,
 } from '../../constants/assets';
@@ -851,6 +852,11 @@ const ComponentRenderer = memo(
             </div>
           );
         }
+        case 'StatusBar': {
+          const items = (node.props.items as { key?: string; label?: string }[]) || [];
+          const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
+          return <span className="font-mono">{renderStatusBar(items, gap)}</span>;
+        }
         case 'Breadcrumb': {
           const items = (node.props.items as any[]) || [];
           const separator = (node.props.separator as string) || '/';
@@ -945,6 +951,7 @@ const ComponentRenderer = memo(
         'ProgressBar',
         'Gauge',
         'Sparkline',
+        'StatusBar',
         'Spinner',
         'Checkbox',
         'Radio',

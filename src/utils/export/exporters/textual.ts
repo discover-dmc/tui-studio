@@ -16,6 +16,7 @@ interface Ctx {
   needsSpacerCss: boolean;
   modals: { className: string; node: ComponentNode }[];
   usedClassNames: Set<string>;
+  footerBindings: string[];
 }
 
 export function exportToTextual(root: ComponentNode): string {
@@ -29,6 +30,7 @@ export function exportToTextual(root: ComponentNode): string {
     needsSpacerCss: false,
     modals: [],
     usedClassNames: new Set(),
+    footerBindings: [],
   };
 
   const topNodes = root.type === 'Screen' ? root.children : [root];
@@ -81,6 +83,10 @@ export function exportToTextual(root: ComponentNode): string {
     `from textual.widgets import ${[...ctx.widgets].sort().join(', ')}`,
   ].filter(Boolean);
 
+  const bindingsBlock = ctx.footerBindings.length
+    ? `    BINDINGS = [\n${ctx.footerBindings.map((b) => `        ${b},`).join('\n')}\n    ]\n\n`
+    : '';
+
   const cssBlock = ctx.css.length ? `    CSS = """\n${ctx.css.join('\n\n')}\n    """\n\n` : '';
 
   const mountBlock = ctx.mount.length
@@ -97,7 +103,7 @@ export function exportToTextual(root: ComponentNode): string {
 
 
 ${modalBlock}class MyApp(App):
-${cssBlock}    def compose(self) -> ComposeResult:
+${bindingsBlock}${cssBlock}    def compose(self) -> ComposeResult:
 ${body}${mountBlock}${buttonHandler}
 
 if __name__ == "__main__":
@@ -262,6 +268,26 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
         ctx.mount.push(`self.query_one("#${id}", RichLog).write(${escPyStr(line)})`);
       });
       return `${sp}yield RichLog(${idArg(id, true)})\n`;
+    }
+
+    case 'StatusBar': {
+      // Real textual.widgets.Footer, driven by a real BINDINGS class
+      // attribute (confirmed via textual.textualize.io/widgets/footer) —
+      // meaningfully different from every other exporter's hand-rolled
+      // "join key+label text" fallback, since Footer genuinely renders
+      // from the app's own key bindings rather than static text.
+      ctx.widgets.add('Footer');
+      const items = (node.props.items as { key?: string; label?: string }[]) || [];
+      items.forEach((item) => {
+        const key = textualKeyName(item.key || '');
+        const label = item.label || 'Action';
+        const action = slugify(label);
+        ctx.footerBindings.push(
+          `(${escPyStr(key)}, ${escPyStr(action)}, ${escPyStr(label)})`
+        );
+      });
+      const id = registerStyles(node, ctx);
+      return `${sp}yield Footer(${idArg(id, true)})\n`;
     }
 
     case 'List': {
@@ -465,6 +491,20 @@ function escPyStr(s: string): string {
 function textualLineStyle(style: string): string {
   const map: Record<string, string> = { single: 'solid', double: 'double', thick: 'heavy', dashed: 'dashed' };
   return map[style] || 'solid';
+}
+
+/** Our "^Q"-style caret notation -> Textual's real binding key names ("ctrl+q", "q", "f1"...). */
+function textualKeyName(key: string): string {
+  const trimmed = key.trim();
+  if (!trimmed) return 'f13'; // harmless unused key if left blank
+  if (trimmed.startsWith('^') && trimmed.length > 1) return `ctrl+${trimmed[1].toLowerCase()}`;
+  return trimmed.toLowerCase().replace(/\s+/g, '+');
+}
+
+/** A label like "Save As" -> a valid action-name identifier ("save_as"). */
+function slugify(s: string): string {
+  const slug = s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return slug || 'action';
 }
 
 function pyBool(value: unknown): string {
