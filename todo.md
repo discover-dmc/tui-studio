@@ -355,19 +355,23 @@ Lower-confidence or exploratory ideas, not yet sized or committed to a priority 
 
 ## Skill track — `skills/tui-design-mcpmarket`
 
-- [ ] **Decide placement**: repo-root `skills/` copy is inert (Claude Code loads the skill
-  from the installed MCPmarket plugin, not from here; its hooks never run from this path).
-  Options: (a) gitignore it — it's sync-owned output and `sync.sh` overwrites it;
-  (b) move a curated copy to `.claude/skills/tui-design/` for true project-local discovery
-  and gitignore the sync target. Recommend (a) now, (b) only if plugin is ever removed.
-- [ ] **Author a studio-specific companion skill** (`.claude/skills/tui-studio/`): maps
-  studio component types → per-framework idioms, documents the `.tui` file format, the
-  export architecture, and the theme palettes. The generic tui-design skill covers design;
-  this covers *this codebase*. High leverage for future agent sessions.
+- [x] **Decide placement** (2026-07-29): went with (a) — confirmed repo-root `skills/`
+  was already gitignored and never tracked (commit 6130778, before this session). Found
+  and fixed a real bug in the same rule while adding the new skill below: `skills/` (no
+  leading slash) matched *any* directory named `skills` anywhere in the tree, silently
+  swallowing `.claude/skills/` too. Anchored to `/skills/` so only the sync target is
+  ignored.
+- [x] **Author a studio-specific companion skill** (2026-07-29):
+  [`.claude/skills/tui-studio/SKILL.md`](.claude/skills/tui-studio/SKILL.md) — the
+  12-point new-`ComponentType` checklist, a verified component→framework native-widget
+  idiom map (which of the 7 exporters have a real primitive for which studio component,
+  sourced from this session's P1/P4 work rather than re-guessed), the `.tui` file schema,
+  and the theme/color-mode system. Generic tui-design skill covers TUI design in
+  general; this one covers this codebase specifically.
 - [ ] **Upstream feedback to skill content** (nice-to-have): skill's semantic-slot table
   could name the studio's 10 themes; app-patterns gallery could cite tui-studio as the
   design tool.
-- [ ] Telemetry awareness (no action): plugin phones home per session-start sync and per
+- [x] Telemetry awareness (no action needed): plugin phones home per session-start sync and per
   skill invocation (slug/outcome/source only, no prompt content). Acceptable; revisit if
   policy changes.
 
