@@ -222,6 +222,17 @@ const crumb = blessed.box({
   content: "Home / Docs",
 });
 
+const div = blessed.line({
+  parent: controls,
+  top: 11,
+  left: 0,
+  width: 1,
+  height: 1,
+  orientation: "horizontal",
+  type: 'bg',
+  ch: "═",
+});
+
 const empty = blessed.box({
   parent: screen,
   top: 15,
@@ -356,7 +367,7 @@ func (m model) View() string {
 	nav := lipgloss.JoinHorizontal(lipgloss.Top, " Dashboard ", lipgloss.NewStyle().Bold(true).Underline(true).Render(" Agent "))
 	header := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#414868")).Padding(1).Render(lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Foreground(lipgloss.Color("#7dcfff")).Bold(true).Render("Say \\"hi\\" to <all>"), "  ", nav))
 	body := lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("1")).Render("▶ • main.rs  1\\n  • lib.rs  2"), "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested", "PID            │ CPU           \\n───────────────┼───────────────\\n123            │ 45%           \\n456            │ 2%            ", "  ⌂ Home  ^H")
-	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", "[✓] Enable"), lipgloss.JoinHorizontal(lipgloss.Top, "(●) Choice A", "[ON ] Dark mode"), lipgloss.JoinHorizontal(lipgloss.Top, "Two ▼", "[====] Working"), lipgloss.JoinHorizontal(lipgloss.Top, "[==========>      ] 67%", "Home / Docs"), "")
+	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", "[✓] Enable"), lipgloss.JoinHorizontal(lipgloss.Top, "(●) Choice A", "[ON ] Dark mode"), lipgloss.JoinHorizontal(lipgloss.Top, "Two ▼", "[====] Working"), lipgloss.JoinHorizontal(lipgloss.Top, "[==========>      ] 67%", "Home / Docs"), lipgloss.JoinHorizontal(lipgloss.Top, "", "════════════════════"))
 	empty := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render("")
 	screen := lipgloss.JoinVertical(lipgloss.Left, header, body, controls, empty)
 	return screen
@@ -480,6 +491,7 @@ function App() {
         </Text>
         <Text>{"Home  /  Docs"}</Text>
         <Box flexGrow={1} />
+        <Text>{"════════════════════"}</Text>
       </Box>
       <Box borderStyle="single" />
       <Box borderStyle="double" borderColor="red">
@@ -586,6 +598,7 @@ function App() {
         </box>
         <box style={{ flexDirection: "row" }}>
           <box style={{ flexGrow: 1 }} />
+          <text>════════════════════</text>
         </box>
       </box>
       <box border title={" Empty "} />
@@ -746,6 +759,7 @@ fn ui(frame: &mut Frame) {
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[5]);
+            frame.render_widget(Paragraph::new("═".repeat(grid_cols_chunks_area_2__5[1].width as usize)).style(Style::default()), grid_cols_chunks_area_2__5[1]);
         let block_chunks_area_3_ = Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("Empty");
         let inner_chunks_area_3_ = block_chunks_area_3_.inner(chunks_area[3]);
         frame.render_widget(block_chunks_area_3_, chunks_area[3]);
@@ -828,7 +842,7 @@ exports[`exportToCode snapshots > textual: kitchen-sink tree 1`] = `
 "from textual.app import App, ComposeResult
 from textual.containers import Grid, Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Checkbox, DataTable, Input, Label, ListItem, ListView, LoadingIndicator, OptionList, ProgressBar, RadioButton, Select, Static, Switch, Tabs, Tree
+from textual.widgets import Button, Checkbox, DataTable, Input, Label, ListItem, ListView, LoadingIndicator, OptionList, ProgressBar, RadioButton, Rule, Select, Static, Switch, Tabs, Tree
 
 
 class ConfirmModal(ModalScreen):
@@ -916,6 +930,7 @@ class MyApp(App):
             yield ProgressBar(total=100, show_eta=False, id="prog")
             yield Static("Home / Docs")
             yield Static("", classes="spacer")
+            yield Rule.horizontal(line_style="double")
         with Vertical(id="empty"):
             pass
 
@@ -1094,6 +1109,9 @@ func main() {
 	crumb.SetText(tview.Escape("Home / Docs"))
 	controls.AddItem(crumb, 4, 1, 1, 1, 0, 0, false)
 	controls.AddItem(tview.NewBox(), 5, 0, 1, 1, 0, 0, false)
+	div := tview.NewTextView()
+	div.SetText(tview.Escape("════════════════════"))
+	controls.AddItem(div, 5, 1, 1, 1, 0, 0, false)
 	root.AddItem(controls, 0, 1, false)
 	empty := tview.NewFlex()
 	empty.SetDirection(tview.FlexRow)

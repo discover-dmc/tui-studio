@@ -102,6 +102,26 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
     defaultStyle: {},
   },
 
+  Separator: {
+    type: 'Separator',
+    name: 'Separator',
+    description: 'Horizontal or vertical divider line',
+    icon: 'SeparatorHorizontal',
+    category: 'layout',
+    defaultProps: {
+      orientation: 'horizontal',
+      lineStyle: 'single',
+      width: 'fill',
+      height: 1,
+    },
+    defaultLayout: {
+      type: 'none',
+    },
+    defaultStyle: {
+      color: 'white',
+    },
+  },
+
   // Input Components
   TextInput: {
     type: 'TextInput',

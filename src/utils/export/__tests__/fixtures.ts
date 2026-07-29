@@ -175,6 +175,7 @@ export function kitchenSinkTree(): ComponentNode {
           separator: ' / ',
         }),
         node('Spacer', 'Sp'),
+        node('Separator', 'Div', { orientation: 'horizontal', lineStyle: 'double' }),
       ],
       {},
       { columns: 2 }

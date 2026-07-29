@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escGo } from '../escape';
-import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
+import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -135,6 +135,19 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
 
     case 'Text':
       return styled(node, escGoStr((node.props.content as string) || 'Text'), ctx);
+
+    case 'Separator': {
+      const orientation = (node.props.orientation as string) || 'horizontal';
+      const lineStyle = (node.props.lineStyle as string) || 'single';
+      const char = getSeparatorChar(lineStyle, orientation);
+      const content =
+        orientation === 'vertical'
+          ? Array(typeof node.props.height === 'number' ? node.props.height : 5)
+              .fill(char)
+              .join('\n')
+          : char.repeat(typeof node.props.width === 'number' ? node.props.width : 20);
+      return styled(node, escGoStr(content), ctx);
+    }
 
     case 'Button': {
       const label = ` ${(node.props.label as string) || 'Button'} `;

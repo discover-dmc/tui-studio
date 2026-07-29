@@ -5,7 +5,7 @@ import { CharCanvas } from './canvas';
 import { renderBox, getContentArea, BORDER_STYLES } from './borders';
 import { wrapText, alignText, padText, truncateText } from './text';
 import { generateAnsiCodes } from './ansi';
-import { SPINNER_PRESETS, renderBar } from '../../constants/assets';
+import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../constants/assets';
 
 /**
  * Render a component to a character canvas
@@ -62,6 +62,9 @@ export function renderComponent(
       break;
     case 'Spinner':
       content = renderSpinner(node, width, height);
+      break;
+    case 'Separator':
+      content = renderSeparator(node, width, height);
       break;
     case 'List':
       content = renderList(node, width, height);
@@ -325,6 +328,17 @@ function renderSpinner(node: ComponentNode, width: number, height: number): stri
   }
 
   return lines;
+}
+
+function renderSeparator(node: ComponentNode, width: number, height: number): string[] {
+  const orientation = (node.props.orientation as string) || 'horizontal';
+  const lineStyle = (node.props.lineStyle as string) || 'single';
+  const char = getSeparatorChar(lineStyle, orientation);
+
+  if (orientation === 'vertical') {
+    return Array(Math.max(1, height)).fill(char.padEnd(width));
+  }
+  return [char.repeat(Math.max(1, width))];
 }
 
 function renderList(node: ComponentNode, width: number, height: number): string[] {

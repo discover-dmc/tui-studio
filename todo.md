@@ -230,10 +230,28 @@ next, matching the "finish a section before moving on" preference from this sess
 
 Suggested order (simplest/most-reusable first, to prove the full pipeline cheaply):
 
-- [ ] **Separator / Rule** — horizontal/vertical divider line. Smallest surface area, good
-  first template. Native support varies: Textual has `Rule`; Ratatui and Tview don't (draw a
-  bordered Block/Box with zero content instead); Blessed/OpenTUI/Ink/BubbleTea likely need a
-  hand-rolled line character repeated across width/height.
+- [x] **Separator / Rule** (2026-07-29): horizontal/vertical divider line, `lineStyle`
+  single/double/thick/dashed. New `ComponentType`, `COMPONENT_LIBRARY` entry, canvas render
+  case (+ orientation-aware resize handles: width-only when horizontal, height-only when
+  vertical), PropertyPanel orientation/lineStyle controls, ANSI/text-export renderer case,
+  and all 7 code exporters. Verified real per-framework APIs rather than guessing: Textual
+  has a native `Rule` widget (`orientation`/`line_style`, confirmed via
+  textual.textualize.io) — used directly, and its real headless mount was tested (`Rule`
+  actually mounts and unmounts cleanly). Blessed has a native `line` widget (verified from
+  its source: `orientation` + a `ch` fill-character option) — used directly. Ratatui,
+  Tview, BubbleTea, OpenTUI, and Ink have no native rule primitive (confirmed — e.g.
+  docs.rs/ratatui has no `Rule` widget) — all hand-roll a repeated line character; Ratatui's
+  version is notable since width/height aren't known at export time, so the generated Rust
+  reads the real `Rect.width`/`.height` field at render time (`"─".repeat(area.width as
+  usize)`) rather than baking in a static guess. All 7 exporters' generated output was
+  handed to its real toolchain (not just snapshot strings): `cargo build` (3 Ratatui
+  variants), `go test`/`go build`+`go vet` (3 BubbleTea + 3 Tview variants), `py_compile` +
+  a real headless Textual mount (2 variants), `node --check` (3 Blessed variants), and
+  `esbuild --jsx=automatic` (6 OpenTUI/Ink variants) — all passed. Also verified live in the
+  browser: add via palette, orientation/lineStyle controls, canvas rendering (horizontal +
+  vertical + all 4 line styles), resize-handle restriction, and both the Text/ANSI and Code
+  export tabs (Textual `Rule.vertical(line_style="double")`, Ratatui's runtime-width
+  expression) end to end.
 - [ ] **Gauge (labeled)** — ProgressBar variant with a label and distinct framing. Ratatui has
   a native `Gauge` widget; other frameworks likely map to a styled ProgressBar composition
   rather than a distinct primitive — verify per-framework before assuming a 1:1 widget exists.

@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escGo } from '../escape';
-import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
+import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -132,6 +132,26 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
 
     case 'Spacer':
       return 'tview.NewBox()';
+
+    case 'Separator': {
+      // tview has no dedicated rule/divider primitive — a TextView filled with
+      // the repeated line character is the closest real equivalent.
+      const orientation = (node.props.orientation as string) || 'horizontal';
+      const lineStyle = (node.props.lineStyle as string) || 'single';
+      const char = getSeparatorChar(lineStyle, orientation);
+      const content =
+        orientation === 'vertical'
+          ? Array(typeof node.props.height === 'number' ? node.props.height : 5)
+              .fill(char)
+              .join('\n')
+          : char.repeat(typeof node.props.width === 'number' ? node.props.width : 20);
+      const varName = ident(node.name, ctx);
+      ctx.stmts.push(`${varName} := tview.NewTextView()`);
+      ctx.stmts.push(`${varName}.SetText(${tviewText(content)})`);
+      applyTextColor(varName, node, ctx);
+      applyBoxStyle(varName, node, ctx);
+      return varName;
+    }
 
     case 'Text': {
       const varName = ident(node.name, ctx);

@@ -19,7 +19,9 @@ import {
   SPINNER_PRESETS,
   SPINNER_STYLE_NAMES,
   PROGRESSBAR_STYLE_NAMES,
+  SEPARATOR_STYLE_NAMES,
   renderBar,
+  getSeparatorChar,
 } from '../../constants/assets';
 
 // Collapsible Section Component
@@ -1029,6 +1031,45 @@ function ComponentProps({ component }: { component: import('../../types').Compon
             + Add Item
           </button>
         </div>
+      )}
+
+      {/* Separator Properties */}
+      {component.type === 'Separator' && (
+        <>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Orientation
+            </label>
+            <select
+              value={(component.props.orientation as string) || 'horizontal'}
+              onChange={(e) =>
+                componentStore.updateProps(component.id, { orientation: e.target.value })
+              }
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+            >
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Line Style
+            </label>
+            <select
+              value={(component.props.lineStyle as string) || 'single'}
+              onChange={(e) =>
+                componentStore.updateProps(component.id, { lineStyle: e.target.value })
+              }
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] font-mono focus:border-primary focus:outline-none"
+            >
+              {SEPARATOR_STYLE_NAMES.map((name) => (
+                <option key={name} value={name}>
+                  {name} {getSeparatorChar(name, (component.props.orientation as string) || 'horizontal').repeat(6)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
       )}
     </div>
   );

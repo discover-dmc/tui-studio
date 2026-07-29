@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { LayoutEngine } from '../../layout';
-import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
+import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ANSI16_NAMES,
@@ -118,6 +118,22 @@ function genNode(
 
     case 'Spacer':
       return;
+
+    case 'Separator': {
+      // blessed.line is a Box with a fixed cross-axis size; passing an explicit
+      // `ch` (blessed's generic fill-character option) rather than relying on
+      // its own default lets us support double/thick/dashed too, not just the
+      // single-line default it picks for `type: 'line'`.
+      widget = 'line';
+      const orientation = (node.props.orientation as string) || 'horizontal';
+      const lineStyle = (node.props.lineStyle as string) || 'single';
+      extraOpts = [
+        `orientation: ${js(orientation)}`,
+        `type: 'bg'`,
+        `ch: ${js(getSeparatorChar(lineStyle, orientation))}`,
+      ];
+      break;
+    }
 
     case 'Text':
       content = (node.props.content as string) || 'Text';

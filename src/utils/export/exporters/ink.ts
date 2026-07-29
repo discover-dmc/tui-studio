@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escJsx } from '../escape';
-import { PROGRESSBAR_STYLES } from '../../../constants/assets';
+import { PROGRESSBAR_STYLES, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -66,6 +66,19 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
 
     case 'Spacer':
       return `${sp}<Box flexGrow={1} />\n`;
+
+    case 'Separator': {
+      const orientation = (node.props.orientation as string) || 'horizontal';
+      const lineStyle = (node.props.lineStyle as string) || 'single';
+      const char = getSeparatorChar(lineStyle, orientation);
+      const content =
+        orientation === 'vertical'
+          ? Array(typeof node.props.height === 'number' ? node.props.height : 5)
+              .fill(char)
+              .join('\n')
+          : char.repeat(typeof node.props.width === 'number' ? node.props.width : 20);
+      return `${sp}<Text${inkTextProps(node, colorMode)}>{${JSON.stringify(content)}}</Text>\n`;
+    }
 
     case 'Text': {
       const content = (node.props.content as string) || '';

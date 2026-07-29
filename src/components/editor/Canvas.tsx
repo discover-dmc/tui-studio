@@ -14,7 +14,7 @@ import { useCanvasKeyboardNudge } from '../../hooks/useCanvasKeyboard';
 import { useComponentSelection } from '../../hooks/useComponentSelection';
 import { useComponentDrag } from '../../hooks/useComponentDrag';
 import { COMPONENT_LIBRARY } from '../../constants/components';
-import { SPINNER_PRESETS, renderBar } from '../../constants/assets';
+import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../constants/assets';
 import { THEMES } from '../../stores/themeStore';
 import { interpolateGradientColor } from '../../utils/rendering/ansi';
 import { ComponentToolbar } from './ComponentToolbar';
@@ -872,6 +872,18 @@ const ComponentRenderer = memo(
             </div>
           );
         }
+        case 'Separator': {
+          const orientation = (node.props.orientation as string) || 'horizontal';
+          const lineStyle = (node.props.lineStyle as string) || 'single';
+          const char = getSeparatorChar(lineStyle, orientation);
+          if (orientation === 'vertical') {
+            const lines = Array(Math.max(1, layout.height)).fill(char);
+            return (
+              <div className="font-mono whitespace-pre leading-none">{lines.join('\n')}</div>
+            );
+          }
+          return <span className="font-mono whitespace-pre">{char.repeat(Math.max(1, layout.width))}</span>;
+        }
         case 'Box':
         case 'Grid':
         case 'Spacer':
@@ -885,6 +897,11 @@ const ComponentRenderer = memo(
     // Which resize handles to show based on component type
     const getResizeHandles = (): Array<'e' | 's' | 'se'> => {
       if (node.id === 'root') return [];
+      // A Separator only ever resizes along its own axis: a horizontal line
+      // has a fixed height (just the line's thickness), a vertical one a fixed width.
+      if (node.type === 'Separator') {
+        return node.props.orientation === 'vertical' ? ['s'] : ['e'];
+      }
       // These types have a fixed height — only allow width resize
       const widthOnlyTypes = [
         'Tabs',

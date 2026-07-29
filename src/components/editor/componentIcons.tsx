@@ -18,6 +18,7 @@ import {
   FolderTree,
   Navigation,
   PanelTop,
+  SeparatorHorizontal,
 } from 'lucide-react';
 import type { ComponentType } from '../../types';
 
@@ -35,6 +36,8 @@ export function getComponentIcon(type: ComponentType) {
       return <Columns {...iconProps} />;
     case 'Spacer':
       return <Space {...iconProps} />;
+    case 'Separator':
+      return <SeparatorHorizontal {...iconProps} />;
 
     // Input
     case 'Button':

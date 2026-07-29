@@ -144,6 +144,15 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       ctx.needsSpacerCss = true;
       return `${sp}yield Static("", classes="spacer")\n`;
 
+    case 'Separator': {
+      ctx.widgets.add('Rule');
+      const orientation = (node.props.orientation as string) || 'horizontal';
+      const lineStyle = textualLineStyle((node.props.lineStyle as string) || 'single');
+      const id = registerStyles(node, ctx);
+      const ctor = orientation === 'vertical' ? 'Rule.vertical' : 'Rule.horizontal';
+      return `${sp}yield ${ctor}(line_style=${escPyStr(lineStyle)}${idArg(id)})\n`;
+    }
+
     case 'Text': {
       const id = registerStyles(node, ctx);
       return `${sp}yield Static(${py(node.props.content, 'Text')}${idArg(id)})\n`;
@@ -408,6 +417,12 @@ function py(value: unknown, fallback: string): string {
 
 function escPyStr(s: string): string {
   return `"${escPy(s)}"`;
+}
+
+/** Our internal lineStyle names -> Textual's real Rule line_style values (verified against textual.textualize.io/widgets/rule). */
+function textualLineStyle(style: string): string {
+  const map: Record<string, string> = { single: 'solid', double: 'double', thick: 'heavy', dashed: 'dashed' };
+  return map[style] || 'solid';
 }
 
 function pyBool(value: unknown): string {

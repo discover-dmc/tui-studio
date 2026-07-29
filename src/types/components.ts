@@ -6,6 +6,7 @@ export type ComponentType =
   | 'Box'
   | 'Grid'
   | 'Spacer'
+  | 'Separator'
   // Input
   | 'TextInput'
   | 'Button'

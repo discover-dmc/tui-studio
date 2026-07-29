@@ -131,3 +131,19 @@ export function renderBar(styleName: string, barWidth: number, percentage: numbe
 
   return `${s.leftCap || ''}${bar}${s.rightCap || ''}`;
 }
+
+/** Box-drawing characters for the Separator component, per line style and orientation. */
+export const SEPARATOR_CHARS: Record<string, { horizontal: string; vertical: string }> = {
+  single: { horizontal: '─', vertical: '│' },
+  double: { horizontal: '═', vertical: '║' },
+  thick: { horizontal: '━', vertical: '┃' },
+  dashed: { horizontal: '┄', vertical: '┆' },
+};
+
+export const SEPARATOR_STYLE_NAMES = Object.keys(SEPARATOR_CHARS);
+
+/** Resolve the line character for a Separator's lineStyle + orientation. */
+export function getSeparatorChar(lineStyle: string, orientation: string): string {
+  const style = SEPARATOR_CHARS[lineStyle] || SEPARATOR_CHARS.single;
+  return orientation === 'vertical' ? style.vertical : style.horizontal;
+}

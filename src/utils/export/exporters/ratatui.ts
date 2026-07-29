@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escRust } from '../escape';
-import { SPINNER_PRESETS } from '../../../constants/assets';
+import { SPINNER_PRESETS, getSeparatorChar } from '../../../constants/assets';
 import { type ExportColorMode, ansi16IndexOfName, nearestAnsi16, resolveBackgroundColor } from './shared';
 
 export function exportToRatatui(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
@@ -76,6 +76,9 @@ function collectUsedWidgets(node: ComponentNode, used: Set<string>): void {
     case 'Text':
       if ((node.props.content as string)?.includes('\n')) used.add('Line');
       if (node.props.wrap) used.add('Wrap');
+      break;
+    case 'Separator':
+      if ((node.props.orientation as string) === 'vertical') used.add('Line');
       break;
   }
   for (const child of node.children) collectUsedWidgets(child, used);
@@ -228,6 +231,24 @@ function generateRatatuiNode(
   }
 
   if (node.type === 'Spacer') return '';
+
+  if (node.type === 'Separator') {
+    // Ratatui has no built-in Rule/Separator widget (verified: no
+    // ratatui::widgets::Rule exists) — a Paragraph filled with the repeated
+    // line character is the standard workaround. Width/height aren't known
+    // until the exported program actually runs, so the repeat count reads
+    // the render-time Rect's own .width/.height field rather than a value
+    // baked in at export time.
+    const orientation = (node.props.orientation as string) || 'horizontal';
+    const lineStyle = (node.props.lineStyle as string) || 'single';
+    const char = escRust(getSeparatorChar(lineStyle, orientation));
+    let widget =
+      orientation === 'vertical'
+        ? `Paragraph::new(vec![Line::from(${char}); ${areaVar}.height as usize])`
+        : `Paragraph::new(${char}.repeat(${areaVar}.width as usize))`;
+    widget += `.style(${ratatuiStyle(node, colorMode)})`;
+    return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
+  }
 
   if (node.type === 'Text') {
     const content = (node.props.content as string) || 'Text';

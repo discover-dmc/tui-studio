@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escJsx } from '../escape';
-import { SPINNER_PRESETS, renderBar } from '../../../constants/assets';
+import { SPINNER_PRESETS, renderBar, getSeparatorChar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -75,6 +75,19 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
 
     case 'Spacer':
       return `${sp}<box style={{ flexGrow: 1 }} />\n`;
+
+    case 'Separator': {
+      const orientation = (node.props.orientation as string) || 'horizontal';
+      const lineStyle = (node.props.lineStyle as string) || 'single';
+      const char = getSeparatorChar(lineStyle, orientation);
+      const content =
+        orientation === 'vertical'
+          ? Array(typeof node.props.height === 'number' ? node.props.height : 5)
+              .fill(char)
+              .join('\n')
+          : char.repeat(typeof node.props.width === 'number' ? node.props.width : 20);
+      return `${sp}${textEl(node, content, colorMode, false, true)}\n`;
+    }
 
     case 'Text':
       return `${sp}${textEl(node, (node.props.content as string) || 'Text', colorMode)}\n`;
