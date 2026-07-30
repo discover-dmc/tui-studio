@@ -110,6 +110,7 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
       if (dryRun) return diffTrees(store.root, built);
       store.setRoot(built);
       assertTreeStillValid();
+      notifyAgentActivity(`Agent applied the "${template.name}" template`);
       return { ok: true };
     }
 
@@ -148,6 +149,7 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
 
       const id = store.addComponent(parentId, newComponent, index);
       assertTreeStillValid();
+      notifyAgentActivity(`Agent added a ${type}`);
       return { id };
     }
 
@@ -157,10 +159,12 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
         props: Record<string, unknown>;
         dryRun?: boolean;
       };
-      if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      const target = store.getComponent(id);
+      if (!target) throw new Error(`No component with id: ${id}`);
       if (dryRun) return diffTrees(store.root, applyUpdateProps(store.root, id, props));
       store.updateProps(id, props);
       assertTreeStillValid();
+      notifyAgentActivity(`Agent updated props on "${target.name}"`);
       return { ok: true };
     }
 
@@ -170,10 +174,12 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
         layout: Record<string, unknown>;
         dryRun?: boolean;
       };
-      if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      const target = store.getComponent(id);
+      if (!target) throw new Error(`No component with id: ${id}`);
       if (dryRun) return diffTrees(store.root, applyUpdateLayout(store.root, id, layout));
       store.updateLayout(id, layout);
       assertTreeStillValid();
+      notifyAgentActivity(`Agent updated layout on "${target.name}"`);
       return { ok: true };
     }
 
@@ -184,27 +190,32 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
         index?: number;
         dryRun?: boolean;
       };
-      if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      const target = store.getComponent(id);
+      if (!target) throw new Error(`No component with id: ${id}`);
       if (!store.getComponent(newParentId)) throw new Error(`No component with id: ${newParentId}`);
       if (dryRun) return diffTrees(store.root, applyMoveComponent(store.root, id, newParentId, index));
       store.moveComponent(id, newParentId, index);
       assertTreeStillValid();
+      notifyAgentActivity(`Agent moved "${target.name}"`);
       return { ok: true };
     }
 
     case 'remove_component': {
       const { id, dryRun } = payload as { id: string; dryRun?: boolean };
       if (!store.root || id === store.root.id) throw new Error('Cannot remove the root Screen.');
-      if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      const target = store.getComponent(id);
+      if (!target) throw new Error(`No component with id: ${id}`);
       if (dryRun) return diffTrees(store.root, applyRemoveComponent(store.root, id));
       store.removeComponent(id);
       assertTreeStillValid();
+      notifyAgentActivity(`Agent removed "${target.name}"`);
       return { ok: true };
     }
 
     case 'duplicate_component': {
       const { id, dryRun } = payload as { id: string; dryRun?: boolean };
-      if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      const target = store.getComponent(id);
+      if (!target) throw new Error(`No component with id: ${id}`);
       if (dryRun) {
         const result = applyDuplicateComponent(store.root, id);
         return diffTrees(store.root, result?.root ?? store.root);
@@ -212,6 +223,7 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
       const newId = store.duplicateComponent(id);
       if (!newId) throw new Error('Duplicate failed.');
       assertTreeStillValid();
+      notifyAgentActivity(`Agent duplicated "${target.name}"`);
       return { id: newId };
     }
 
@@ -246,6 +258,7 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
       const newId = store.groupComponents(ids, boxData);
       if (!newId) throw new Error('Group failed — every id must share the same parent.');
       assertTreeStillValid();
+      notifyAgentActivity(`Agent grouped ${ids.length} component${ids.length === 1 ? '' : 's'}`);
       return { id: newId };
     }
 
@@ -260,12 +273,24 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
       }
       const childIds = store.ungroupComponents(ids);
       assertTreeStillValid();
+      notifyAgentActivity(`Agent ungrouped ${ids.length} container${ids.length === 1 ? '' : 's'}`);
       return { childIds };
     }
 
     default:
       throw new Error(`Unknown bridge action: ${action}`);
   }
+}
+
+/**
+ * AI integration Phase 5 — conflict surfacing. There's no live push feed or
+ * locking, so a human editing at the same moment as an agent's turn can have
+ * their change silently overwritten (last-write-wins). This doesn't prevent
+ * that; it makes an agent-driven commit visible in the tab the instant it
+ * happens, via the AgentActivityToast component.
+ */
+function notifyAgentActivity(message: string): void {
+  useUIStore.getState().setAgentActivity(message);
 }
 
 /** Defensive backstop from todo.md's spec: undo and fail rather than leave an invalid tree committed. */

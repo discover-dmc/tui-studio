@@ -90,3 +90,16 @@ conversation instead of needing `claude mcp list` from a shell.
   again, not as they happen.
 - If no tab is connected, every tool call fails fast with a clear error
   instead of hanging.
+
+## Concurrent edits (Phase 5)
+
+There's no locking — if a human edits the design at the same moment an
+agent's turn commits a change, whichever happens last simply wins. What
+this *does* do: every agent-driven commit shows a small toast in the
+browser tab the instant it lands (see `AgentActivityToast.tsx`), so a human
+working alongside an agent always knows a change came from the agent, even
+if they didn't cause it. Stronger guarantees (an `expectedVersion` on
+mutations, or a turn-based lockout) were considered and are documented in
+`todo.md` as deliberately not built — this is a single-user local tool, and
+there's no evidence yet that silent last-write-wins is an actual problem
+rather than a hypothetical one.

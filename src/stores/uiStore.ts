@@ -22,6 +22,16 @@ interface UIState {
   setAgentBridgeEnabled: (enabled: boolean) => void;
   agentBridgeStatus: 'disconnected' | 'connecting' | 'connected';
   setAgentBridgeStatus: (status: 'disconnected' | 'connecting' | 'connected') => void;
+
+  // AI integration Phase 5 — conflict surfacing: last-write-wins, made visible.
+  // The agent bridge has no live push feed and no locking (see todo.md's Phase
+  // 5 note), so a human editing at the same time as an agent's turn can have
+  // their change overwritten. This doesn't prevent that — it just makes an
+  // agent-driven commit visible the moment it happens, the same way a human
+  // collaborator's cursor would be in a live-collab tool.
+  agentActivity: { message: string; at: number } | null;
+  setAgentActivity: (message: string) => void;
+  clearAgentActivity: () => void;
 }
 
 const savedDocked =
@@ -52,4 +62,8 @@ export const useUIStore = create<UIState>((set) => ({
   },
   agentBridgeStatus: 'disconnected',
   setAgentBridgeStatus: (status) => set({ agentBridgeStatus: status }),
+
+  agentActivity: null,
+  setAgentActivity: (message) => set({ agentActivity: { message, at: Date.now() } }),
+  clearAgentActivity: () => set({ agentActivity: null }),
 }));

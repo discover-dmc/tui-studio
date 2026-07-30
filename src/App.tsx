@@ -6,6 +6,7 @@ import { Toolbar } from './components/editor/Toolbar';
 import { LeftSidebar } from './components/editor/LeftSidebar';
 import { Canvas } from './components/editor/Canvas';
 import { PropertyPanel } from './components/properties/PropertyPanel';
+import { AgentActivityToast } from './components/editor/AgentActivityToast';
 // Lazy: most sessions never open the command palette on first render.
 const CommandPalette = lazy(() =>
   import('./components/editor/CommandPalette').then((m) => ({ default: m.CommandPalette }))
@@ -325,6 +326,7 @@ function App() {
         canvas={<Canvas />}
         rightSidebar={<PropertyPanel />}
       />
+      <AgentActivityToast />
       {commandPaletteOpen && (
         <Suspense fallback={null}>
           <CommandPalette

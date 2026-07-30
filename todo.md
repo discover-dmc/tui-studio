@@ -612,13 +612,40 @@ testable, matching this project's "finish a section before moving on" habit:
   `.claude/skills/stuidio-skill/SKILL.md` (tool count 9→16, new turn-loop
   steps for `get_bridge_status`/`get_layout_warnings`/`apply_template`) and
   `mcp-server/README.md`'s tool table accordingly.
-- [ ] **Phase 5 — conflict surfacing for concurrent human/agent edits**:
-  the open question from the original idea — decide how a human's live
-  edit and an agent's in-flight turn are reconciled (last-write-wins with a
-  visible toast, an optimistic-lock version counter on `get_tree`/mutations,
-  or a simple "agent turn" mode toggle that pauses human edits while the
-  agent is active). Needs its own design pass before estimating; the other
-  four phases don't block on this being resolved first.
+- [x] **Phase 5 — conflict surfacing for concurrent human/agent edits**
+  (2026-07-30): the open question from the original idea had three real
+  candidate answers (last-write-wins with a visible toast, an
+  optimistic-lock version counter on `get_tree`/mutations, or an "agent
+  turn" mode toggle pausing human edits). Presented all three with their
+  tradeoffs; user picked last-write-wins + toast — right-sized for a
+  single-user local tool with no evidence yet that silent clobbering is a
+  real (rather than hypothetical) problem; the other two are real,
+  comparable-to-Phase-1-sized engineering (a schema change across all 9
+  mutating tools, or new turn-boundary signals + UI lockout) for a
+  correctness guarantee nothing has actually demonstrated a need for.
+  Built: new `uiStore.agentActivity: {message, at} | null` +
+  `setAgentActivity`/`clearAgentActivity` (persisted-toggle-free, purely
+  transient); new `AgentActivityToast.tsx` — a small floating pill,
+  auto-dismissing after 4s, mounted once in `App.tsx` alongside the rest of
+  the global UI. `mcpBridge.ts` calls `notifyAgentActivity(message)` after
+  every real (non-dry-run, post-`assertTreeStillValid`) commit across all 9
+  mutating actions, with a per-action message using the component's real
+  name/type (e.g. `Agent updated props on "Header"`, `Agent applied the
+  "IDE Three-Panel" template`) — dry runs never notify, matching that they
+  never touch the store either. Doesn't prevent a clobber, only makes an
+  agent-driven change visible the instant it lands, which is exactly what
+  was scoped.
+  Verified for real: `npx tsc -b`/`npm run lint`/`npm run build`/
+  `npx vitest run` (75 tests) clean. End-to-end round-trip verified against
+  a live, currently-connected `stuidio` bridge tab (empty canvas, so fully
+  safe): `add_component` (Spacer) → `get_tree` confirmed it landed →
+  `remove_component` → `get_tree` confirmed the tab was restored to
+  exactly its original empty state. This confirms the mutation pipeline
+  itself round-trips correctly for real; whether the toast was visually
+  seen depends on that tab's Vite dev server having hot-reloaded this
+  session's new code, which wasn't independently confirmable (no way to
+  see another session's screen) — a manual refresh picks it up if HMR
+  didn't.
 
 ### Design gaps found via competitive analysis
 
