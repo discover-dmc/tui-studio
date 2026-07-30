@@ -270,6 +270,50 @@ describe('color-tier degradation (ansi16 mode)', () => {
   });
 });
 
+describe('color-tier degradation (ansi256 mode)', () => {
+  it('resolves an out-of-16-palette hex to its nearest xterm-256 index and a named color to its base slot', () => {
+    // #800 (Text "A", expands to #880000) and brightGreen (Text "B") in styleEdgeCasesTree
+    const ratatui = exportToCode(styleEdgeCasesTree(), 'ratatui', 'ansi256');
+    expect(ratatui).toContain('Color::Indexed(88)'); // #880000 -> nearest of the 256-color cube
+    expect(ratatui).toContain('Color::Indexed(10)'); // brightGreen -> its own named slot
+
+    const bubbletea = exportToCode(styleEdgeCasesTree(), 'bubbletea', 'ansi256');
+    expect(bubbletea).toContain('lipgloss.Color("88")');
+    expect(bubbletea).toContain('lipgloss.Color("10")');
+
+    const tview = exportToCode(styleEdgeCasesTree(), 'tview', 'ansi256');
+    expect(tview).toContain('tcell.PaletteColor(88)');
+    expect(tview).toContain('tcell.PaletteColor(10)');
+
+    const blessed = exportToCode(styleEdgeCasesTree(), 'blessed', 'ansi256');
+    expect(blessed).toContain('fg: 88');
+    expect(blessed).toContain('fg: 10');
+
+    const ink = exportToCode(styleEdgeCasesTree(), 'ink', 'ansi256');
+    expect(ink).toContain('ansi256(88)');
+    expect(ink).toContain('ansi256(10)');
+  });
+
+  it('ansi256 mode never emits a raw hex color for any color-capable format', () => {
+    for (const format of COLOR_MODE_FORMATS) {
+      const out = exportToCode(styleEdgeCasesTree(), format, 'ansi256');
+      expect(out, `${format} should not contain raw hex in ansi256 mode`).not.toMatch(/#[0-9a-fA-F]{3,6}/);
+    }
+  });
+
+  it('OpenTUI ansi256 mode uses the real RGBA.fromIndex API across the full 0-255 range', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'opentui', 'ansi256');
+    expect(out).toContain('RGBA.fromIndex(88)');
+    expect(out).toContain('import { createCliRenderer, RGBA }');
+  });
+
+  it('Blessed ansi256 mode emits a bare numeric literal, not a quoted string', () => {
+    const out = exportToCode(styleEdgeCasesTree(), 'blessed', 'ansi256');
+    expect(out).not.toMatch(/fg: "88"/);
+    expect(out).not.toMatch(/fg: "10"/);
+  });
+});
+
 describe('empty tree handling', () => {
   it('every exporter handles a childless Screen without throwing', () => {
     for (const format of FORMATS) {

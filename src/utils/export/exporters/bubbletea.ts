@@ -14,6 +14,7 @@ import {
   ansi16IndexOfName,
   createIdentGenerator,
   nearestAnsi16,
+  nearestAnsi256,
   resolveBackgroundColor,
 } from './shared';
 
@@ -403,9 +404,12 @@ function goColor(value: string, colorMode: ExportColorMode): string | null {
   const named = ansi16IndexOfName(value);
   if (named != null) return `"${named}"`;
   if (!/^#[0-9a-fA-F]{3}$/.test(value) && !/^#[0-9a-fA-F]{6}$/.test(value)) return null;
-  // ansi16 mode: force even a hex input down to its nearest indexed slot, so
-  // the terminal's own palette (not a fixed RGB) determines the final color.
+  // ansi16/ansi256 mode: force even a hex input down to its nearest indexed
+  // slot, so the terminal's own palette (not a fixed RGB) determines the
+  // final color. lipgloss.Color treats a plain numeric string as an
+  // xterm-256 index (0-255), so ansi16's 0-15 range is just its lower slice.
   if (colorMode === 'ansi16') return `"${nearestAnsi16(value)}"`;
+  if (colorMode === 'ansi256') return `"${nearestAnsi256(value)}"`;
   const v = /^#[0-9a-fA-F]{3}$/.test(value)
     ? '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3]
     : value;

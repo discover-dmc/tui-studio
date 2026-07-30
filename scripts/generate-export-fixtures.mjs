@@ -65,6 +65,7 @@ async function main() {
     write(`${format}-edge.${ext}`, exportToCode(edgeTree, format));
     if (COLOR_MODE_FORMATS.has(format)) {
       write(`${format}-edge-ansi16.${ext}`, exportToCode(edgeTree, format, 'ansi16'));
+      write(`${format}-edge-ansi256.${ext}`, exportToCode(edgeTree, format, 'ansi256'));
     }
   }
 }

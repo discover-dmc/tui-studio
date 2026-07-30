@@ -169,6 +169,7 @@ export function ExportPanel() {
               className="w-full px-3 py-2 bg-secondary border border-border rounded text-sm"
             >
               <option value="truecolor">Truecolor (24-bit hex)</option>
+              <option value="ansi256">ANSI-256 (indexed, wide terminal support)</option>
               <option value="ansi16">ANSI-16 (portable, theme-adaptive)</option>
             </select>
           </div>

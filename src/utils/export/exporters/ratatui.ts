@@ -1,7 +1,13 @@
 import type { ComponentNode } from '../../../types';
 import { escRust } from '../escape';
 import { SPINNER_PRESETS, getSeparatorChar, tailLines, renderStatusBar } from '../../../constants/assets';
-import { type ExportColorMode, ansi16IndexOfName, nearestAnsi16, resolveBackgroundColor } from './shared';
+import {
+  type ExportColorMode,
+  ansi16IndexOfName,
+  nearestAnsi16,
+  nearestAnsi256,
+  resolveBackgroundColor,
+} from './shared';
 
 export function exportToRatatui(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
   const usedWidgets = new Set<string>();
@@ -431,6 +437,13 @@ function ratatuiColor(value: string | undefined, colorMode: ExportColorMode = 't
     if (named != null) return RATATUI_ANSI16[named];
     if (/^#[0-9a-fA-F]{3}$/.test(value) || /^#[0-9a-fA-F]{6}$/.test(value))
       return RATATUI_ANSI16[nearestAnsi16(value)];
+  }
+
+  if (colorMode === 'ansi256') {
+    const named = ansi16IndexOfName(value);
+    if (named != null) return `Color::Indexed(${named})`;
+    if (/^#[0-9a-fA-F]{3}$/.test(value) || /^#[0-9a-fA-F]{6}$/.test(value))
+      return `Color::Indexed(${nearestAnsi256(value)})`;
   }
 
   const named: Record<string, string> = {

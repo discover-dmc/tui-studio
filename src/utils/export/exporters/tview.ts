@@ -13,6 +13,7 @@ import {
   ansi16IndexOfName,
   createIdentGenerator,
   nearestAnsi16,
+  nearestAnsi256,
   resolveBackgroundColor,
 } from './shared';
 
@@ -518,6 +519,12 @@ function colorExpr(value: string, colorMode: ExportColorMode): string {
     // guaranteed to be palette-relative for every one of the 16 slots.
     if (idx != null) return `tcell.PaletteColor(${idx})`;
     if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return `tcell.PaletteColor(${nearestAnsi16(value)})`;
+  } else if (colorMode === 'ansi256') {
+    // Same tcell.PaletteColor call as ansi16 — it's real for the full 0-255
+    // xterm palette (confirmed via pkg.go.dev), so a hex just gets matched
+    // against the wider 256-color table instead of collapsing to 16.
+    if (idx != null) return `tcell.PaletteColor(${idx})`;
+    if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return `tcell.PaletteColor(${nearestAnsi256(value)})`;
   } else if (idx != null && idx >= 8) {
     // Truecolor mode: "bright" names aren't real W3C names GetColor understands,
     // so they still need the palette-index form even here.

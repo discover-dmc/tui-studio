@@ -12,6 +12,7 @@ import {
   type ExportColorMode,
   ansi16IndexOfName,
   nearestAnsi16,
+  nearestAnsi256,
   resolveBackgroundColor,
 } from './shared';
 
@@ -286,10 +287,17 @@ function toChalkColorName(index: number): string {
 
 /** Resolve a color for Ink's chalk-backed color props, respecting the color-tier mode. */
 function inkColor(value: string, colorMode: ExportColorMode): string {
-  if (colorMode !== 'ansi16') return value;
+  if (colorMode === 'truecolor') return value;
   const named = ansi16IndexOfName(value);
-  if (named != null) return toChalkColorName(named);
-  if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return toChalkColorName(nearestAnsi16(value));
+  if (colorMode === 'ansi16') {
+    if (named != null) return toChalkColorName(named);
+    if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return toChalkColorName(nearestAnsi16(value));
+    return value;
+  }
+  // ansi256: Ink's real color prop supports "ansi256(N)" (0-255), verified
+  // against Ink's colorize.ts source — not a chalk keyword guess.
+  if (named != null) return `ansi256(${named})`;
+  if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return `ansi256(${nearestAnsi256(value)})`;
   return value;
 }
 

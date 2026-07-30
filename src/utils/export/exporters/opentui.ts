@@ -12,15 +12,18 @@ import {
   type ExportColorMode,
   ansi16IndexOfName,
   nearestAnsi16,
+  nearestAnsi256,
   resolveBackgroundColor,
 } from './shared';
 
 // Generates an @opentui/react app using its real intrinsic elements
 // (<box>, <text>, <input>, <select>, <tab-select>) and Yoga flexbox styles.
 //
-// Ansi16 color mode uses OpenTUI's real indexed-color API, RGBA.fromIndex(0-15)
-// — verified against opentui.com's colors doc — rather than a hex approximation,
-// so the terminal's own palette (not a fixed guess) determines the final color.
+// Ansi16/ansi256 color modes both use OpenTUI's real indexed-color API,
+// RGBA.fromIndex(0-255) — verified against opentui.com's colors doc — rather
+// than a hex approximation, so the terminal's own palette (not a fixed
+// guess) determines the final color. Ansi16 just stays within the 0-15
+// slice of the same API.
 
 export function getOpenTuiWarnings(root: ComponentNode): string[] {
   const warnings: string[] = [];
@@ -36,7 +39,8 @@ export function getOpenTuiWarnings(root: ComponentNode): string[] {
 
 export function exportToOpenTUI(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
   const body = genNode(root, 1, colorMode);
-  const coreImports = colorMode === 'ansi16' ? 'createCliRenderer, RGBA' : 'createCliRenderer';
+  const coreImports =
+    colorMode === 'ansi16' || colorMode === 'ansi256' ? 'createCliRenderer, RGBA' : 'createCliRenderer';
 
   return `import { ${coreImports} } from "@opentui/core";
 import { createRoot } from "@opentui/react";
@@ -251,11 +255,17 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
   }
 }
 
-/** Resolve a color for OpenTUI, respecting the color-tier mode. Ansi16 uses the real RGBA.fromIndex(0-15) API so the terminal's palette wins, not a fixed hex guess. */
+/** Resolve a color for OpenTUI, respecting the color-tier mode. Ansi16/ansi256 both use the real RGBA.fromIndex(0-255) API so the terminal's palette wins, not a fixed hex guess. */
 function colorValue(value: string, colorMode: ExportColorMode): string {
-  if (colorMode !== 'ansi16') return JSON.stringify(value);
+  if (colorMode === 'truecolor') return JSON.stringify(value);
   const named = ansi16IndexOfName(value);
-  const idx = named ?? (/^#[0-9a-fA-F]{3,6}$/.test(value) ? nearestAnsi16(value) : null);
+  const idx =
+    named ??
+    (/^#[0-9a-fA-F]{3,6}$/.test(value)
+      ? colorMode === 'ansi16'
+        ? nearestAnsi16(value)
+        : nearestAnsi256(value)
+      : null);
   return idx != null ? `RGBA.fromIndex(${idx})` : JSON.stringify(value);
 }
 

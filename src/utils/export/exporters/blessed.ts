@@ -14,6 +14,7 @@ import {
   ansi16IndexOfName,
   createIdentGenerator,
   nearestAnsi16,
+  nearestAnsi256,
   resolveBackgroundColor,
 } from './shared';
 
@@ -98,9 +99,9 @@ function genNode(
   ];
 
   const style: string[] = [];
-  if (node.style.color) style.push(`fg: ${js(resolveColor(node.style.color, ctx.colorMode))}`);
+  if (node.style.color) style.push(`fg: ${blessedColorExpr(node.style.color, ctx.colorMode)}`);
   const backgroundColor = resolveBackgroundColor(node.style);
-  if (backgroundColor) style.push(`bg: ${js(resolveColor(backgroundColor, ctx.colorMode))}`);
+  if (backgroundColor) style.push(`bg: ${blessedColorExpr(backgroundColor, ctx.colorMode)}`);
   if (node.style.bold) style.push(`bold: true`);
   if (node.style.underline) style.push(`underline: true`);
 
@@ -108,7 +109,7 @@ function genNode(
   if (bordered) {
     opts.push(`border: { type: 'line' }`);
     if (node.style.borderColor)
-      style.push(`border: { fg: ${js(resolveColor(node.style.borderColor, ctx.colorMode))} }`);
+      style.push(`border: { fg: ${blessedColorExpr(node.style.borderColor, ctx.colorMode)} }`);
     if (node.name && node.name !== node.type) opts.push(`label: ${js(` ${node.name} `)}`);
   }
 
@@ -348,6 +349,22 @@ function resolveColor(value: string, colorMode: ExportColorMode): string {
   if (named != null) return ANSI16_NAMES[named].toLowerCase();
   if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return ANSI16_NAMES[nearestAnsi16(value)].toLowerCase();
   return value;
+}
+
+/**
+ * ansi256 mode emits a bare numeric literal (`fg: 196`), not a quoted string
+ * — blessed's real `colors.convert()` passes a JS `number` straight through
+ * as an already-resolved 256-color palette index, while a string goes
+ * through name/hex matching (which a stringified index like "196" would
+ * fail). Every other mode is unaffected and still goes through js().
+ */
+function blessedColorExpr(value: string, colorMode: ExportColorMode): string {
+  if (colorMode === 'ansi256') {
+    const named = ansi16IndexOfName(value);
+    if (named != null) return String(named);
+    if (/^#[0-9a-fA-F]{3,6}$/.test(value)) return String(nearestAnsi256(value));
+  }
+  return js(resolveColor(value, colorMode));
 }
 
 function js(s: string): string {

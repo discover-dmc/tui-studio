@@ -26,7 +26,7 @@ jobs:
 
   # The steps below hand the exporter's actual generated output — the
   # kitchen-sink fixture, the style-edge-cases fixture (gradient/justify/
-  # align/gap), and its ansi16 color-tier variant — to each target
+  # align/gap), and its ansi16/ansi256 color-tier variants — to each target
   # language's real toolchain. This catches drift (a bad escape, a broken
   # import, an upstream API change) that string-snapshot tests alone would
   # miss. See scripts/generate-export-fixtures.mjs.
@@ -48,7 +48,7 @@ jobs:
       - run: cp scripts/ci-templates/rust/Cargo.toml rust-check/Cargo.toml
       - name: build each Ratatui variant
         run: |
-          for f in ratatui ratatui-edge ratatui-edge-ansi16; do
+          for f in ratatui ratatui-edge ratatui-edge-ansi16 ratatui-edge-ansi256; do
             cp "export-check/$f.rs" rust-check/src/main.rs
             cargo build --manifest-path rust-check/Cargo.toml
           done
@@ -75,7 +75,7 @@ jobs:
       - name: test each Bubble Tea variant
         working-directory: go-check
         run: |
-          for f in bubbletea bubbletea-edge bubbletea-edge-ansi16; do
+          for f in bubbletea bubbletea-edge bubbletea-edge-ansi16 bubbletea-edge-ansi256; do
             cp "../export-check/$f.go" main.go
             go test ./...
           done
@@ -88,7 +88,7 @@ jobs:
       - name: build each Tview variant
         working-directory: go-check-tview
         run: |
-          for f in tview tview-edge tview-edge-ansi16; do
+          for f in tview tview-edge tview-edge-ansi16 tview-edge-ansi256; do
             cp "../export-check/$f.go" main.go
             go build ./...
             go vet ./...
@@ -130,11 +130,11 @@ jobs:
       - run: npm ci
       - name: syntax-check each Blessed variant
         run: |
-          for f in blessed blessed-edge blessed-edge-ansi16; do
+          for f in blessed blessed-edge blessed-edge-ansi16 blessed-edge-ansi256; do
             node --check "export-check/$f.js"
           done
       - name: syntax-check each OpenTUI/Ink variant
         run: |
-          for f in opentui opentui-edge opentui-edge-ansi16 ink ink-edge ink-edge-ansi16; do
+          for f in opentui opentui-edge opentui-edge-ansi16 opentui-edge-ansi256 ink ink-edge ink-edge-ansi16 ink-edge-ansi256; do
             node_modules/.bin/esbuild "export-check/$f.tsx" --jsx=automatic --outfile=/dev/null
           done

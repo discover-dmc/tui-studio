@@ -410,10 +410,32 @@ design guidance. Each gap was verified against sTUIdio's actual source
 before being listed here — see `docs/design_anal.md` for the file/line
 citations and the validated (already-correct) findings.
 
-- [ ] **Add an ansi256 tier to the 7 code exporters**: the standalone
-  Text/ANSI export path already supports `ansi16`/`ansi256`/`trueColor`, but
-  `ExportColorMode` (code exporters) only has `truecolor`/`ansi16` — no
-  middle tier for generated framework code.
+- [x] **Add an ansi256 tier to the 6 color-capable code exporters** (2026-07-30):
+  `ExportColorMode` now has `truecolor`/`ansi16`/`ansi256`. Added
+  `nearestAnsi256(hex)` to `shared.ts` — a real xterm-256 palette
+  implementation (0-15 base colors, 16-231 as the 6x6x6 cube with levels
+  `[0,95,135,175,215,255]`, 232-255 as the 24-step grayscale ramp `8 +
+  10*n`), verified against the published xterm-256 spec, not guessed.
+  Verified the real per-framework 256-color API before using it: Ratatui's
+  `Color::Indexed(u8)` (docs.rs), lipgloss's `Color("N")` numeric-string
+  form (same mechanism ansi16 already used, just a wider index range),
+  Tview's `tcell.PaletteColor(0-255)` (confirmed full-range, not just 16),
+  OpenTUI's `RGBA.fromIndex(0-255)` (confirmed full-range via opentui.com
+  docs), Blessed's `colors.convert()` (confirmed it pass-throughs a raw JS
+  `number` as an already-resolved index — required a new
+  `blessedColorExpr()` emitting a bare numeric literal instead of the
+  quoted-string form the other two tiers use), and Ink's `color="ansi256(N)"`
+  string syntax (confirmed via Ink's actual `colorize.ts` source, not
+  assumed from chalk's API alone). Textual excluded — it has no color-tier
+  mode at all yet (see Deferred). Wired into `ExportPanel`'s dropdown,
+  `generate-export-fixtures.mjs`, and CI's 4 verify jobs (new
+  `-edge-ansi256` variant per format). Verified: 5 new/extended vitest
+  assertions (all passing, including a check that Blessed emits `fg: 88`
+  not `fg: "88"`), plus real toolchain checks — `cargo build`, `go test`
+  (BubbleTea) + `go build`/`go vet` (Tview), `node --check` (Blessed),
+  `esbuild` (OpenTUI/Ink) all clean on the new variants. Browser-verified
+  live: Ratatui + ANSI-256 mode in the Export panel renders
+  `Color::Indexed(7)`/`Color::Indexed(4)` for the sample tree's white/blue.
 - [ ] **`TextArea` component**: no multiline editable text input exists
   today (`TextInput` is explicitly single-line) — needed for commit-message
   boxes, chat compose fields, etc.

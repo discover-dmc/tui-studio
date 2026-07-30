@@ -7,7 +7,7 @@
 import type { ComponentNode, StyleProps } from '../../../types';
 
 /** A color-fidelity choice threaded through every exporter's color resolution. */
-export type ExportColorMode = 'truecolor' | 'ansi16';
+export type ExportColorMode = 'truecolor' | 'ansi16' | 'ansi256';
 
 /** Generates collision-safe camelCase identifiers from component names ("OK", "OK" -> "ok", "ok2"). */
 export function createIdentGenerator(usedVars: Set<string>, fallbackPrefix = 'v') {
@@ -112,6 +112,42 @@ export function nearestAnsi16(hex: string): number {
   let bestDist = Infinity;
   for (let i = 0; i < ANSI16_RGB.length; i++) {
     const [r, g, b] = ANSI16_RGB[i];
+    const dist = (rgb[0] - r) ** 2 + (rgb[1] - g) ** 2 + (rgb[2] - b) ** 2;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  }
+  return best;
+}
+
+// The standard xterm 256-color palette: indices 0-15 are the ANSI16 table
+// above, 16-231 are a 6x6x6 RGB cube (level per axis from this ramp), and
+// 232-255 are a 24-step grayscale ramp — verified against the published
+// xterm palette spec, not guessed.
+const XTERM256_CUBE_LEVELS = [0, 95, 135, 175, 215, 255];
+
+function ansi256ToRgb(index: number): [number, number, number] {
+  if (index < 16) return ANSI16_RGB[index];
+  if (index < 232) {
+    const i = index - 16;
+    const r = Math.floor(i / 36);
+    const g = Math.floor((i % 36) / 6);
+    const b = i % 6;
+    return [XTERM256_CUBE_LEVELS[r], XTERM256_CUBE_LEVELS[g], XTERM256_CUBE_LEVELS[b]];
+  }
+  const gray = 8 + (index - 232) * 10;
+  return [gray, gray, gray];
+}
+
+/** Nearest of the 256 xterm colors to a hex value, by RGB distance. */
+export function nearestAnsi256(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 15; // fall back to bright white for anything unparseable
+  let best = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < 256; i++) {
+    const [r, g, b] = ansi256ToRgb(i);
     const dist = (rgb[0] - r) ** 2 + (rgb[1] - g) ** 2 + (rgb[2] - b) ** 2;
     if (dist < bestDist) {
       bestDist = dist;
