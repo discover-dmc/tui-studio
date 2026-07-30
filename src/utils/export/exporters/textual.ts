@@ -6,6 +6,18 @@ import { ANSI16_NAMES, ansi16IndexOfName, resolveBackgroundColor } from './share
 // real Textual classes, styles become TCSS in App.CSS, and data widgets
 // (DataTable/Tree/ProgressBar) are populated in on_mount.
 
+// Which real Textual message class + handler method a node's event maps to,
+// keyed by the bucket name used in Ctx.handlers.
+const HANDLER_METHODS: Record<string, { method: string; eventType: string }> = {
+  click: { method: 'on_button_pressed', eventType: 'Button.Pressed' },
+  input: { method: 'on_input_changed', eventType: 'Input.Changed' },
+  checkbox: { method: 'on_checkbox_changed', eventType: 'Checkbox.Changed' },
+  radio: { method: 'on_radio_button_changed', eventType: 'RadioButton.Changed' },
+  switch: { method: 'on_switch_changed', eventType: 'Switch.Changed' },
+  select: { method: 'on_select_changed', eventType: 'Select.Changed' },
+  listSelect: { method: 'on_list_view_selected', eventType: 'ListView.Selected' },
+};
+
 interface Ctx {
   widgets: Set<string>;
   containers: Set<string>;
@@ -17,6 +29,9 @@ interface Ctx {
   modals: { className: string; node: ComponentNode }[];
   usedClassNames: Set<string>;
   footerBindings: string[];
+  // Handler names collected per real Textual message class, so a shared
+  // on_X method can dispatch to whichever named stub(s) the design uses.
+  handlers: Record<keyof typeof HANDLER_METHODS, Set<string>> & { key: Set<string> };
 }
 
 export function exportToTextual(root: ComponentNode): string {
@@ -31,6 +46,16 @@ export function exportToTextual(root: ComponentNode): string {
     modals: [],
     usedClassNames: new Set(),
     footerBindings: [],
+    handlers: {
+      click: new Set(),
+      input: new Set(),
+      checkbox: new Set(),
+      radio: new Set(),
+      switch: new Set(),
+      select: new Set(),
+      listSelect: new Set(),
+      key: new Set(),
+    },
   };
 
   const topNodes = root.type === 'Screen' ? root.children : [root];
@@ -76,6 +101,7 @@ export function exportToTextual(root: ComponentNode): string {
 
   const importLines = [
     'from textual.app import App, ComposeResult',
+    ctx.handlers.key.size ? 'from textual import events' : '',
     ctx.containers.size
       ? `from textual.containers import ${[...ctx.containers].sort().join(', ')}`
       : '',
@@ -93,9 +119,7 @@ export function exportToTextual(root: ComponentNode): string {
     ? `\n    def on_mount(self) -> None:\n${ctx.mount.map((l) => `        ${l}`).join('\n')}\n`
     : '';
 
-  const buttonHandler = ctx.widgets.has('Button')
-    ? `\n    def on_button_pressed(self, event: Button.Pressed) -> None:\n        pass\n`
-    : '';
+  const handlerBlock = buildHandlerMethods(ctx);
 
   const modalBlock = modalClasses.length ? `${modalClasses.join('\n\n')}\n\n` : '';
 
@@ -104,11 +128,52 @@ export function exportToTextual(root: ComponentNode): string {
 
 ${modalBlock}class MyApp(App):
 ${bindingsBlock}${cssBlock}    def compose(self) -> ComposeResult:
-${body}${mountBlock}${buttonHandler}
+${body}${mountBlock}${handlerBlock}
 
 if __name__ == "__main__":
     MyApp().run()
 `;
+}
+
+/**
+ * Real Textual message-handler methods (Button.Pressed -> on_button_pressed,
+ * etc. — verified per-widget handler naming, not guessed) that dispatch to
+ * whichever named stub(s) the design's events reference, plus a `pass`-body
+ * stub definition for every distinct handler name so the generated class is
+ * self-consistent and compiles. `on_key` is the one generic exception (no
+ * per-widget message class for raw keypresses) — it fires for every key
+ * press in the app, not scoped to the specific List/Table/Tree that
+ * declared it, since Textual's focus system isn't otherwise modeled here.
+ */
+function buildHandlerMethods(ctx: Ctx): string {
+  const blocks: string[] = [];
+  const stubs = new Set<string>();
+
+  for (const [bucket, { method, eventType }] of Object.entries(HANDLER_METHODS)) {
+    const names = ctx.handlers[bucket as keyof typeof HANDLER_METHODS];
+    if (!names.size) continue;
+    names.forEach((n) => stubs.add(n));
+    blocks.push(
+      `    def ${method}(self, event: ${eventType}) -> None:\n` +
+        [...names].map((n) => `        self.${n}()`).join('\n') +
+        '\n'
+    );
+  }
+
+  if (ctx.handlers.key.size) {
+    ctx.handlers.key.forEach((n) => stubs.add(n));
+    blocks.push(
+      `    def on_key(self, event: events.Key) -> None:\n` +
+        [...ctx.handlers.key].map((n) => `        self.${n}()`).join('\n') +
+        '\n'
+    );
+  }
+
+  for (const name of [...stubs].sort()) {
+    blocks.push(`    def ${name}(self) -> None:\n        pass  # TODO: implement\n`);
+  }
+
+  return blocks.length ? `\n${blocks.join('\n')}` : '';
 }
 
 function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
@@ -167,6 +232,7 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
     case 'Button': {
       ctx.widgets.add('Button');
       const id = registerStyles(node, ctx);
+      if (node.events.onClick) ctx.handlers.click.add(node.events.onClick);
       return `${sp}yield Button(${py(node.props.label, 'Button')}${idArg(id)})\n`;
     }
 
@@ -174,24 +240,28 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       ctx.widgets.add('Input');
       const id = registerStyles(node, ctx);
       const value = node.props.value ? `, value=${py(node.props.value, '')}` : '';
+      if (node.events.onChange) ctx.handlers.input.add(node.events.onChange);
       return `${sp}yield Input(placeholder=${py(node.props.placeholder, '')}${value}${idArg(id)})\n`;
     }
 
     case 'Checkbox': {
       ctx.widgets.add('Checkbox');
       const id = registerStyles(node, ctx);
+      if (node.events.onChange) ctx.handlers.checkbox.add(node.events.onChange);
       return `${sp}yield Checkbox(${py(node.props.label, 'Checkbox')}, value=${pyBool(node.props.checked)}${idArg(id)})\n`;
     }
 
     case 'Radio': {
       ctx.widgets.add('RadioButton');
       const id = registerStyles(node, ctx);
+      if (node.events.onChange) ctx.handlers.radio.add(node.events.onChange);
       return `${sp}yield RadioButton(${py(node.props.label, 'Radio')}, value=${pyBool(node.props.checked)}${idArg(id)})\n`;
     }
 
     case 'Toggle': {
       ctx.widgets.add('Switch');
       const id = registerStyles(node, ctx);
+      if (node.events.onChange) ctx.handlers.switch.add(node.events.onChange);
       const label = (node.props.label as string) || '';
       if (!label) return `${sp}yield Switch(value=${pyBool(node.props.value ?? node.props.checked)}${idArg(id)})\n`;
       ctx.containers.add('Horizontal');
@@ -208,6 +278,7 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       const options = (node.props.options as string[]) || ['Option 1'];
       const idx = Math.min(Math.max(0, Number(node.props.selectedIndex ?? 0)), options.length - 1);
       const pairs = options.map((o, i) => `(${py(o, '')}, ${i})`).join(', ');
+      if (node.events.onChange) ctx.handlers.select.add(node.events.onChange);
       return `${sp}yield Select([${pairs}], allow_blank=False, value=${idx}${idArg(id)})\n`;
     }
 
@@ -300,6 +371,8 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       );
       const initial =
         node.props.selectedIndex != null ? `, initial_index=${Number(node.props.selectedIndex)}` : '';
+      if (node.events.onSelect) ctx.handlers.listSelect.add(node.events.onSelect);
+      if (node.events.onKeyPress) ctx.handlers.key.add(node.events.onKeyPress);
       return `${sp}yield ListView(${items.join(', ')}${initial}${idArg(id)})\n`;
     }
 
@@ -320,6 +393,7 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       ctx.mount.push(`table_${sanitize(id)} = self.query_one("#${id}", DataTable)`);
       ctx.mount.push(`table_${sanitize(id)}.add_columns(${cols})`);
       if (rows) ctx.mount.push(`table_${sanitize(id)}.add_rows([${rows}])`);
+      if (node.events.onKeyPress) ctx.handlers.key.add(node.events.onKeyPress);
       return `${sp}yield DataTable(${idArg(id, true)})\n`;
     }
 
@@ -330,6 +404,7 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       ctx.mount.push(`${varName} = self.query_one("#${id}", Tree)`);
       ctx.mount.push(`${varName}.root.expand()`);
       emitTreeItems(node.props.items, `${varName}.root`, ctx, 0, sanitize(id));
+      if (node.events.onKeyPress) ctx.handlers.key.add(node.events.onKeyPress);
       return `${sp}yield Tree(${py(node.name, 'Tree')}${idArg(id)})\n`;
     }
 

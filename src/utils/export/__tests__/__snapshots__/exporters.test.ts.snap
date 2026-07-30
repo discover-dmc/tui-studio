@@ -78,6 +78,10 @@ const files = blessed.list({
   style: { border: { fg: "red" }, selected: { inverse: true } },
 });
 
+files.on("select", handleFileSelect);
+
+files.on("keypress", handleFzfKeys);
+
 const explorer = blessed.box({
   parent: body,
   top: 0,
@@ -95,8 +99,12 @@ const stats = blessed.listtable({
   height: 1,
   rows: [["PID", "CPU"], ["123", "45%"], ["456", "2%"]],
   align: 'left',
+  keys: true,
+  mouse: true,
   style: { header: { bold: true } },
 });
+
+stats.on("keypress", handleTableKeys);
 
 const nav2 = blessed.list({
   parent: body,
@@ -131,6 +139,8 @@ const oK = blessed.button({
   style: { bold: true, inverse: true },
 });
 
+oK.on("press", handleOk);
+
 const oK2 = blessed.button({
   parent: controls,
   top: 1,
@@ -155,6 +165,8 @@ const search = blessed.textbox({
   value: "",
 });
 
+search.on("submit", handleSearchChange);
+
 const opt = blessed.checkbox({
   parent: controls,
   top: 3,
@@ -166,6 +178,10 @@ const opt = blessed.checkbox({
   text: "Enable",
 });
 
+opt.on("check", handleOptChange);
+
+opt.on("uncheck", handleOptChange);
+
 const r1 = blessed.radiobutton({
   parent: controls,
   top: 4,
@@ -176,6 +192,10 @@ const r1 = blessed.radiobutton({
   checked: true,
   text: "Choice A",
 });
+
+r1.on("check", handleR1Change);
+
+r1.on("uncheck", handleR1Change);
 
 const dark = blessed.box({
   parent: controls,
@@ -304,6 +324,34 @@ const msg = blessed.box({
 screen.key(['escape', 'q', 'C-c'], () => process.exit(0));
 
 screen.render();
+
+function handleFileSelect() {
+  // TODO: implement
+}
+
+function handleFzfKeys() {
+  // TODO: implement
+}
+
+function handleOk() {
+  // TODO: implement
+}
+
+function handleOptChange() {
+  // TODO: implement
+}
+
+function handleR1Change() {
+  // TODO: implement
+}
+
+function handleSearchChange() {
+  // TODO: implement
+}
+
+function handleTableKeys() {
+  // TODO: implement
+}
 "
 `;
 
@@ -404,7 +452,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	nav := lipgloss.JoinHorizontal(lipgloss.Top, " Dashboard ", lipgloss.NewStyle().Bold(true).Underline(true).Render(" Agent "))
 	header := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#414868")).Padding(1).Render(lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Foreground(lipgloss.Color("#7dcfff")).Bold(true).Render("Say \\"hi\\" to <all>"), "  ", nav))
+	// onSelect ("handleFileSelect") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
+	// onKeyPress ("handleFzfKeys") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
+	// onKeyPress ("handleTableKeys") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	body := lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("1")).Render("▶ • main.rs  1\\n  • lib.rs  2"), "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested", "PID            │ CPU           \\n───────────────┼───────────────\\n123            │ 45%           \\n456            │ 2%            ", "  ⌂ Home  ^H")
+	// onClick ("handleOk") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
+	// onChange ("handleSearchChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
+	// onChange ("handleOptChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
+	// onChange ("handleR1Change") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
+	// onChange ("handleDarkChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
+	// onChange ("handleSelChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", "[✓] Enable"), lipgloss.JoinHorizontal(lipgloss.Top, "(●) Choice A", "[ON ] Dark mode"), lipgloss.JoinHorizontal(lipgloss.Top, "Two ▼", "[====] Working"), lipgloss.JoinHorizontal(lipgloss.Top, "[==========>      ] 67%", lipgloss.NewStyle().Width(24).Render("████████CPU 42%░░░░░░░░░")), lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(10).Render("▁▂▂▄▃▆▅▇▆█"), lipgloss.NewStyle().Width(20).Height(3).Render("Starting up...\\nConnected\\n200 OK")), lipgloss.JoinHorizontal(lipgloss.Top, "^Q Quit  ^S Save", "Home / Docs"), lipgloss.JoinHorizontal(lipgloss.Top, "", "════════════════════"))
 	empty := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render("")
 	screen := lipgloss.JoinVertical(lipgloss.Left, header, body, controls, empty)
@@ -495,6 +552,8 @@ function App() {
         </Box>
       </Box>
       <Box flexDirection="row">
+        {/* onSelect ("handleFileSelect") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
+        {/* onKeyPress ("handleFzfKeys") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         <Box borderStyle="single" borderColor="red" flexDirection="column">
           <Text key={"main.rs"}>• main.rs</Text>
           <Text key={"lib.rs"}>• lib.rs</Text>
@@ -505,6 +564,7 @@ function App() {
           <Text key={"  ├─ Child 2"}>{"  ├─ Child 2"}</Text>
           <Text key={"    ├─ Nested"}>{"    ├─ Nested"}</Text>
         </Box>
+        {/* onKeyPress ("handleTableKeys") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         <Box flexDirection="column">
           <Text key={0}>{"PID            │ CPU           "}</Text>
           <Text key={1}>{"───────────────┼───────────────"}</Text>
@@ -516,13 +576,17 @@ function App() {
         </Box>
       </Box>
       <Box>
+        {/* onClick ("handleOk") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         <Text bold inverse>  OK  </Text>
         <Text color="red" bold inverse>  Cancel  </Text>
-        <TextInput value={""} placeholder={"type \\"here\\"..."} onChange={() => {}} />
+        <TextInput value={""} placeholder={"type \\"here\\"..."} onChange={() => handleSearchChange()} />
+        {/* onChange ("handleOptChange") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         <Text>{/* checked={true} */} ✓ Enable</Text>
+        {/* onChange ("handleR1Change") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         <Text>{/* selected={true} */} ◉ Choice A</Text>
+        {/* onChange ("handleDarkChange") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         <Text>{/* on={true} */} {true ? '[ON ]' : '[OFF]'} Dark mode</Text>
-        <SelectInput items={[{ label: "One", value: "one" }, { label: "Two", value: "two" }]} onSelect={() => {}} />
+        <SelectInput items={[{ label: "One", value: "one" }, { label: "Two", value: "two" }]} onSelect={() => handleSelChange()} />
         <Text><Spinner type="bouncingBar" /> Working</Text>
         <Text>
           {"["}{'='.repeat(Math.round(67 / 100 * 24))}{' '.repeat(24 - Math.round(67 / 100 * 24))}{"]"} 67%
@@ -597,6 +661,8 @@ function App() {
         <tab-select options={[{ name: "Dashboard", description: "", value: "dashboard" }, { name: "Agent", description: "", value: "agent" }]} />
       </box>
       <box style={{ flexDirection: "row", flexGrow: 1 }}>
+        {/* onSelect ("handleFileSelect") not wired — no documented prop for this at the React-bindings layer */}
+        {/* onKeyPress ("handleFzfKeys") not wired — no documented prop for this at the React-bindings layer */}
         <box border title={" Files "} style={{ borderColor: "red" }}>
           <text>▶ • main.rs  1</text>
           <text>  • lib.rs  2</text>
@@ -607,6 +673,7 @@ function App() {
           <text>  ├─ Child 2</text>
           <text>    ├─ Nested</text>
         </box>
+        {/* onKeyPress ("handleTableKeys") not wired — no documented prop for this at the React-bindings layer */}
         <box>
           <text>PID            │ CPU           </text>
           <text>───────────────┼───────────────</text>
@@ -619,6 +686,7 @@ function App() {
       </box>
       <box style={{ flexDirection: "column" }}>
         <box style={{ flexDirection: "row" }}>
+          {/* onClick ("handleOk") not wired — no documented prop for this at the React-bindings layer */}
           <box border borderStyle="single">
             <text><strong> OK </strong></text>
           </box>
@@ -627,14 +695,18 @@ function App() {
           </box>
         </box>
         <box style={{ flexDirection: "row" }}>
-          <input placeholder={"type \\"here\\"..."} onInput={() => {}} />
+          <input placeholder={"type \\"here\\"..."} onInput={() => handleSearchChange()} />
+          {/* onChange ("handleOptChange") not wired — no documented prop for this at the React-bindings layer */}
           <text>[✓] Enable</text>
         </box>
         <box style={{ flexDirection: "row" }}>
+          {/* onChange ("handleR1Change") not wired — no documented prop for this at the React-bindings layer */}
           <text>(●) Choice A</text>
+          {/* onChange ("handleDarkChange") not wired — no documented prop for this at the React-bindings layer */}
           <text>[ON ] Dark mode</text>
         </box>
         <box style={{ flexDirection: "row" }}>
+          {/* onChange ("handleSelChange") not wired — no documented prop for this at the React-bindings layer */}
           <select options={[{ name: "One", description: "", value: "one" }, { name: "Two", description: "", value: "two" }]} />
           <text>[====] Working</text>
         </box>
@@ -749,6 +821,8 @@ fn main() -> io::Result<()> {
                     KeyCode::Char('q') | KeyCode::Esc => break,
                     _ => {}
                 }
+                handleFzfKeys();
+                handleTableKeys();
             }
         }
     }
@@ -850,6 +924,14 @@ fn ui(frame: &mut Frame) {
             frame.render_widget(Paragraph::new("Sure?").style(Style::default()), chunks_inner_modal_chunks_area_4_[0]);
 
 }
+
+fn handleFzfKeys() {
+    // TODO: implement
+}
+
+fn handleTableKeys() {
+    // TODO: implement
+}
 "
 `;
 
@@ -911,6 +993,7 @@ if __name__ == "__main__":
 
 exports[`exportToCode snapshots > textual: kitchen-sink tree 1`] = `
 "from textual.app import App, ComposeResult
+from textual import events
 from textual.containers import Grid, Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Checkbox, DataTable, Footer, Input, Label, ListItem, ListView, LoadingIndicator, OptionList, ProgressBar, RadioButton, RichLog, Rule, Select, Sparkline, Static, Switch, Tabs, Tree
@@ -1048,7 +1131,56 @@ class MyApp(App):
         self.push_screen(ConfirmModal())
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        pass
+        self.handleOk()
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        self.handleSearchChange()
+
+    def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
+        self.handleOptChange()
+
+    def on_radio_button_changed(self, event: RadioButton.Changed) -> None:
+        self.handleR1Change()
+
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        self.handleDarkChange()
+
+    def on_select_changed(self, event: Select.Changed) -> None:
+        self.handleSelChange()
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        self.handleFileSelect()
+
+    def on_key(self, event: events.Key) -> None:
+        self.handleFzfKeys()
+        self.handleTableKeys()
+
+    def handleDarkChange(self) -> None:
+        pass  # TODO: implement
+
+    def handleFileSelect(self) -> None:
+        pass  # TODO: implement
+
+    def handleFzfKeys(self) -> None:
+        pass  # TODO: implement
+
+    def handleOk(self) -> None:
+        pass  # TODO: implement
+
+    def handleOptChange(self) -> None:
+        pass  # TODO: implement
+
+    def handleR1Change(self) -> None:
+        pass  # TODO: implement
+
+    def handleSearchChange(self) -> None:
+        pass  # TODO: implement
+
+    def handleSelChange(self) -> None:
+        pass  # TODO: implement
+
+    def handleTableKeys(self) -> None:
+        pass  # TODO: implement
 
 
 if __name__ == "__main__":
@@ -1133,6 +1265,8 @@ func main() {
 	files.AddItem(tview.Escape("• main.rs  1"), "", 0, nil)
 	files.AddItem(tview.Escape("• lib.rs  2"), "", 0, nil)
 	files.SetCurrentItem(0)
+	files.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) { handleFileSelect() })
+	files.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey { handleFzfKeys(); return event })
 	files.SetBorder(true)
 	files.SetBorderColor(tcell.GetColor("red"))
 	files.SetTitle(tview.Escape(" Files "))
@@ -1159,6 +1293,7 @@ func main() {
 	stats.SetCell(1, 1, tview.NewTableCell(tview.Escape("45%")))
 	stats.SetCell(2, 0, tview.NewTableCell(tview.Escape("456")))
 	stats.SetCell(2, 1, tview.NewTableCell(tview.Escape("2%")))
+	stats.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey { handleTableKeys(); return event })
 	body.AddItem(stats, 0, 1, false)
 	nav2 := tview.NewList()
 	nav2.ShowSecondaryText(false)
@@ -1169,34 +1304,40 @@ func main() {
 	controls.SetRows(0, 0, 0, 0, 0, 0, 0, 0)
 	controls.SetColumns(0, 0)
 	oK := tview.NewButton(tview.Escape("OK"))
+	oK.SetSelectedFunc(handleOk)
 	controls.AddItem(oK, 0, 0, 1, 1, 0, 0, false)
 	oK2 := tview.NewButton(tview.Escape("Cancel"))
 	oK2.SetLabelColor(tcell.GetColor("red"))
 	controls.AddItem(oK2, 0, 1, 1, 1, 0, 0, false)
 	search := tview.NewInputField()
 	search.SetPlaceholder(tview.Escape("type \\"here\\"..."))
+	search.SetChangedFunc(func(text string) { handleSearchChange() })
 	controls.AddItem(search, 1, 0, 1, 1, 0, 0, false)
 	opt := tview.NewCheckbox()
 	opt.SetLabel(tview.Escape("Enable "))
 	opt.SetChecked(true)
 	opt.SetCheckedString(tview.Escape("X"))
 	opt.SetUncheckedString(tview.Escape(" "))
+	opt.SetChangedFunc(func(checked bool) { handleOptChange() })
 	controls.AddItem(opt, 1, 1, 1, 1, 0, 0, false)
 	r1 := tview.NewCheckbox()
 	r1.SetLabel(tview.Escape("Choice A "))
 	r1.SetChecked(true)
 	r1.SetCheckedString(tview.Escape("●"))
 	r1.SetUncheckedString(tview.Escape("○"))
+	r1.SetChangedFunc(func(checked bool) { handleR1Change() })
 	controls.AddItem(r1, 2, 0, 1, 1, 0, 0, false)
 	dark := tview.NewCheckbox()
 	dark.SetLabel(tview.Escape("Dark mode "))
 	dark.SetChecked(true)
 	dark.SetCheckedString(tview.Escape(" ON "))
 	dark.SetUncheckedString(tview.Escape(" OFF "))
+	dark.SetChangedFunc(func(checked bool) { handleDarkChange() })
 	controls.AddItem(dark, 2, 1, 1, 1, 0, 0, false)
 	sel := tview.NewDropDown()
 	sel.SetOptions([]string{tview.Escape("One"), tview.Escape("Two")}, nil)
 	sel.SetCurrentOption(1)
+	sel.SetSelectedFunc(func(text string, index int) { handleSelChange() })
 	controls.AddItem(sel, 3, 0, 1, 1, 0, 0, false)
 	load := tview.NewTextView()
 	load.SetText(tview.Escape("[====] Working")) // static frame; drive with a time.Ticker + app.QueueUpdateDraw for a live spinner
@@ -1257,6 +1398,42 @@ func main() {
 	if err := app.SetRoot(pages, true).Run(); err != nil {
 		panic(err)
 	}
+}
+
+func handleDarkChange() {
+	// TODO: implement
+}
+
+func handleFileSelect() {
+	// TODO: implement
+}
+
+func handleFzfKeys() {
+	// TODO: implement
+}
+
+func handleOk() {
+	// TODO: implement
+}
+
+func handleOptChange() {
+	// TODO: implement
+}
+
+func handleR1Change() {
+	// TODO: implement
+}
+
+func handleSearchChange() {
+	// TODO: implement
+}
+
+func handleSelChange() {
+	// TODO: implement
+}
+
+func handleTableKeys() {
+	// TODO: implement
 }
 "
 `;

@@ -43,6 +43,11 @@ interface Ctx {
   modals: { pageName: string; gridVar: string }[];
   colorMode: ExportColorMode;
   ident: (name: string) => string;
+  // Distinct event-handler names referenced by any widget, so a single
+  // no-arg `func <name>() {}` stub gets emitted once per name regardless
+  // of how many widget types (each with their own real callback signature)
+  // reference it.
+  handlerStubs: Set<string>;
 }
 
 export function exportToTview(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
@@ -53,6 +58,7 @@ export function exportToTview(root: ComponentNode, colorMode: ExportColorMode = 
     modals: [],
     colorMode,
     ident: createIdentGenerator(usedVars, 'v'),
+    handlerStubs: new Set(),
   };
 
   const topNodes = root.type === 'Screen' ? root.children : [root];
@@ -110,7 +116,27 @@ ${body}
 		panic(err)
 	}
 }
-`;
+${buildHandlerStubs(ctx)}`;
+}
+
+/**
+ * One no-arg stub per distinct handler name, regardless of which widget
+ * type(s) reference it — each real tview callback signature (SetChangedFunc,
+ * SetSelectedFunc, SetInputCapture, all with different parameter lists) is
+ * adapted down to a no-arg call inline at the call site, so a name shared
+ * across widget types (e.g. defaultEvents' "handleChange" on both a
+ * Checkbox and a TextInput) never collides on a single Go function's
+ * signature.
+ */
+function buildHandlerStubs(ctx: Ctx): string {
+  if (!ctx.handlerStubs.size) return '';
+  return (
+    '\n' +
+    [...ctx.handlerStubs]
+      .sort()
+      .map((name) => `func ${name}() {\n\t// TODO: implement\n}\n`)
+      .join('\n')
+  );
 }
 
 /** Returns a Go expression (a variable name) for the node, or '' if it registered itself as a Modal page instead of a normal child. */
@@ -174,6 +200,10 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const varName = ident(node.name, ctx);
       ctx.stmts.push(`${varName} := tview.NewButton(${tviewText((node.props.label as string) || 'Button')})`);
       if (node.style.color) ctx.stmts.push(`${varName}.SetLabelColor(${colorExpr(node.style.color, ctx.colorMode)})`);
+      if (node.events.onClick) {
+        ctx.handlerStubs.add(node.events.onClick);
+        ctx.stmts.push(`${varName}.SetSelectedFunc(${node.events.onClick})`);
+      }
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -183,6 +213,10 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName} := tview.NewInputField()`);
       ctx.stmts.push(`${varName}.SetPlaceholder(${tviewText((node.props.placeholder as string) || '')})`);
       if (node.props.value) ctx.stmts.push(`${varName}.SetText(${tviewText(node.props.value as string)})`);
+      if (node.events.onChange) {
+        ctx.handlerStubs.add(node.events.onChange);
+        ctx.stmts.push(`${varName}.SetChangedFunc(func(text string) { ${node.events.onChange}() })`);
+      }
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -194,6 +228,10 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName}.SetChecked(${!!node.props.checked})`);
       ctx.stmts.push(`${varName}.SetCheckedString(${tviewText((node.props.checkedIcon as string) || 'X')})`);
       ctx.stmts.push(`${varName}.SetUncheckedString(${tviewText((node.props.uncheckedIcon as string) || ' ')})`);
+      if (node.events.onChange) {
+        ctx.handlerStubs.add(node.events.onChange);
+        ctx.stmts.push(`${varName}.SetChangedFunc(func(checked bool) { ${node.events.onChange}() })`);
+      }
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -208,6 +246,10 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName}.SetChecked(${!!node.props.checked})`);
       ctx.stmts.push(`${varName}.SetCheckedString(${tviewText((node.props.selectedIcon as string) || '●')})`);
       ctx.stmts.push(`${varName}.SetUncheckedString(${tviewText((node.props.unselectedIcon as string) || '○')})`);
+      if (node.events.onChange) {
+        ctx.handlerStubs.add(node.events.onChange);
+        ctx.stmts.push(`${varName}.SetChangedFunc(func(checked bool) { ${node.events.onChange}() })`);
+      }
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -220,6 +262,10 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName}.SetChecked(${on})`);
       ctx.stmts.push(`${varName}.SetCheckedString(${tviewText(' ON ')})`);
       ctx.stmts.push(`${varName}.SetUncheckedString(${tviewText(' OFF ')})`);
+      if (node.events.onChange) {
+        ctx.handlerStubs.add(node.events.onChange);
+        ctx.stmts.push(`${varName}.SetChangedFunc(func(checked bool) { ${node.events.onChange}() })`);
+      }
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -233,6 +279,10 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
         `${varName}.SetOptions([]string{${options.map(tviewText).join(', ')}}, nil)`
       );
       ctx.stmts.push(`${varName}.SetCurrentOption(${idx})`);
+      if (node.events.onChange) {
+        ctx.handlerStubs.add(node.events.onChange);
+        ctx.stmts.push(`${varName}.SetSelectedFunc(func(text string, index int) { ${node.events.onChange}() })`);
+      }
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -341,6 +391,13 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       }
       if (node.props.selectedIndex != null)
         ctx.stmts.push(`${varName}.SetCurrentItem(${Number(node.props.selectedIndex)})`);
+      if (node.type === 'List' && node.events.onSelect) {
+        ctx.handlerStubs.add(node.events.onSelect);
+        ctx.stmts.push(
+          `${varName}.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) { ${node.events.onSelect}() })`
+        );
+      }
+      applyKeyCapture(varName, node, ctx);
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -362,6 +419,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName} := tview.NewTreeView()`);
       ctx.stmts.push(`${varName}.SetRoot(${treeRootVar})`);
       ctx.stmts.push(`${varName}.SetCurrentNode(${treeRootVar})`);
+      applyKeyCapture(varName, node, ctx);
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -381,6 +439,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
           );
         });
       });
+      applyKeyCapture(varName, node, ctx);
       applyBoxStyle(varName, node, ctx);
       return varName;
     }
@@ -499,6 +558,15 @@ function applyBoxStyle(varName: string, node: ComponentNode, ctx: Ctx): void {
 
 function applyTextColor(varName: string, node: ComponentNode, ctx: Ctx): void {
   if (node.style.color) ctx.stmts.push(`${varName}.SetTextColor(${colorExpr(node.style.color, ctx.colorMode)})`);
+}
+
+/** Box.SetInputCapture — the real, generic tview mechanism for raw key handling on any primitive. */
+function applyKeyCapture(varName: string, node: ComponentNode, ctx: Ctx): void {
+  if (!node.events.onKeyPress) return;
+  ctx.handlerStubs.add(node.events.onKeyPress);
+  ctx.stmts.push(
+    `${varName}.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey { ${node.events.onKeyPress}(); return event })`
+  );
 }
 
 /** [fixedSize, proportion] for Flex.AddItem, based on the child's size along the flex axis. */

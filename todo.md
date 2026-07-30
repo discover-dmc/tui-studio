@@ -466,6 +466,62 @@ citations and the validated (already-correct) findings.
   transitions (None → preset → Custom → None, and preset → Custom
   specifically) round-trip correctly and persist on reselecting the
   component.
+- [x] **Wire EventHandlers into the 7 code exporters** (2026-07-30, requested
+  directly after the finding above): `onClick`/`onChange`/`onSelect`/
+  `onKeyPress` now actually reach generated code, verified per real
+  framework capability rather than uniformly faked:
+  - **Textual**: real message-class dispatch (`Button.Pressed` →
+    `on_button_pressed`, `Input.Changed`, `Checkbox.Changed`,
+    `RadioButton.Changed`, `Switch.Changed`, `Select.Changed`,
+    `ListView.Selected`, plus a generic `on_key` for List/Table/Tree's
+    `onKeyPress`), each dispatching to `self.<handler>()` stub methods.
+  - **Tview**: wired directly at each widget via its real callback —
+    `Button.SetSelectedFunc`, `InputField/Checkbox.SetChangedFunc`,
+    `DropDown/List.SetSelectedFunc`, `Box.SetInputCapture` for
+    List/Table/Tree's `onKeyPress`. Every real callback signature differs
+    per widget, so each adapts down to a shared no-arg `func <name>()`
+    stub — necessary because `defaultEvents` reuses the same handler name
+    ("handleChange") across multiple widget types with different real
+    signatures, which would otherwise collide.
+  - **Blessed**: real widget events — Button's `press`, Checkbox/Radio's
+    `check`/`uncheck`, List's `select`, plus `keypress` for List/Table
+    (Table gained `keys: true, mouse: true` so it can actually receive
+    it). TextInput's `onChange` binds to `submit` (blessed's textbox has
+    no clean per-keystroke change event) — noted as a semantic gap, not
+    hidden.
+  - **Ratatui**: `onKeyPress` (List/Table/Tree only) dispatches into the
+    exporter's already-real event-read loop — honestly documented as
+    firing on every key, not scoped to a focused widget, since no focus
+    model exists in the generated code. onClick/onChange/onSelect have no
+    native click/select concept in raw Ratatui, so left uninstrumented.
+  - **Ink**: `TextInput`/`Select` already used the real `ink-text-input`/
+    `ink-select-input` packages with no-op `onChange`/`onSelect` props —
+    wired those for real. Everything else (Button, Checkbox, Radio,
+    Toggle, List, Table, Tree) is hand-rolled `<Text>`/`<Box>` with no
+    click/change prop, so a one-line JSX comment notes the handler name
+    instead of fabricating a call that would never fire.
+  - **OpenTUI**: `<input onInput>` is a real, documented `@opentui/react`
+    prop — wired. `<box>` has no documented `onClick`, and `<select>`'s
+    real change events are only reachable via a ref's `.on()` (this
+    exporter generates plain function components, no refs) — both left
+    as comments.
+  - **BubbleTea**: stays fully static (its established, deliberate
+    single-render-pass constraint) — every event gets a
+    `// not wired: this is a static View()...` comment, consistent with
+    the existing `// consider bubbles/X` convention already used for
+    Spinner/ProgressBar there.
+  Extended `fixtures.ts`'s `node()` helper with an `events` parameter and
+  wired real handler names onto kitchen-sink tree nodes for CI/snapshot
+  coverage. Verified for real, not just via snapshots: `cargo build`
+  (Ratatui), `go test`/`go build`+`go vet` (BubbleTea/Tview), `node --check`
+  + a live pty run (Blessed — confirmed clean init with the new `.on()`
+  bindings, no runtime error), `esbuild` (OpenTUI/Ink) all clean. Textual
+  got the deepest verification: a real headless `run_test()` mount caught
+  an actual bug (handler stub calls were missing the `self.` prefix,
+  correct as bound methods — `NameError: name 'handleSelChange' is not
+  defined` at runtime) before it was fixed; after the fix, a follow-up
+  headless run additionally simulated a real keypress (`pilot.press("j")`)
+  to confirm `on_key`'s dispatch to two named handlers executes cleanly.
 - [ ] **"New from template" starter gallery**: seed the canvas-creation flow
   with the seven recurring layout archetypes (Persistent Multi-Panel,
   Miller Columns, Drill-Down Stack, Widget Dashboard, IDE Three-Panel,

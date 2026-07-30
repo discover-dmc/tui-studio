@@ -13,9 +13,28 @@ export function exportToRatatui(root: ComponentNode, colorMode: ExportColorMode 
   const usedWidgets = new Set<string>();
   collectUsedWidgets(root, usedWidgets);
 
+  const keyHandlers = new Set<string>();
+  collectKeyHandlers(root, keyHandlers);
+
   const coreWidgets = buildWidgetImports(usedWidgets);
   // B2: gate text::Line on actual usage (only multiline Text nodes need it)
   const lineImport = usedWidgets.has('Line') ? '    text::Line,\n' : '';
+
+  // Ratatui has no widget-level callback system — every key is read in this
+  // one real event loop already, so a List/Table/Tree's onKeyPress dispatches
+  // here. There's no focus model in the generated code, so (matching the
+  // same honest limitation as the app's own q/Esc-to-quit check) it fires on
+  // every key press, not scoped to whichever component declared it.
+  const keyDispatch = keyHandlers.size
+    ? [...keyHandlers].sort().map((n) => `                ${n}();`).join('\n') + '\n'
+    : '';
+  const keyHandlerStubs = keyHandlers.size
+    ? '\n' +
+      [...keyHandlers]
+        .sort()
+        .map((n) => `fn ${n}() {\n    // TODO: implement\n}\n`)
+        .join('\n')
+    : '';
 
   return `// Requires: ratatui = "0.28"
 // Add to Cargo.toml: [dependencies] ratatui = { version = "0.28", features = ["crossterm"] }
@@ -38,7 +57,7 @@ fn main() -> io::Result<()> {
                     KeyCode::Char('q') | KeyCode::Esc => break,
                     _ => {}
                 }
-            }
+${keyDispatch}            }
         }
     }
     ratatui::restore();
@@ -49,7 +68,19 @@ fn ui(frame: &mut Frame) {
     let area = frame.area();
 ${generateRatatuiNode(root, 1, 'area', colorMode)}
 }
-`;
+${keyHandlerStubs}`;
+}
+
+/** Collects distinct onKeyPress handler names from List/Table/Tree nodes — the only types with UI to set one (the PropertyPanel's keybinding preset). */
+function collectKeyHandlers(node: ComponentNode, handlers: Set<string>): void {
+  if (node.hidden) return;
+  if (
+    (node.type === 'List' || node.type === 'Table' || node.type === 'Tree') &&
+    node.events.onKeyPress
+  ) {
+    handlers.add(node.events.onKeyPress);
+  }
+  node.children.forEach((c) => collectKeyHandlers(c, handlers));
 }
 
 // ── Widget usage tracking (F5) ────────────────────────────────────────────────

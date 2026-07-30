@@ -33,6 +33,9 @@ interface Ctx {
   usedVars: Set<string>;
   colorMode: ExportColorMode;
   ident: (name: string) => string;
+  // Distinct event-handler names referenced by any widget's .on(...) binding,
+  // so one `function <name>() {}` stub gets declared once per name.
+  handlerStubs: Set<string>;
 }
 
 export function exportToBlessed(root: ComponentNode, colorMode: ExportColorMode = 'truecolor'): string {
@@ -42,7 +45,14 @@ export function exportToBlessed(root: ComponentNode, colorMode: ExportColorMode 
   engine.calculateLayout(root, width, height);
 
   const usedVars = new Set(['blessed', 'screen', 'process']);
-  const ctx: Ctx = { engine, stmts: [], usedVars, colorMode, ident: createIdentGenerator(usedVars, 'w') };
+  const ctx: Ctx = {
+    engine,
+    stmts: [],
+    usedVars,
+    colorMode,
+    ident: createIdentGenerator(usedVars, 'w'),
+    handlerStubs: new Set(),
+  };
   for (const child of root.type === 'Screen' ? root.children : [root]) {
     genNode(child, ctx, 'screen', root.type === 'Screen' ? layoutOf(root, ctx) : null, false);
   }
@@ -59,7 +69,24 @@ ${ctx.stmts.join('\n\n')}
 screen.key(['escape', 'q', 'C-c'], () => process.exit(0));
 
 screen.render();
-`;
+${buildHandlerStubs(ctx)}`;
+}
+
+/**
+ * One stub per distinct handler name. Checkbox/Radio's real 'check'/'uncheck'
+ * events both call the same name (matching this codebase's "onChange" model,
+ * which has no single change event of its own in blessed), so the stub takes
+ * no arguments — mirroring the same no-arg-adapter approach used for Tview.
+ */
+function buildHandlerStubs(ctx: Ctx): string {
+  if (!ctx.handlerStubs.size) return '';
+  return (
+    '\n' +
+    [...ctx.handlerStubs]
+      .sort()
+      .map((name) => `function ${name}() {\n  // TODO: implement\n}\n`)
+      .join('\n')
+  );
 }
 
 interface Box {
@@ -299,6 +326,8 @@ function genNode(
       extraOpts = [
         `rows: [${data.map((r) => `[${r.map(js).join(', ')}]`).join(', ')}]`,
         `align: 'left'`,
+        `keys: true`,
+        `mouse: true`,
       ];
       style.push(`header: { bold: true }`);
       break;
@@ -337,8 +366,53 @@ function genNode(
     `const ${varName} = blessed.${widget}({\n${opts.map((o) => `  ${o}`).join(',\n')},\n});`
   );
 
+  appendEventBindings(varName, node, ctx);
+
   if (node.children.length && ['Box', 'Grid', 'Screen', 'Modal'].includes(node.type)) {
     for (const child of node.children) genNode(child, ctx, varName, box, bordered);
+  }
+}
+
+/**
+ * Real per-widget blessed events (verified against blessed's own source,
+ * not guessed): Button emits 'press', Checkbox/Radio (radiobutton extends
+ * checkbox) emit 'check'/'uncheck', List emits 'select'. TextInput's
+ * textbox has no clean per-keystroke "changed value" event, so onChange
+ * binds to 'submit' (fires with the final value on Enter) instead — the
+ * closest real hook, not a fabricated live-change one. Toggle/Select have
+ * no real interactive blessed widget behind them (hand-rolled static
+ * content), so their events are intentionally left unwired rather than
+ * bound to something that would never fire.
+ */
+function appendEventBindings(varName: string, node: ComponentNode, ctx: Ctx): void {
+  const bind = (event: string, handler: string | undefined) => {
+    if (!handler) return;
+    ctx.handlerStubs.add(handler);
+    ctx.stmts.push(`${varName}.on(${js(event)}, ${handler});`);
+  };
+
+  switch (node.type) {
+    case 'Button':
+      bind('press', node.events.onClick);
+      break;
+    case 'TextInput':
+      bind('submit', node.events.onChange);
+      break;
+    case 'Checkbox':
+    case 'Radio':
+      bind('check', node.events.onChange);
+      bind('uncheck', node.events.onChange);
+      break;
+    case 'List':
+      bind('select', node.events.onSelect);
+      break;
+  }
+
+  // List/Table are real, focusable/keyed widgets; Tree is hand-rolled
+  // static content with no focus wiring, so onKeyPress would never fire
+  // there — left unwired for the same reason as Toggle/Select above.
+  if ((node.type === 'List' || node.type === 'Table') && node.events.onKeyPress) {
+    bind('keypress', node.events.onKeyPress);
   }
 }
 

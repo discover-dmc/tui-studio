@@ -95,13 +95,19 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
 
     case 'Button': {
       const label = (node.props.label as string) || 'Button';
-      return `${sp}<Text${inkTextProps(node, colorMode)} bold inverse>  ${escJsx(label)}  </Text>\n`;
+      // Ink has no onClick prop at this layer (keyboard-only; a real click
+      // needs the useInput hook plus a focus system this exporter doesn't
+      // model) — noted rather than wired to something that would never fire.
+      return `${eventComment(sp, node.events.onClick, 'onClick')}${sp}<Text${inkTextProps(node, colorMode)} bold inverse>  ${escJsx(label)}  </Text>\n`;
     }
 
     case 'TextInput': {
       const placeholder = JSON.stringify((node.props.placeholder as string) || '');
       const value = JSON.stringify((node.props.value as string) || '');
-      return `${sp}<TextInput value={${value}} placeholder={${placeholder}} onChange={() => {}} />\n`;
+      // ink-text-input's real onChange prop (verified — this widget already
+      // uses the real package, not a hand-rolled <Text>, unlike most others).
+      const onChange = node.events.onChange ? `() => ${node.events.onChange}()` : '() => {}';
+      return `${sp}<TextInput value={${value}} placeholder={${placeholder}} onChange={${onChange}} />\n`;
     }
 
     case 'Checkbox': {
@@ -110,7 +116,7 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
       const icon = checked
         ? (node.props.checkedIcon as string) || '✓'
         : (node.props.uncheckedIcon as string) || '○';
-      return `${sp}<Text${inkTextProps(node, colorMode)}>{/* checked={${checked}} */} ${escJsx(icon)} ${escJsx(label)}</Text>\n`;
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}<Text${inkTextProps(node, colorMode)}>{/* checked={${checked}} */} ${escJsx(icon)} ${escJsx(label)}</Text>\n`;
     }
 
     case 'Radio': {
@@ -119,13 +125,13 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
       const icon = selected
         ? (node.props.selectedIcon as string) || '◉'
         : (node.props.unselectedIcon as string) || '○';
-      return `${sp}<Text${inkTextProps(node, colorMode)}>{/* selected={${selected}} */} ${escJsx(icon)} ${escJsx(label)}</Text>\n`;
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}<Text${inkTextProps(node, colorMode)}>{/* selected={${selected}} */} ${escJsx(icon)} ${escJsx(label)}</Text>\n`;
     }
 
     case 'Toggle': {
       const label = (node.props.label as string) || '';
       const on = !!node.props.value;
-      return `${sp}<Text${inkTextProps(node, colorMode)}>{/* on={${on}} */} {${on} ? '[ON ]' : '[OFF]'} ${escJsx(label)}</Text>\n`;
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}<Text${inkTextProps(node, colorMode)}>{/* on={${on}} */} {${on} ? '[ON ]' : '[OFF]'} ${escJsx(label)}</Text>\n`;
     }
 
     case 'Select': {
@@ -136,7 +142,9 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
             `{ label: ${JSON.stringify(o)}, value: ${JSON.stringify(o.toLowerCase().replace(/\s+/g, '_'))} }`
         )
         .join(', ');
-      return `${sp}<SelectInput items={[${items}]} onSelect={() => {}} />\n`;
+      // ink-select-input's real onSelect prop (verified — real package, like TextInput above).
+      const onSelect = node.events.onChange ? `() => ${node.events.onChange}()` : '() => {}';
+      return `${sp}<SelectInput items={[${items}]} onSelect={${onSelect}} />\n`;
     }
 
     case 'Spinner': {
@@ -206,7 +214,13 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
           return `${sp}  <Text key={${JSON.stringify(d.label)}}>${escJsx(d.icon || '•')} ${escJsx(d.label)}</Text>`;
         })
         .join('\n');
-      return `${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${rows}\n${sp}</Box>\n`;
+      // Rendered as a plain static Box/Text list, not ink-select-input's
+      // SelectInput (an existing design choice, not changed here) — so
+      // there's no real onSelect prop to wire; onKeyPress would need
+      // Ink's useInput hook, which isn't set up in this exporter either.
+      const comment =
+        eventComment(sp, node.events.onSelect, 'onSelect') + eventComment(sp, node.events.onKeyPress, 'onKeyPress');
+      return `${comment}${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${rows}\n${sp}</Box>\n`;
     }
 
     case 'Menu': {
@@ -247,7 +261,7 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
       const lines = [header, divider, ...dataRows]
         .map((l, i) => `${sp}  <Text key={${i}}>{${JSON.stringify(l)}}</Text>`)
         .join('\n');
-      return `${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${lines}\n${sp}</Box>\n`;
+      return `${eventComment(sp, node.events.onKeyPress, 'onKeyPress')}${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${lines}\n${sp}</Box>\n`;
     }
 
     case 'Tree': {
@@ -262,7 +276,7 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
         (d.children || []).forEach((child: any) => walk(child, depth + 1));
       };
       items.forEach((item: any) => walk(item, 0));
-      return `${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${flatLines.join('\n')}\n${sp}</Box>\n`;
+      return `${eventComment(sp, node.events.onKeyPress, 'onKeyPress')}${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${flatLines.join('\n')}\n${sp}</Box>\n`;
     }
 
     case 'Breadcrumb': {
@@ -277,6 +291,17 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
     default:
       return `${sp}{/* ${node.type}: ${escJsx(node.name)} */}\n`;
   }
+}
+
+/**
+ * A one-line JSX comment noting an event with no real prop to wire it to —
+ * Ink is keyboard-only (no onClick prop anywhere) and most components here
+ * are hand-rolled <Text>/<Box> (not TextInput/SelectInput's real packages),
+ * so there's nothing to call. Returns '' when no handler is set.
+ */
+function eventComment(sp: string, handler: string | undefined, eventName: string): string {
+  if (!handler) return '';
+  return `${sp}{/* ${eventName} ("${handler}") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}\n`;
 }
 
 /** chalk (which Ink's color/backgroundColor props resolve through) suffixes bright variants with "Bright" — redBright, not brightRed. */

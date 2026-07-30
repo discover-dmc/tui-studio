@@ -161,11 +161,13 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
     case 'Button': {
       const label = ` ${(node.props.label as string) || 'Button'} `;
       const base = goStyle(node, ctx, ['Bold(true)', 'Reverse(true)']);
+      eventComment(ctx, node.events.onClick, 'onClick');
       return `${base}.Render(${escGoStr(label)})`;
     }
 
     case 'TextInput': {
       // consider charmbracelet/bubbles/textinput for a live input
+      eventComment(ctx, node.events.onChange, 'onChange');
       const value = ((node.props.value as string) || (node.props.placeholder as string) || '') + '_';
       return styled(node, escGoStr(value), ctx);
     }
@@ -175,6 +177,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const icon = checked
         ? (node.props.checkedIcon as string) || '✓'
         : (node.props.uncheckedIcon as string) || ' ';
+      eventComment(ctx, node.events.onChange, 'onChange');
       return styled(node, escGoStr(`[${icon}] ${(node.props.label as string) || 'Checkbox'}`), ctx);
     }
 
@@ -183,17 +186,20 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const icon = selected
         ? (node.props.selectedIcon as string) || '●'
         : (node.props.unselectedIcon as string) || '○';
+      eventComment(ctx, node.events.onChange, 'onChange');
       return styled(node, escGoStr(`(${icon}) ${(node.props.label as string) || 'Radio'}`), ctx);
     }
 
     case 'Toggle': {
       const on = !!(node.props.value ?? node.props.checked);
+      eventComment(ctx, node.events.onChange, 'onChange');
       return styled(node, escGoStr(`${on ? '[ON ]' : '[OFF]'} ${(node.props.label as string) || ''}`.trim()), ctx);
     }
 
     case 'Select': {
       const options = (node.props.options as string[]) || ['Option 1'];
       const idx = Math.max(0, Math.min(Number(node.props.selectedIndex ?? 0), options.length - 1));
+      eventComment(ctx, node.events.onChange, 'onChange');
       return styled(node, escGoStr(`${options[idx]} ▼`), ctx);
     }
 
@@ -264,6 +270,8 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
         const hotkey = d.hotkey ? `  ${d.hotkey}` : '';
         return `${marker}${icon}${d.label || 'Item'}${hotkey}`;
       });
+      eventComment(ctx, node.events.onSelect, 'onSelect');
+      eventComment(ctx, node.events.onKeyPress, 'onKeyPress');
       return styled(node, escGoStr(lines.join('\n')), ctx);
     }
 
@@ -278,6 +286,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
         (d.children || []).forEach((c) => walk(c, depth + 1));
       };
       ((node.props.items as unknown[]) || []).forEach((i) => walk(i, 0));
+      eventComment(ctx, node.events.onKeyPress, 'onKeyPress');
       return styled(node, escGoStr(lines.join('\n')), ctx);
     }
 
@@ -291,6 +300,7 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
         columns.map(() => '─'.repeat(colW)).join('─┼─'),
         ...rows.map((row) => columns.map((_, ci) => fit(String(row[ci] ?? ''))).join(' │ ')),
       ];
+      eventComment(ctx, node.events.onKeyPress, 'onKeyPress');
       return styled(node, escGoStr(lines.join('\n')), ctx);
     }
 
@@ -352,6 +362,20 @@ function assignVar(node: ComponentNode, ctx: Ctx, expr: string): string {
   const name = ident(node.name);
   ctx.stmts.push(`\t${name} := ${expr}`);
   return name;
+}
+
+/**
+ * This exporter always produces a static, single-render-pass View() (no
+ * tea.Model/Update() event loop is generated — a deliberate, pre-existing
+ * constraint, not a gap). A designer-set event handler therefore can't be
+ * wired to anything real here; note it rather than fabricate a call that
+ * would never fire.
+ */
+function eventComment(ctx: Ctx, handler: string | undefined, eventName: string): void {
+  if (!handler) return;
+  ctx.stmts.push(
+    `\t// ${eventName} ("${handler}") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it`
+  );
 }
 
 /** Wrap a leaf expression in its style, if any. */

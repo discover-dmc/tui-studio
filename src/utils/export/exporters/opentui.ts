@@ -105,12 +105,16 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
 
     case 'Button': {
       const label = (node.props.label as string) || 'Button';
-      return `${sp}<box border borderStyle="${node.style.borderStyle === 'double' ? 'double' : 'single'}">\n${sp}  ${textEl(node, ` ${label} `, colorMode, true)}\n${sp}</box>\n`;
+      return `${eventComment(sp, node.events.onClick, 'onClick')}${sp}<box border borderStyle="${node.style.borderStyle === 'double' ? 'double' : 'single'}">\n${sp}  ${textEl(node, ` ${label} `, colorMode, true)}\n${sp}</box>\n`;
     }
 
     case 'TextInput': {
       const placeholder = (node.props.placeholder as string) || '';
-      return `${sp}<input placeholder={${JSON.stringify(placeholder)}} onInput={() => {}} />\n`;
+      // <input onInput={}> is a real, documented @opentui/react prop (verified
+      // via opentui.com's React bindings doc) — unlike Button/Checkbox/etc.
+      // below, which have no documented click/change prop at this layer.
+      const onInput = node.events.onChange ? `() => ${node.events.onChange}()` : '() => {}';
+      return `${sp}<input placeholder={${JSON.stringify(placeholder)}} onInput={${onInput}} />\n`;
     }
 
     case 'Select': {
@@ -118,7 +122,11 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       const opts = options
         .map((o) => `{ name: ${JSON.stringify(o)}, description: "", value: ${JSON.stringify(o.toLowerCase().replace(/\s+/g, '_'))} }`)
         .join(', ');
-      return `${sp}<select options={[${opts}]} />\n`;
+      // Select's real change events (SelectRenderableEvents.ITEM_SELECTED /
+      // .SELECTION_CHANGED) are only reachable via a ref's .on() — this
+      // exporter generates plain function components with no refs, so
+      // there's no JSX prop to wire onChange to here.
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}<select options={[${opts}]} />\n`;
     }
 
     case 'Tabs': {
@@ -134,7 +142,7 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       const icon = checked
         ? (node.props.checkedIcon as string) || '✓'
         : (node.props.uncheckedIcon as string) || ' ';
-      return `${sp}${textEl(node, `[${icon}] ${(node.props.label as string) || 'Checkbox'}`, colorMode)}\n`;
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}${textEl(node, `[${icon}] ${(node.props.label as string) || 'Checkbox'}`, colorMode)}\n`;
     }
 
     case 'Radio': {
@@ -142,12 +150,12 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       const icon = selected
         ? (node.props.selectedIcon as string) || '●'
         : (node.props.unselectedIcon as string) || '○';
-      return `${sp}${textEl(node, `(${icon}) ${(node.props.label as string) || 'Radio'}`, colorMode)}\n`;
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}${textEl(node, `(${icon}) ${(node.props.label as string) || 'Radio'}`, colorMode)}\n`;
     }
 
     case 'Toggle': {
       const on = !!(node.props.value ?? node.props.checked);
-      return `${sp}${textEl(node, `${on ? '[ON ]' : '[OFF]'} ${(node.props.label as string) || ''}`.trim(), colorMode)}\n`;
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}${textEl(node, `${on ? '[ON ]' : '[OFF]'} ${(node.props.label as string) || ''}`.trim(), colorMode)}\n`;
     }
 
     case 'Spinner': {
@@ -212,7 +220,9 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
         const marker = i === selectedIndex ? '▶ ' : '  ';
         return `${marker}${d.icon ? `${d.icon} ` : ''}${d.label || 'Item'}${d.hotkey ? `  ${d.hotkey}` : ''}`;
       });
-      return `${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
+      const comment =
+        eventComment(sp, node.events.onSelect, 'onSelect') + eventComment(sp, node.events.onKeyPress, 'onKeyPress');
+      return `${comment}${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
     }
 
     case 'Tree': {
@@ -226,7 +236,7 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
         (d.children || []).forEach((c) => walk(c, depth + 1));
       };
       ((node.props.items as unknown[]) || []).forEach((i) => walk(i, 0));
-      return `${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
+      return `${eventComment(sp, node.events.onKeyPress, 'onKeyPress')}${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
     }
 
     case 'Table': {
@@ -239,7 +249,7 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
         columns.map(() => '─'.repeat(colW)).join('─┼─'),
         ...rows.map((row) => columns.map((_, ci) => fit(String(row[ci] ?? ''))).join(' │ ')),
       ];
-      return `${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
+      return `${eventComment(sp, node.events.onKeyPress, 'onKeyPress')}${sp}<box${boxAttrs(node, colorMode)}>\n${lines.map((l) => `${sp}  ${textEl(node, l, colorMode, false, true)}`).join('\n')}\n${sp}</box>\n`;
     }
 
     case 'Breadcrumb': {
@@ -253,6 +263,20 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
     default:
       return `${sp}{/* ${node.type}: ${escJsx(node.name)} */}\n`;
   }
+}
+
+/**
+ * A one-line JSX comment noting an event that has no documented, directly
+ * wireable prop on this element in @opentui/react's real API (verified
+ * against opentui.com's docs, not assumed) — e.g. Button/Checkbox/Radio/
+ * Toggle render as plain <box>/<text> with no click/change prop, and
+ * Select's real change events are only reachable via a ref's .on(), which
+ * this exporter's plain function components don't set up. Returns '' when
+ * no handler is set, so designs that don't use events stay comment-free.
+ */
+function eventComment(sp: string, handler: string | undefined, eventName: string): string {
+  if (!handler) return '';
+  return `${sp}{/* ${eventName} ("${handler}") not wired — no documented prop for this at the React-bindings layer */}\n`;
 }
 
 /** Resolve a color for OpenTUI, respecting the color-tier mode. Ansi16/ansi256 both use the real RGBA.fromIndex(0-255) API so the terminal's palette wins, not a fixed hex guess. */

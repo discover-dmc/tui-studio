@@ -12,7 +12,8 @@ export function node(
   props: Record<string, unknown> = {},
   children: ComponentNode[] = [],
   style: StyleProps = {},
-  layout: Partial<LayoutProps> = {}
+  layout: Partial<LayoutProps> = {},
+  events: Record<string, string> = {}
 ): ComponentNode {
   return {
     id: nextId(),
@@ -21,7 +22,7 @@ export function node(
     props,
     layout: { type: 'flexbox', direction: 'column', gap: 0, padding: 0, ...layout },
     style,
-    events: {},
+    events,
     children,
     locked: false,
     hidden: false,
@@ -127,7 +128,9 @@ export function kitchenSinkTree(): ComponentNode {
             selectedIndex: 0,
           },
           [],
-          { border: true, borderColor: 'red' }
+          { border: true, borderColor: 'red' },
+          {},
+          { onSelect: 'handleFileSelect', onKeyPress: 'handleFzfKeys' }
         ),
         node('Tree', 'Explorer', {
           items: [
@@ -141,13 +144,21 @@ export function kitchenSinkTree(): ComponentNode {
             },
           ],
         }),
-        node('Table', 'Stats', {
-          columns: ['PID', 'CPU'],
-          rows: [
-            ['123', '45%'],
-            ['456', '2%'],
-          ],
-        }),
+        node(
+          'Table',
+          'Stats',
+          {
+            columns: ['PID', 'CPU'],
+            rows: [
+              ['123', '45%'],
+              ['456', '2%'],
+            ],
+          },
+          [],
+          {},
+          {},
+          { onKeyPress: 'handleTableKeys' }
+        ),
         node('Menu', 'Nav2', {
           items: [{ label: 'Home', icon: '⌂', hotkey: '^H' }],
         }),
@@ -160,14 +171,46 @@ export function kitchenSinkTree(): ComponentNode {
       'Controls',
       {},
       [
-        node('Button', 'OK', { label: 'OK' }),
+        node('Button', 'OK', { label: 'OK' }, [], {}, {}, { onClick: 'handleOk' }),
         // duplicate name on purpose — regression test for collision handling
         node('Button', 'OK', { label: 'Cancel' }, [], { color: 'red' }),
-        node('TextInput', 'Search', { placeholder: 'type "here"...' }),
-        node('Checkbox', 'Opt', { label: 'Enable', checked: true }),
-        node('Radio', 'R1', { label: 'Choice A', checked: true }),
-        node('Toggle', 'Dark', { label: 'Dark mode', value: true }),
-        node('Select', 'Sel', { options: ['One', 'Two'], selectedIndex: 1 }),
+        node(
+          'TextInput',
+          'Search',
+          { placeholder: 'type "here"...' },
+          [],
+          {},
+          {},
+          { onChange: 'handleSearchChange' }
+        ),
+        node(
+          'Checkbox',
+          'Opt',
+          { label: 'Enable', checked: true },
+          [],
+          {},
+          {},
+          { onChange: 'handleOptChange' }
+        ),
+        node('Radio', 'R1', { label: 'Choice A', checked: true }, [], {}, {}, { onChange: 'handleR1Change' }),
+        node(
+          'Toggle',
+          'Dark',
+          { label: 'Dark mode', value: true },
+          [],
+          {},
+          {},
+          { onChange: 'handleDarkChange' }
+        ),
+        node(
+          'Select',
+          'Sel',
+          { options: ['One', 'Two'], selectedIndex: 1 },
+          [],
+          {},
+          {},
+          { onChange: 'handleSelChange' }
+        ),
         node('Spinner', 'Load', { spinnerStyle: 'bouncingBar', frame: 4, label: 'Working' }),
         node('ProgressBar', 'Prog', { value: 67, max: 100, width: 24, barStyle: 'equals' }),
         node('Gauge', 'CPU', { label: 'CPU', value: 42, max: 100, width: 24, barStyle: 'blocks' }),
