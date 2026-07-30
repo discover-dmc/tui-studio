@@ -451,6 +451,7 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
         { label: 'Item 3', icon: '•', hotkey: '3' },
       ],
       selectedIndex: 0,
+      multiSelect: false,
       width: 'auto',
       height: 'auto',
     },

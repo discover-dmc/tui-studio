@@ -16,6 +16,10 @@ const HANDLER_METHODS: Record<string, { method: string; eventType: string }> = {
   switch: { method: 'on_switch_changed', eventType: 'Switch.Changed' },
   select: { method: 'on_select_changed', eventType: 'Select.Changed' },
   listSelect: { method: 'on_list_view_selected', eventType: 'ListView.Selected' },
+  selectionListChanged: {
+    method: 'on_selection_list_selected_changed',
+    eventType: 'SelectionList.SelectedChanged',
+  },
 };
 
 interface Ctx {
@@ -54,6 +58,7 @@ export function exportToTextual(root: ComponentNode): string {
       switch: new Set(),
       select: new Set(),
       listSelect: new Set(),
+      selectionListChanged: new Set(),
       key: new Set(),
     },
   };
@@ -362,17 +367,32 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
     }
 
     case 'List': {
+      const id = registerStyles(node, ctx);
+      if (node.events.onKeyPress) ctx.handlers.key.add(node.events.onKeyPress);
+
+      if (node.props.multiSelect) {
+        // Real native widget for exactly this (verified via
+        // textual.textualize.io/widgets/selection_list) — a toggleable,
+        // multi-select list, not a hand-rolled checkbox prefix.
+        ctx.widgets.add('SelectionList');
+        const items = (node.props.items as any[]) || [];
+        const tuples = items.map((item, i) => {
+          const d = typeof item === 'string' ? { label: item } : item;
+          return `(${py(d.label || 'Item', 'Item')}, ${i}, ${pyBool(d.checked)})`;
+        });
+        if (node.events.onSelect) ctx.handlers.selectionListChanged.add(node.events.onSelect);
+        return `${sp}yield SelectionList(${tuples.join(', ')}${idArg(id)})\n`;
+      }
+
       ctx.widgets.add('ListView');
       ctx.widgets.add('ListItem');
       ctx.widgets.add('Label');
-      const id = registerStyles(node, ctx);
       const items = itemLabels(node.props.items).map(
         (t) => `ListItem(Label(${escPyStr(t)}))`
       );
       const initial =
         node.props.selectedIndex != null ? `, initial_index=${Number(node.props.selectedIndex)}` : '';
       if (node.events.onSelect) ctx.handlers.listSelect.add(node.events.onSelect);
-      if (node.events.onKeyPress) ctx.handlers.key.add(node.events.onKeyPress);
       return `${sp}yield ListView(${items.join(', ')}${initial}${idArg(id)})\n`;
     }
 

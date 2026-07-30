@@ -808,6 +808,7 @@ const ComponentRenderer = memo(
         case 'List': {
           const items = (node.props.items as any[]) || [];
           const selectedIndex = (node.props.selectedIndex as number) || 0;
+          const multiSelect = !!node.props.multiSelect;
           const justifyMap: Record<string, string> = {
             start: 'flex-start',
             center: 'center',
@@ -840,6 +841,7 @@ const ComponentRenderer = memo(
                 const isSelected = i === selectedIndex;
                 return (
                   <div key={i} className={isSelected ? 'bg-accent' : ''}>
+                    {multiSelect && `[${itemData.checked ? 'x' : ' '}] `}
                     {itemData.icon && `${itemData.icon} `}
                     {itemData.label}
                     {itemData.hotkey && (

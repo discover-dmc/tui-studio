@@ -593,14 +593,16 @@ function ratatuiListItems(node: ComponentNode): string {
     ((node.props.items as any[]) || []).forEach((item: any) => walk(item, 0));
     return flat.join(', ');
   }
+  const multiSelect = node.type === 'List' && !!node.props.multiSelect;
   const items = ((node.props.items as any[]) || []).map((item: any, index: number) => {
     const d = typeof item === 'string'
       ? { label: item, icon: node.type === 'List' ? '•' : '' }
       : item;
+    const checkbox = multiSelect ? `[${d.checked ? 'x' : ' '}] ` : '';
     const prefix = d.icon ? `${d.icon} ` : '';
     const hotkey = d.hotkey ? `  ${d.hotkey}` : '';
     const sel = index === selectedIndex;
-    const label = `${sel ? '▶ ' : '  '}${prefix}${d.label || 'Item'}${hotkey}`;
+    const label = `${sel ? '▶ ' : '  '}${checkbox}${prefix}${d.label || 'Item'}${hotkey}`;
     return `ListItem::new(${escRust(label)})`;
   });
   return items.join(', ');

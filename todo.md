@@ -439,9 +439,31 @@ citations and the validated (already-correct) findings.
 - [ ] **`TextArea` component**: no multiline editable text input exists
   today (`TextInput` is explicitly single-line) — needed for commit-message
   boxes, chat compose fields, etc.
-- [ ] **Multi-select `List` variant**: `List` only tracks a single
-  `selectedIndex`; no per-item checked state for lazygit-style
-  multi-selection (e.g. staging several files at once).
+- [x] **Multi-select `List` variant** (2026-07-30): opt-in `multiSelect`
+  prop (default `false`) plus per-item `checked: boolean`. PropertyPanel's
+  `ListItemsEditor` gained a "Multi-select" toggle and a per-item checkbox;
+  Canvas.tsx and the ANSI renderer (`renderList`) both prefix `[x]`/`[ ]`
+  when it's on. Verified real per-framework capability rather than
+  uniformly hand-rolling: Textual has an actual native widget for exactly
+  this — `SelectionList` (confirmed via textual.textualize.io), used in
+  place of `ListView` when `multiSelect` is set, with its real
+  `SelectedChanged` message wired the same way as the other event handlers
+  (`on_selection_list_selected_changed`). The other 6 exporters have no
+  native multi-select list primitive, so they hand-roll the `[x]`/`[ ]`
+  prefix into each item's existing label text — Ratatui, BubbleTea,
+  Blessed, OpenTUI, Ink, Tview. Extended the kitchen-sink fixture's
+  existing List node (`multiSelect: true`, one item checked) rather than
+  adding a new node, since it already exercised onSelect/onKeyPress and
+  this combination (nav + per-item toggle + a select action) matches
+  lazygit's actual UX. Verified for real: `cargo build`, `go test`/
+  `go build`+`go vet`, `node --check`, `esbuild` all clean on all variants;
+  Textual's real headless `run_test()` mount confirmed the generated
+  `SelectionList(...)` construction and its handler dispatch. Browser-
+  verified end to end: toggling Multi-select in the PropertyPanel shows
+  per-item checkboxes, checking one renders `[x] • Item 1` on the canvas
+  and in the ANSI preview with no crash, and the Textual Code tab shows
+  the real `SelectionList(("Item 1", 0, True), ...)` reflecting the
+  checked state live.
 - [ ] **Notification/Toast component**: a non-blocking, self-dismissing
   status message, distinct from the existing blocking `Modal` — the
   async-feedback pattern top TUIs use so the UI never has to freeze just to

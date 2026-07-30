@@ -208,10 +208,12 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
 
     case 'List': {
       const items = (node.props.items as any[]) || [];
+      const multiSelect = !!node.props.multiSelect;
       const rows = items
-        .map((item: any) => {
+        .map((item: any, i: number) => {
           const d = typeof item === 'string' ? { label: item, icon: '•' } : item;
-          return `${sp}  <Text key={${JSON.stringify(d.label)}}>${escJsx(d.icon || '•')} ${escJsx(d.label)}</Text>`;
+          const checkbox = multiSelect ? `[${d.checked ? 'x' : ' '}] ` : '';
+          return `${sp}  <Text key={${JSON.stringify(`${d.label}-${i}`)}}>${checkbox}${escJsx(d.icon || '•')} ${escJsx(d.label)}</Text>`;
         })
         .join('\n');
       // Rendered as a plain static Box/Text list, not ink-select-input's

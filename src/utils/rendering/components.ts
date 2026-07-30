@@ -429,10 +429,11 @@ function renderList(node: ComponentNode, width: number, height: number): string[
   // as strings here crashed truncateText/visibleLength (no .replace on an
   // object) and took the whole app down with no error boundary to catch it.
   const rawItems = (node.props.items as unknown[]) || [];
+  const multiSelect = !!node.props.multiSelect;
   const items = rawItems.map((item) =>
     typeof item === 'string'
       ? { label: item, icon: '•' }
-      : (item as { label?: string; icon?: string })
+      : (item as { label?: string; icon?: string; checked?: boolean })
   );
   const contentArea = node.style.border
     ? getContentArea(width, height, { style: 'single' })
@@ -440,7 +441,8 @@ function renderList(node: ComponentNode, width: number, height: number): string[
 
   const lines: string[] = [];
   for (let i = 0; i < Math.min(items.length, contentArea.height); i++) {
-    const prefix = `${items[i].icon || '•'} `;
+    const checkbox = multiSelect ? `[${items[i].checked ? 'x' : ' '}] ` : '';
+    const prefix = `${checkbox}${items[i].icon || '•'} `;
     const text = `${prefix}${truncateText(items[i].label || 'Item', contentArea.width - prefix.length)}`;
     lines.push(text.padEnd(contentArea.width));
   }

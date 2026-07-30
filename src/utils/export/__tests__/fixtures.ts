@@ -122,10 +122,11 @@ export function kitchenSinkTree(): ComponentNode {
           'Files',
           {
             items: [
-              { label: 'main.rs', icon: '•', hotkey: '1' },
-              { label: 'lib.rs', icon: '•', hotkey: '2' },
+              { label: 'main.rs', icon: '•', hotkey: '1', checked: true },
+              { label: 'lib.rs', icon: '•', hotkey: '2', checked: false },
             ],
             selectedIndex: 0,
+            multiSelect: true,
           },
           [],
           { border: true, borderColor: 'red' },

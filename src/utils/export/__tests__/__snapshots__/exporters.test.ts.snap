@@ -73,7 +73,7 @@ const files = blessed.list({
   label: " Files ",
   mouse: true,
   keys: true,
-  items: ["• main.rs  1", "• lib.rs  2"],
+  items: ["[x] • main.rs  1", "[ ] • lib.rs  2"],
   selected: 0,
   style: { border: { fg: "red" }, selected: { inverse: true } },
 });
@@ -455,7 +455,7 @@ func (m model) View() string {
 	// onSelect ("handleFileSelect") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onKeyPress ("handleFzfKeys") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onKeyPress ("handleTableKeys") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
-	body := lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("1")).Render("▶ • main.rs  1\\n  • lib.rs  2"), "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested", "PID            │ CPU           \\n───────────────┼───────────────\\n123            │ 45%           \\n456            │ 2%            ", "  ⌂ Home  ^H")
+	body := lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("1")).Render("▶ [x] • main.rs  1\\n  [ ] • lib.rs  2"), "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested", "PID            │ CPU           \\n───────────────┼───────────────\\n123            │ 45%           \\n456            │ 2%            ", "  ⌂ Home  ^H")
 	// onClick ("handleOk") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleSearchChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleOptChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
@@ -555,8 +555,8 @@ function App() {
         {/* onSelect ("handleFileSelect") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         {/* onKeyPress ("handleFzfKeys") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         <Box borderStyle="single" borderColor="red" flexDirection="column">
-          <Text key={"main.rs"}>• main.rs</Text>
-          <Text key={"lib.rs"}>• lib.rs</Text>
+          <Text key={"main.rs-0"}>[x] • main.rs</Text>
+          <Text key={"lib.rs-1"}>[ ] • lib.rs</Text>
         </Box>
         <Box flexDirection="column">
           <Text key={"Root"}>{"Root"}</Text>
@@ -664,8 +664,8 @@ function App() {
         {/* onSelect ("handleFileSelect") not wired — no documented prop for this at the React-bindings layer */}
         {/* onKeyPress ("handleFzfKeys") not wired — no documented prop for this at the React-bindings layer */}
         <box border title={" Files "} style={{ borderColor: "red" }}>
-          <text>▶ • main.rs  1</text>
-          <text>  • lib.rs  2</text>
+          <text>▶ [x] • main.rs  1</text>
+          <text>  [ ] • lib.rs  2</text>
         </box>
         <box>
           <text>Root</text>
@@ -850,7 +850,7 @@ fn ui(frame: &mut Frame) {
             .direction(Direction::Horizontal)
             .constraints([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
             .split(chunks_area[1]);
-            frame.render_widget(List::new(vec![ListItem::new("▶ • main.rs  1"), ListItem::new("  • lib.rs  2")]).style(Style::default()).block(Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("Files").border_style(Style::default().fg(Color::Red))), chunks_chunks_area_1_[0]);
+            frame.render_widget(List::new(vec![ListItem::new("▶ [x] • main.rs  1"), ListItem::new("  [ ] • lib.rs  2")]).style(Style::default()).block(Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("Files").border_style(Style::default().fg(Color::Red))), chunks_chunks_area_1_[0]);
             frame.render_widget(List::new(vec![ListItem::new("▾ Root"), ListItem::new("  ├─ Child 1"), ListItem::new("  ├─ ▸ Child 2")]).style(Style::default()), chunks_chunks_area_1_[1]);
             frame.render_widget(Table::new(vec![Row::new(vec!["123", "45%"]), Row::new(vec!["456", "2%"])], [Constraint::Fill(1), Constraint::Fill(1)]).header(Row::new(vec!["PID", "CPU"]).style(Style::default().add_modifier(Modifier::BOLD))).style(Style::default()), chunks_chunks_area_1_[2]);
             frame.render_widget(List::new(vec![ListItem::new("▶ ⌂ Home  ^H")]).style(Style::default()), chunks_chunks_area_1_[3]);
@@ -996,7 +996,7 @@ exports[`exportToCode snapshots > textual: kitchen-sink tree 1`] = `
 from textual import events
 from textual.containers import Grid, Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Checkbox, DataTable, Footer, Input, Label, ListItem, ListView, LoadingIndicator, OptionList, ProgressBar, RadioButton, RichLog, Rule, Select, Sparkline, Static, Switch, Tabs, Tree
+from textual.widgets import Button, Checkbox, DataTable, Footer, Input, LoadingIndicator, OptionList, ProgressBar, RadioButton, RichLog, Rule, Select, SelectionList, Sparkline, Static, Switch, Tabs, Tree
 
 
 class ConfirmModal(ModalScreen):
@@ -1084,7 +1084,7 @@ class MyApp(App):
             yield Static("Say \\"hi\\" to <all>", id="title")
             yield Tabs("Dashboard", "Agent", id="nav")
         with Horizontal(id="body"):
-            yield ListView(ListItem(Label("• main.rs")), ListItem(Label("• lib.rs")), initial_index=0, id="files")
+            yield SelectionList(("main.rs", 0, True), ("lib.rs", 1, False), id="files")
             yield Tree("Explorer", id="explorer")
             yield DataTable(id="stats")
             yield OptionList("⌂ Home")
@@ -1148,7 +1148,7 @@ class MyApp(App):
     def on_select_changed(self, event: Select.Changed) -> None:
         self.handleSelChange()
 
-    def on_list_view_selected(self, event: ListView.Selected) -> None:
+    def on_selection_list_selected_changed(self, event: SelectionList.SelectedChanged) -> None:
         self.handleFileSelect()
 
     def on_key(self, event: events.Key) -> None:
@@ -1262,8 +1262,8 @@ func main() {
 	body.SetDirection(tview.FlexColumn)
 	files := tview.NewList()
 	files.ShowSecondaryText(false)
-	files.AddItem(tview.Escape("• main.rs  1"), "", 0, nil)
-	files.AddItem(tview.Escape("• lib.rs  2"), "", 0, nil)
+	files.AddItem(tview.Escape("[x] • main.rs  1"), "", 0, nil)
+	files.AddItem(tview.Escape("[ ] • lib.rs  2"), "", 0, nil)
 	files.SetCurrentItem(0)
 	files.SetSelectedFunc(func(index int, mainText, secondaryText string, shortcut rune) { handleFileSelect() })
 	files.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey { handleFzfKeys(); return event })

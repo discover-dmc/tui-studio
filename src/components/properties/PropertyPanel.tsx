@@ -970,8 +970,12 @@ function ComponentProps({ component }: { component: import('../../types').Compon
         <ListItemsEditor
           items={(component.props.items as any[]) || []}
           selectedIndex={(component.props.selectedIndex as number) || 0}
+          multiSelect={!!component.props.multiSelect}
           onChange={(items, selectedIndex) =>
             componentStore.updateProps(component.id, { items, selectedIndex })
+          }
+          onMultiSelectChange={(multiSelect) =>
+            componentStore.updateProps(component.id, { multiSelect })
           }
         />
       )}
@@ -1504,11 +1508,15 @@ function StatusBarEditor({
 function ListItemsEditor({
   items,
   selectedIndex,
+  multiSelect,
   onChange,
+  onMultiSelectChange,
 }: {
   items: any[];
   selectedIndex: number;
+  multiSelect: boolean;
   onChange: (items: any[], selectedIndex: number) => void;
+  onMultiSelectChange: (multiSelect: boolean) => void;
 }) {
   const updateItem = (i: number, patch: object) => {
     onChange(
@@ -1517,7 +1525,7 @@ function ListItemsEditor({
     );
   };
   const addItem = () => {
-    onChange([...items, { label: 'Item', icon: '•', hotkey: '' }], selectedIndex);
+    onChange([...items, { label: 'Item', icon: '•', hotkey: '', checked: false }], selectedIndex);
   };
   const removeItem = (i: number) => {
     const next = items.filter((_, idx) => idx !== i);
@@ -1540,11 +1548,28 @@ function ListItemsEditor({
           + Item
         </button>
       </div>
+      <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={multiSelect}
+          onChange={(e) => onMultiSelectChange(e.target.checked)}
+        />
+        Multi-select (lazygit-style item checkboxes)
+      </label>
       <div className="space-y-1">
         {items.map((item: any, i: number) => {
           const d = typeof item === 'string' ? { label: item, icon: '•', hotkey: '' } : item;
           return (
             <div key={i} className="flex items-center gap-1">
+              {multiSelect && (
+                <input
+                  type="checkbox"
+                  checked={!!d.checked}
+                  onChange={(e) => updateItem(i, { checked: e.target.checked })}
+                  className="flex-shrink-0"
+                  title="Checked"
+                />
+              )}
               <input
                 value={d.icon || ''}
                 onChange={(e) => updateItem(i, { icon: e.target.value })}

@@ -260,15 +260,17 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
     case 'List':
     case 'Menu': {
       const selectedIndex = Number(node.props.selectedIndex ?? -1);
+      const multiSelect = node.type === 'List' && !!node.props.multiSelect;
       const lines = ((node.props.items as unknown[]) || []).map((item, i) => {
         const d =
           typeof item === 'string'
             ? { label: item, icon: node.type === 'List' ? '•' : '', hotkey: '' }
-            : (item as { label?: string; icon?: string; hotkey?: string });
+            : (item as { label?: string; icon?: string; hotkey?: string; checked?: boolean });
         const marker = i === selectedIndex ? '▶ ' : '  ';
+        const checkbox = multiSelect ? `[${d.checked ? 'x' : ' '}] ` : '';
         const icon = d.icon ? `${d.icon} ` : '';
         const hotkey = d.hotkey ? `  ${d.hotkey}` : '';
-        return `${marker}${icon}${d.label || 'Item'}${hotkey}`;
+        return `${marker}${checkbox}${icon}${d.label || 'Item'}${hotkey}`;
       });
       eventComment(ctx, node.events.onSelect, 'onSelect');
       eventComment(ctx, node.events.onKeyPress, 'onKeyPress');

@@ -212,13 +212,15 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
     case 'List':
     case 'Menu': {
       const selectedIndex = Number(node.props.selectedIndex ?? -1);
+      const multiSelect = node.type === 'List' && !!node.props.multiSelect;
       const lines = ((node.props.items as unknown[]) || []).map((item, i) => {
         const d =
           typeof item === 'string'
             ? { label: item, icon: node.type === 'List' ? '•' : '', hotkey: '' }
-            : (item as { label?: string; icon?: string; hotkey?: string });
+            : (item as { label?: string; icon?: string; hotkey?: string; checked?: boolean });
         const marker = i === selectedIndex ? '▶ ' : '  ';
-        return `${marker}${d.icon ? `${d.icon} ` : ''}${d.label || 'Item'}${d.hotkey ? `  ${d.hotkey}` : ''}`;
+        const checkbox = multiSelect ? `[${d.checked ? 'x' : ' '}] ` : '';
+        return `${marker}${checkbox}${d.icon ? `${d.icon} ` : ''}${d.label || 'Item'}${d.hotkey ? `  ${d.hotkey}` : ''}`;
       });
       const comment =
         eventComment(sp, node.events.onSelect, 'onSelect') + eventComment(sp, node.events.onKeyPress, 'onKeyPress');

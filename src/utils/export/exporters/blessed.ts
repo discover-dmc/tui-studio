@@ -284,14 +284,16 @@ function genNode(
     case 'List':
     case 'Menu': {
       widget = 'list';
+      const multiSelect = node.type === 'List' && !!node.props.multiSelect;
       const items = ((node.props.items as unknown[]) || []).map((item) => {
         const d =
           typeof item === 'string'
             ? { label: item, icon: node.type === 'List' ? '•' : '', hotkey: '' }
-            : (item as { label?: string; icon?: string; hotkey?: string });
+            : (item as { label?: string; icon?: string; hotkey?: string; checked?: boolean });
+        const checkbox = multiSelect ? `[${(d as { checked?: boolean }).checked ? 'x' : ' '}] ` : '';
         const icon = d.icon ? `${d.icon} ` : '';
         const hotkey = d.hotkey ? `  ${d.hotkey}` : '';
-        return `${icon}${d.label || 'Item'}${hotkey}`;
+        return `${checkbox}${icon}${d.label || 'Item'}${hotkey}`;
       });
       extraOpts = [
         `mouse: true`,

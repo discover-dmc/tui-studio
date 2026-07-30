@@ -381,12 +381,14 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       ctx.stmts.push(`${varName} := tview.NewList()`);
       ctx.stmts.push(`${varName}.ShowSecondaryText(false)`);
       const items = (node.props.items as unknown[]) || [];
+      const multiSelect = node.type === 'List' && !!node.props.multiSelect;
       for (const item of items) {
         const d =
           typeof item === 'string'
             ? { label: item, icon: node.type === 'List' ? '•' : '', hotkey: '' }
-            : (item as { label?: string; icon?: string; hotkey?: string });
-        const text = `${d.icon ? `${d.icon} ` : ''}${d.label || 'Item'}${d.hotkey ? `  ${d.hotkey}` : ''}`;
+            : (item as { label?: string; icon?: string; hotkey?: string; checked?: boolean });
+        const checkbox = multiSelect ? `[${d.checked ? 'x' : ' '}] ` : '';
+        const text = `${checkbox}${d.icon ? `${d.icon} ` : ''}${d.label || 'Item'}${d.hotkey ? `  ${d.hotkey}` : ''}`;
         ctx.stmts.push(`${varName}.AddItem(${tviewText(text)}, "", 0, nil)`);
       }
       if (node.props.selectedIndex != null)
