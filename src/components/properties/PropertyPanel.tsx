@@ -1045,6 +1045,38 @@ function ComponentProps({ component }: { component: import('../../types').Compon
         />
       )}
 
+      {/* Toast Properties */}
+      {component.type === 'Toast' && (
+        <>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Message
+            </label>
+            <input
+              type="text"
+              value={(component.props.message as string) || ''}
+              onChange={(e) => componentStore.updateProps(component.id, { message: e.target.value })}
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Variant
+            </label>
+            <select
+              value={(component.props.variant as string) || 'info'}
+              onChange={(e) => componentStore.updateProps(component.id, { variant: e.target.value })}
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+            >
+              <option value="info">Info</option>
+              <option value="success">Success</option>
+              <option value="warning">Warning</option>
+              <option value="error">Error</option>
+            </select>
+          </div>
+        </>
+      )}
+
       {/* Tabs Properties */}
       {component.type === 'Tabs' && (
         <div className="space-y-3">

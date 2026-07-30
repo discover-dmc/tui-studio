@@ -6,6 +6,7 @@ import {
   renderGauge,
   renderSparkline,
   renderStatusBar,
+  renderToast,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -291,6 +292,14 @@ function genNode(
       const items = (node.props.items as { key?: string; label?: string }[]) || [];
       const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
       content = renderStatusBar(items, gap);
+      break;
+    }
+
+    case 'Toast': {
+      // no notification/toast manager in blessed; hand-rolled preview
+      const message = (node.props.message as string) || '';
+      const variant = (node.props.variant as string) || 'info';
+      content = renderToast(message, variant);
       break;
     }
 

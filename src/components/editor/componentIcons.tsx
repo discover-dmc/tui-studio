@@ -24,6 +24,7 @@ import {
   PanelTop,
   SeparatorHorizontal,
   AlignLeft,
+  BellRing,
 } from 'lucide-react';
 import type { ComponentType } from '../../types';
 
@@ -73,6 +74,8 @@ export function getComponentIcon(type: ComponentType) {
       return <BarChart3 {...iconProps} />;
     case 'Log':
       return <ScrollText {...iconProps} />;
+    case 'Toast':
+      return <BellRing {...iconProps} />;
 
     // Data
     case 'Table':

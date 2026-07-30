@@ -6,6 +6,7 @@ import {
   renderGauge,
   renderSparkline,
   renderStatusBar,
+  renderToast,
   tailLines,
   headLines,
   getSeparatorChar,
@@ -266,6 +267,13 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const items = (node.props.items as { key?: string; label?: string }[]) || [];
       const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
       return styled(node, escGoStr(renderStatusBar(items, gap)), ctx);
+    }
+
+    case 'Toast': {
+      // no notification/toast manager in BubbleTea itself; hand-rolled preview
+      const message = (node.props.message as string) || '';
+      const variant = (node.props.variant as string) || 'info';
+      return styled(node, escGoStr(renderToast(message, variant)), ctx);
     }
 
     case 'List':

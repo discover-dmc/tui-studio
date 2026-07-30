@@ -241,6 +241,7 @@ export function kitchenSinkTree(): ComponentNode {
           items: [{ label: 'Home' }, { label: 'Docs' }],
           separator: ' / ',
         }),
+        node('Toast', 'Notice', { message: 'Saved successfully', variant: 'success' }),
         node('Spacer', 'Sp'),
         node('Separator', 'Div', { orientation: 'horizontal', lineStyle: 'double' }),
       ],

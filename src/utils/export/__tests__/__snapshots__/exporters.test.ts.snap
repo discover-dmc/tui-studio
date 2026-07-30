@@ -295,9 +295,18 @@ const crumb = blessed.box({
   content: "Home / Docs",
 });
 
+const notice = blessed.box({
+  parent: controls,
+  top: 19,
+  left: 0,
+  width: 1,
+  height: 1,
+  content: "✓ Saved successfully",
+});
+
 const div = blessed.line({
   parent: controls,
-  top: 20,
+  top: 21,
   left: 0,
   width: 1,
   height: 1,
@@ -482,7 +491,7 @@ func (m model) View() string {
 	// onChange ("handleR1Change") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleDarkChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleSelChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
-	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", lipgloss.NewStyle().Height(3).Render("Line one\\nLine two\\n")), lipgloss.JoinHorizontal(lipgloss.Top, "[✓] Enable", "(●) Choice A"), lipgloss.JoinHorizontal(lipgloss.Top, "[ON ] Dark mode", "Two ▼"), lipgloss.JoinHorizontal(lipgloss.Top, "[====] Working", "[==========>      ] 67%"), lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(24).Render("████████CPU 42%░░░░░░░░░"), lipgloss.NewStyle().Width(10).Render("▁▂▂▄▃▆▅▇▆█")), lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(20).Height(3).Render("Starting up...\\nConnected\\n200 OK"), "^Q Quit  ^S Save"), lipgloss.JoinHorizontal(lipgloss.Top, "Home / Docs", ""), "════════════════════")
+	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", lipgloss.NewStyle().Height(3).Render("Line one\\nLine two\\n")), lipgloss.JoinHorizontal(lipgloss.Top, "[✓] Enable", "(●) Choice A"), lipgloss.JoinHorizontal(lipgloss.Top, "[ON ] Dark mode", "Two ▼"), lipgloss.JoinHorizontal(lipgloss.Top, "[====] Working", "[==========>      ] 67%"), lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(24).Render("████████CPU 42%░░░░░░░░░"), lipgloss.NewStyle().Width(10).Render("▁▂▂▄▃▆▅▇▆█")), lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(20).Height(3).Render("Starting up...\\nConnected\\n200 OK"), "^Q Quit  ^S Save"), lipgloss.JoinHorizontal(lipgloss.Top, "Home / Docs", "✓ Saved successfully"), lipgloss.JoinHorizontal(lipgloss.Top, "", "════════════════════"))
 	empty := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render("")
 	screen := lipgloss.JoinVertical(lipgloss.Left, header, body, controls, empty)
 	return screen
@@ -626,6 +635,7 @@ function App() {
         </Box>
         <Text>{"^Q Quit  ^S Save"}</Text>
         <Text>{"Home  /  Docs"}</Text>
+        <Text>{"✓ Saved successfully"}</Text>
         <Box flexGrow={1} />
         <Text>{"════════════════════"}</Text>
       </Box>
@@ -755,9 +765,10 @@ function App() {
         </box>
         <box style={{ flexDirection: "row" }}>
           <text>Home / Docs</text>
-          <box style={{ flexGrow: 1 }} />
+          <text>✓ Saved successfully</text>
         </box>
         <box style={{ flexDirection: "row" }}>
+          <box style={{ flexGrow: 1 }} />
           <text>════════════════════</text>
         </box>
       </box>
@@ -935,11 +946,12 @@ fn ui(frame: &mut Frame) {
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[7]);
             frame.render_widget(Paragraph::new("Home / Docs").style(Style::default()), grid_cols_chunks_area_2__7[0]);
+            frame.render_widget(Paragraph::new("✓ Saved successfully").style(Style::default()), grid_cols_chunks_area_2__7[1]);
         let grid_cols_chunks_area_2__8 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[8]);
-            frame.render_widget(Paragraph::new("═".repeat(grid_cols_chunks_area_2__8[0].width as usize)).style(Style::default()), grid_cols_chunks_area_2__8[0]);
+            frame.render_widget(Paragraph::new("═".repeat(grid_cols_chunks_area_2__8[1].width as usize)).style(Style::default()), grid_cols_chunks_area_2__8[1]);
         let block_chunks_area_3_ = Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("Empty");
         let inner_chunks_area_3_ = block_chunks_area_3_.inner(chunks_area[3]);
         frame.render_widget(block_chunks_area_3_, chunks_area[3]);
@@ -1168,6 +1180,7 @@ class MyApp(App):
         self.query_one("#output", RichLog).write("Starting up...")
         self.query_one("#output", RichLog).write("Connected")
         self.query_one("#output", RichLog).write("200 OK")
+        self.notify("Saved successfully", severity="information")
         self.push_screen(ConfirmModal())
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -1413,10 +1426,13 @@ func main() {
 	crumb := tview.NewTextView()
 	crumb.SetText(tview.Escape("Home / Docs"))
 	controls.AddItem(crumb, 7, 0, 1, 1, 0, 0, false)
-	controls.AddItem(tview.NewBox(), 7, 1, 1, 1, 0, 0, false)
+	notice := tview.NewTextView()
+	notice.SetText(tview.Escape("✓ Saved successfully"))
+	controls.AddItem(notice, 7, 1, 1, 1, 0, 0, false)
+	controls.AddItem(tview.NewBox(), 8, 0, 1, 1, 0, 0, false)
 	div := tview.NewTextView()
 	div.SetText(tview.Escape("════════════════════"))
-	controls.AddItem(div, 8, 0, 1, 1, 0, 0, false)
+	controls.AddItem(div, 8, 1, 1, 1, 0, 0, false)
 	root.AddItem(controls, 0, 1, false)
 	empty := tview.NewFlex()
 	empty.SetDirection(tview.FlexRow)

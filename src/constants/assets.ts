@@ -223,6 +223,18 @@ export function renderStatusBar(items: { key?: string; label?: string }[], gap: 
     .join(' '.repeat(Math.max(1, gap)));
 }
 
+export const TOAST_VARIANT_ICONS: Record<string, string> = {
+  info: 'ℹ',
+  success: '✓',
+  warning: '⚠',
+  error: '✗',
+};
+
+export function renderToast(message: string, variant: string): string {
+  const icon = TOAST_VARIANT_ICONS[variant] || TOAST_VARIANT_ICONS.info;
+  return `${icon} ${message}`;
+}
+
 /** Box-drawing characters for the Separator component, per line style and orientation. */
 export const SEPARATOR_CHARS: Record<string, { horizontal: string; vertical: string }> = {
   single: { horizontal: '─', vertical: '│' },

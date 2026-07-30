@@ -6,6 +6,7 @@ import {
   renderGauge,
   renderSparkline,
   renderStatusBar,
+  renderToast,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -217,6 +218,13 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       const items = (node.props.items as { key?: string; label?: string }[]) || [];
       const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
       return `${sp}${textEl(node, renderStatusBar(items, gap), colorMode)}\n`;
+    }
+
+    case 'Toast': {
+      // no toast/notification component documented in @opentui/react; hand-rolled preview.
+      const message = (node.props.message as string) || '';
+      const variant = (node.props.variant as string) || 'info';
+      return `${sp}${textEl(node, renderToast(message, variant), colorMode)}\n`;
     }
 
     case 'List':

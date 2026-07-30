@@ -493,10 +493,39 @@ citations and the validated (already-correct) findings.
   and in the ANSI preview with no crash, and the Textual Code tab shows
   the real `SelectionList(("Item 1", 0, True), ...)` reflecting the
   checked state live.
-- [ ] **Notification/Toast component**: a non-blocking, self-dismissing
-  status message, distinct from the existing blocking `Modal` — the
-  async-feedback pattern top TUIs use so the UI never has to freeze just to
-  report "saved" or "connection lost."
+- [x] **Notification/Toast component** (2026-07-30): full new-`ComponentType`
+  checklist — `message`/`variant` (info/success/warning/error) props,
+  category 'display'. Deliberately scoped as a normal leaf (like Log/
+  StatusBar), not a special centered-overlay type like Modal — it occupies
+  wherever the user places it in the layout, keeping this proportionate to
+  a single new component rather than replicating Modal's overlay-centering
+  machinery across every touch point. Real per-framework check, not a
+  uniform hand-roll: Textual has a genuine app-level toast —
+  `self.notify(message, severity=...)` (verified via
+  textual.textualize.io/api/app) — called once from `on_mount`, the one
+  exporter where Toast doesn't yield a widget at all (confirmed it falls
+  back to the exporter's existing empty-body `yield Static("")` handling
+  when Toast is the tree's only content). Textual's real severities are
+  exactly `information`/`warning`/`error` (no `success`), so the Studio's
+  `success` variant maps to `information` — documented, not silently
+  dropped. Also confirmed Textual always positions its own toast
+  bottom-right, fixed — the Studio canvas position is a design aid only,
+  not reflected in the generated position, same caveat as noted for
+  BubbleTea/Ratatui's static output elsewhere in this file. The other 6
+  frameworks (Ratatui, BubbleTea, Blessed, Tview, OpenTUI, Ink) have no
+  notification-manager primitive at all, so all six hand-roll the same
+  shared `renderToast()` helper (icon-prefixed message, in
+  `constants/assets.ts`) into their existing bordered-box/Paragraph
+  pattern — no per-framework variation needed there, unlike every prior P4
+  component. Verified for real: `cargo build`, `go test`/`go build`+
+  `go vet`, `node --check`, `esbuild` all clean; Textual's real headless
+  `run_test()` mount confirmed `self.notify(...)` executes without error
+  in `on_mount`. Browser-verified end to end: added a Toast from the
+  palette (Display category), saw the default info variant render
+  "ℹ Saved successfully" on the canvas, switched variant to Error and
+  watched the icon update to "✗" live, confirmed no crash in the ANSI
+  preview, and confirmed the Textual Code tab shows the real
+  `self.notify("Saved successfully", severity="error")` call.
 - [x] **Keybinding-convention preset in PropertyPanel** (2026-07-30):
   `KeybindingPresetEditor` in `PropertyPanel.tsx`, shown for List/Table/Tree.
   A dropdown offers fzf/lazygit/helix presets (each fills `events.onKeyPress`

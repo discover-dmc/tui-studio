@@ -11,6 +11,7 @@ import {
   renderGauge,
   renderSparkline,
   renderStatusBar,
+  renderToast,
   tailLines,
   headLines,
   getSeparatorChar,
@@ -83,6 +84,9 @@ export function renderComponent(
       break;
     case 'StatusBar':
       content = renderStatusBarComponent(node, width, height);
+      break;
+    case 'Toast':
+      content = renderToastComponent(node, width, height);
       break;
     case 'Spinner':
       content = renderSpinner(node, width, height);
@@ -398,6 +402,22 @@ function renderStatusBarComponent(node: ComponentNode, width: number, height: nu
     : { width, height };
 
   const text = renderStatusBar(items, gap);
+  const lines = [text.slice(0, contentArea.width).padEnd(contentArea.width)];
+  while (lines.length < contentArea.height) {
+    lines.push(' '.repeat(contentArea.width));
+  }
+
+  return lines;
+}
+
+function renderToastComponent(node: ComponentNode, width: number, height: number): string[] {
+  const message = (node.props.message as string) || '';
+  const variant = (node.props.variant as string) || 'info';
+  const contentArea = node.style.border
+    ? getContentArea(width, height, { style: 'single' })
+    : { width, height };
+
+  const text = renderToast(message, variant);
   const lines = [text.slice(0, contentArea.width).padEnd(contentArea.width)];
   while (lines.length < contentArea.height) {
     lines.push(' '.repeat(contentArea.width));

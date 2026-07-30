@@ -20,6 +20,7 @@ import {
   renderGauge,
   renderSparkline,
   renderStatusBar,
+  renderToast,
   tailLines,
   headLines,
   getSeparatorChar,
@@ -878,6 +879,11 @@ const ComponentRenderer = memo(
           const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
           return <span className="font-mono">{renderStatusBar(items, gap)}</span>;
         }
+        case 'Toast': {
+          const message = (node.props.message as string) || '';
+          const variant = (node.props.variant as string) || 'info';
+          return <span className="font-mono">{renderToast(message, variant)}</span>;
+        }
         case 'Breadcrumb': {
           const items = (node.props.items as any[]) || [];
           const separator = (node.props.separator as string) || '/';
@@ -973,6 +979,7 @@ const ComponentRenderer = memo(
         'Gauge',
         'Sparkline',
         'StatusBar',
+        'Toast',
         'Spinner',
         'Checkbox',
         'Radio',

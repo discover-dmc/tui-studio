@@ -377,6 +377,28 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       return `${sp}yield Footer(${idArg(id, true)})\n`;
     }
 
+    case 'Toast': {
+      // Real App.notify() (verified via textual.textualize.io/api/app) — a
+      // genuine toast, not hand-rolled, and meaningfully different from
+      // every other exporter here: it's an app-level call in on_mount, not
+      // a yielded widget, and Textual always positions it bottom-right
+      // itself — the Studio canvas position is a design aid only, not
+      // reflected in the generated position. Severity is one of exactly
+      // "information"/"warning"/"error" (no "success" level in real
+      // Textual), so the Studio's "success" variant maps to "information".
+      const message = (node.props.message as string) || '';
+      const variant = (node.props.variant as string) || 'info';
+      const severityMap: Record<string, string> = {
+        info: 'information',
+        success: 'information',
+        warning: 'warning',
+        error: 'error',
+      };
+      const severity = severityMap[variant] || 'information';
+      ctx.mount.push(`self.notify(${escPyStr(message)}, severity=${escPyStr(severity)})`);
+      return '';
+    }
+
     case 'List': {
       const id = registerStyles(node, ctx);
       if (node.events.onKeyPress) ctx.handlers.key.add(node.events.onKeyPress);

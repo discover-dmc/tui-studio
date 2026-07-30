@@ -1,6 +1,13 @@
 import type { ComponentNode } from '../../../types';
 import { escRust } from '../escape';
-import { SPINNER_PRESETS, getSeparatorChar, tailLines, headLines, renderStatusBar } from '../../../constants/assets';
+import {
+  SPINNER_PRESETS,
+  getSeparatorChar,
+  tailLines,
+  headLines,
+  renderStatusBar,
+  renderToast,
+} from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -392,6 +399,15 @@ function generateRatatuiNode(
     const items = (node.props.items as { key?: string; label?: string }[]) || [];
     const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
     let widget = `Paragraph::new(${escRust(renderStatusBar(items, gap))}).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
+    return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
+  }
+
+  if (node.type === 'Toast') {
+    // Ratatui has no notification/toast manager — hand-rolled preview.
+    const message = (node.props.message as string) || '';
+    const variant = (node.props.variant as string) || 'info';
+    let widget = `Paragraph::new(${escRust(renderToast(message, variant))}).style(${ratatuiStyle(node, colorMode)})`;
     if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }

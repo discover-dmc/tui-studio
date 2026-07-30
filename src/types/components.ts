@@ -22,6 +22,7 @@ export type ComponentType =
   | 'Gauge'
   | 'Sparkline'
   | 'Log'
+  | 'Toast'
   // Data
   | 'Table'
   | 'List'

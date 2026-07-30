@@ -6,6 +6,7 @@ import {
   renderGauge,
   renderSparkline,
   renderStatusBar,
+  renderToast,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -384,6 +385,18 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       const varName = ident(node.name, ctx);
       ctx.stmts.push(`${varName} := tview.NewTextView()`);
       ctx.stmts.push(`${varName}.SetText(${tviewText(renderStatusBar(items, gap))})`);
+      applyTextColor(varName, node, ctx);
+      applyBoxStyle(varName, node, ctx);
+      return varName;
+    }
+
+    case 'Toast': {
+      // tview has no notification/toast manager; hand-rolled preview.
+      const message = (node.props.message as string) || '';
+      const variant = (node.props.variant as string) || 'info';
+      const varName = ident(node.name, ctx);
+      ctx.stmts.push(`${varName} := tview.NewTextView()`);
+      ctx.stmts.push(`${varName}.SetText(${tviewText(renderToast(message, variant))})`);
       applyTextColor(varName, node, ctx);
       applyBoxStyle(varName, node, ctx);
       return varName;

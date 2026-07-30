@@ -5,6 +5,7 @@ import {
   renderGauge,
   renderSparkline,
   renderStatusBar,
+  renderToast,
   tailLines,
   headLines,
   getSeparatorChar,
@@ -216,6 +217,14 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
       const items = (node.props.items as { key?: string; label?: string }[]) || [];
       const gap = typeof node.props.gap === 'number' ? node.props.gap : 2;
       const text = renderStatusBar(items, gap);
+      return `${sp}<Text${inkTextProps(node, colorMode)}>{${JSON.stringify(text)}}</Text>\n`;
+    }
+
+    case 'Toast': {
+      // no official toast/notification package for Ink; hand-rolled preview.
+      const message = (node.props.message as string) || '';
+      const variant = (node.props.variant as string) || 'info';
+      const text = renderToast(message, variant);
       return `${sp}<Text${inkTextProps(node, colorMode)}>{${JSON.stringify(text)}}</Text>\n`;
     }
 

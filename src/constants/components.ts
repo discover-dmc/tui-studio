@@ -439,6 +439,29 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
     },
   },
 
+  Toast: {
+    type: 'Toast',
+    name: 'Toast',
+    description: 'Non-blocking status notification',
+    icon: 'BellRing',
+    category: 'display',
+    defaultProps: {
+      message: 'Saved successfully',
+      variant: 'info',
+      width: 24,
+      height: 3,
+    },
+    defaultLayout: {
+      type: 'none',
+    },
+    defaultStyle: {
+      color: 'white',
+      border: true,
+      borderStyle: 'single',
+      borderColor: 'white',
+    },
+  },
+
   // Data Components
   Table: {
     type: 'Table',
