@@ -1166,6 +1166,14 @@ function ComponentProps({ component }: { component: import('../../types').Compon
         </div>
       )}
 
+      {/* Keybinding preset (List/Table/Tree — the nav-capable types) */}
+      {(component.type === 'List' || component.type === 'Table' || component.type === 'Tree') && (
+        <KeybindingPresetEditor
+          value={component.events.onKeyPress}
+          onChange={(onKeyPress) => componentStore.updateEvents(component.id, { onKeyPress })}
+        />
+      )}
+
       {/* Separator Properties */}
       {component.type === 'Separator' && (
         <>
@@ -1883,6 +1891,74 @@ function TreeItemsEditor({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Near-universal terminal-nav conventions (fzf/lazygit/helix) offered as a
+// one-click preset instead of hand-typing the onKeyPress handler name.
+const KEYBINDING_PRESETS = [
+  { key: 'fzf', label: 'fzf-style (j/k move, / filter, Esc close)', handler: 'handleFzfKeys' },
+  {
+    key: 'lazygit',
+    label: 'lazygit-style (arrows + single-key actions, ? help)',
+    handler: 'handleLazygitKeys',
+  },
+  {
+    key: 'helix',
+    label: 'helix-style (multi-key sequences, space leader)',
+    handler: 'handleHelixKeys',
+  },
+] as const;
+
+function KeybindingPresetEditor({
+  value,
+  onChange,
+}: {
+  value: string | undefined;
+  onChange: (onKeyPress: string | undefined) => void;
+}) {
+  const matched = KEYBINDING_PRESETS.find((p) => p.handler === value);
+  const selected = !value ? 'none' : matched ? matched.key : 'custom';
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+        Keybinding Preset
+      </label>
+      <select
+        value={selected}
+        onChange={(e) => {
+          const key = e.target.value;
+          if (key === 'none') onChange(undefined);
+          // Custom mode always needs a value that doesn't equal a known
+          // preset's handler name (or the reverse-lookup below would read it
+          // right back as that preset) and isn't empty (or it reads back as
+          // "None" — both are falsy). Coming from an unmatched/typed value,
+          // keep it as the editable starting point; coming from a preset (or
+          // none), fall back to a generic default instead of that preset's
+          // own handler name.
+          else if (key === 'custom') onChange(!matched && value ? value : 'handleKeyPress');
+          else onChange(KEYBINDING_PRESETS.find((p) => p.key === key)!.handler);
+        }}
+        className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+      >
+        <option value="none">None</option>
+        {KEYBINDING_PRESETS.map((p) => (
+          <option key={p.key} value={p.key}>
+            {p.label}
+          </option>
+        ))}
+        <option value="custom">Custom…</option>
+      </select>
+      {selected === 'custom' && (
+        <input
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value || undefined)}
+          placeholder="handleKeyPress"
+          className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] font-mono focus:border-primary focus:outline-none"
+        />
+      )}
     </div>
   );
 }

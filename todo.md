@@ -446,10 +446,26 @@ citations and the validated (already-correct) findings.
   status message, distinct from the existing blocking `Modal` — the
   async-feedback pattern top TUIs use so the UI never has to freeze just to
   report "saved" or "connection lost."
-- [ ] **Keybinding-convention preset in PropertyPanel**: not a new
-  component — a dropdown for nav-capable components (List/Table/Tree) that
-  offers the near-universal `j`/`k`/`/`/`?`/`Esc` vocabulary (fzf, lazygit,
-  helix) as a one-click preset instead of hand-typing `EventHandlers`.
+- [x] **Keybinding-convention preset in PropertyPanel** (2026-07-30):
+  `KeybindingPresetEditor` in `PropertyPanel.tsx`, shown for List/Table/Tree.
+  A dropdown offers fzf/lazygit/helix presets (each fills `events.onKeyPress`
+  with a descriptive handler name) plus "Custom…" with a free-text fallback,
+  reusing the existing (previously dead-end) `componentStore.updateEvents`
+  action. Scope note: this item's own original framing assumed users could
+  already hand-type `EventHandlers` somewhere — investigation found no such
+  UI existed anywhere before this change, and separately that none of the 7
+  exporters read `node.events` at all (flagged as its own out-of-scope
+  finding, not fixed here — see the spawned task). Caught and fixed a real
+  bug during implementation: switching a component already on a named
+  preset (e.g. "fzf") to "Custom" initially preserved that preset's exact
+  handler string, which made the reverse-lookup misread it as still being
+  that preset on the next render, snapping the dropdown back instead of
+  showing the free-text field — fixed by only preserving the current value
+  as the custom starting point when it *doesn't* already match a known
+  preset, falling back to a generic default otherwise. Browser-verified all
+  transitions (None → preset → Custom → None, and preset → Custom
+  specifically) round-trip correctly and persist on reselecting the
+  component.
 - [ ] **"New from template" starter gallery**: seed the canvas-creation flow
   with the seven recurring layout archetypes (Persistent Multi-Panel,
   Miller Columns, Drill-Down Stack, Widget Dashboard, IDE Three-Panel,
