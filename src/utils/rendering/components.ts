@@ -424,14 +424,24 @@ function renderSeparator(node: ComponentNode, width: number, height: number): st
 }
 
 function renderList(node: ComponentNode, width: number, height: number): string[] {
-  const items = (node.props.items as string[]) || [];
+  // Items are { label, icon, hotkey } objects (see COMPONENT_LIBRARY's List
+  // defaults and Canvas.tsx's rendering), not plain strings — treating them
+  // as strings here crashed truncateText/visibleLength (no .replace on an
+  // object) and took the whole app down with no error boundary to catch it.
+  const rawItems = (node.props.items as unknown[]) || [];
+  const items = rawItems.map((item) =>
+    typeof item === 'string'
+      ? { label: item, icon: '•' }
+      : (item as { label?: string; icon?: string })
+  );
   const contentArea = node.style.border
     ? getContentArea(width, height, { style: 'single' })
     : { width, height };
 
   const lines: string[] = [];
   for (let i = 0; i < Math.min(items.length, contentArea.height); i++) {
-    const text = `• ${truncateText(items[i], contentArea.width - 2)}`;
+    const prefix = `${items[i].icon || '•'} `;
+    const text = `${prefix}${truncateText(items[i].label || 'Item', contentArea.width - prefix.length)}`;
     lines.push(text.padEnd(contentArea.width));
   }
 
@@ -443,7 +453,7 @@ function renderList(node: ComponentNode, width: number, height: number): string[
 }
 
 function renderTable(node: ComponentNode, width: number, height: number): string[] {
-  const headers = (node.props.headers as string[]) || ['Column 1', 'Column 2'];
+  const headers = (node.props.columns as string[]) || ['Column 1', 'Column 2'];
   const rows = (node.props.rows as string[][]) || [];
   const contentArea = node.style.border
     ? getContentArea(width, height, { style: 'single' })
