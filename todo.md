@@ -398,17 +398,41 @@ testable, matching this project's "finish a section before moving on" habit:
   tab, with every step confirmed via the actual rendered canvas and Layers
   panel; Cmd+Z on the live tab correctly undid the agent's last mutation,
   proving it rode the real history stack.
-- [ ] **Phase 2 — guardrail skill for the *consuming* model**: a companion
-  skill (siblings to `.claude/skills/tui-studio/`) that any capable model
-  loads to *use* sTUIdio's MCP tools correctly, not just to hack on this
-  codebase. Mirrors `gfargo/tui-design-skill`'s proven shape — a compact
-  top-level file (component vocabulary, the tool surface from Phase 1, and
-  hard constraints) plus on-demand reference docs (per-framework export
-  idioms — reuse the idiom map already written in
-  `.claude/skills/tui-studio/SKILL.md`; the seven canonical layout patterns
-  and keybinding conventions from `docs/design_anal.md`) so a model builds
-  designs that match real-world TUI conventions instead of merely
-  structurally-valid trees.
+- [x] **Phase 2 — guardrail skill for the *consuming* model** (2026-07-30):
+  new `.claude/skills/stuidio-agent/` (sibling to `.claude/skills/tui-studio/`,
+  companion — that one covers editing this codebase, this one covers
+  *using* the Phase 1 MCP tools). Mirrors `gfargo/tui-design-skill`'s proven
+  shape: a compact top-level `SKILL.md` (component vocabulary generated from
+  the real `COMPONENT_LIBRARY` — not hand-typed, so it can't drift; the
+  turn-based tool workflow from Phase 1; hard constraints) plus two
+  purpose-built on-demand reference files rather than pointing at
+  `docs/design_anal.md` wholesale (that doc is a competitive-analysis
+  narrative, not agent-facing reference — extracting just what's needed
+  keeps the on-demand load surgical, matching the proven shape's actual
+  intent):
+  - `references/layout-patterns.md` — the 7 canonical archetypes, each
+    cross-referenced to its real `src/constants/templates.ts` template id
+    (built in item 7 above) as a concrete example.
+  - `references/keybinding-conventions.md` — the exact 3 presets
+    (`handleFzfKeys`/`handleLazygitKeys`/`handleHelixKeys`) pulled from
+    `PropertyPanel.tsx`'s real `KEYBINDING_PRESETS`, not re-invented.
+  - Per-framework export idioms aren't duplicated at all — `SKILL.md` links
+    directly to `tui-studio/SKILL.md`'s existing "Component → framework
+    idiom map" section, since that content already exists and duplicating
+    it would just be a second copy to drift out of sync.
+  The hard-constraints section documents a real gap between "structurally
+  valid" and "correct" that `isValidComponentTree` can't catch: `List`/
+  `Tree`/`Table`/`Menu`/`Breadcrumb` structurally pass `canBeChild` as
+  parents (only `Modal`→`Box`/`Grid`/`Text` and `Tabs`→`Box` are actually
+  restricted in `validation.ts`), but nothing renders or exports a child
+  nested under them — their real content is `props.items`/`columns`+`rows`,
+  not the `children` array. Also documents the absolute-root/flexbox-inside
+  layout split from Phase 1's own `add_component` handling. Verified by
+  invoking the `Skill` tool and confirming `stuidio-agent` is discovered
+  with its frontmatter description surfaced correctly; the component table
+  was generated directly from `COMPONENT_LIBRARY` via a throwaway script
+  rather than copied by hand, so all 27 real types/categories/descriptions
+  are accurate as of this commit.
 - [ ] **Phase 3 — self-verification loop**: a read-only `render_preview` (or
   `get_ansi_preview`) tool returning the existing ANSI/text-export output
   (`src/utils/rendering/components.ts` — already built, just needs exposing)
