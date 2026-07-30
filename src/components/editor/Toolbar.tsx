@@ -1,7 +1,7 @@
 // Top toolbar with controls
 
 import { useEffect, lazy, Suspense } from 'react';
-import { Undo2, Redo2, ZoomIn, ZoomOut, Grid3x3, Save, Palette, Search } from 'lucide-react';
+import { Undo2, Redo2, ZoomIn, ZoomOut, Grid3x3, Contrast, Save, Palette, Search } from 'lucide-react';
 import { useComponentStore, useCanvasStore, useThemeStore, useUIStore } from '../../stores';
 // Lazy: the export panel pulls in all seven code exporters, which most
 // sessions never open. Keep them out of the main bundle until they're needed.
@@ -127,6 +127,17 @@ export function Toolbar() {
             title="Toggle Grid"
           >
             <Grid3x3 className="w-4 h-4" />
+          </button>
+
+          {/* Monochrome preview */}
+          <button
+            onClick={() => canvasStore.toggleMonochrome()}
+            className={`p-2 hover:bg-accent rounded-lg transition-colors ${
+              canvasStore.monochrome ? 'bg-accent' : ''
+            }`}
+            title="Monochrome Preview"
+          >
+            <Contrast className="w-4 h-4" />
           </button>
 
           {/* Theme Selector */}

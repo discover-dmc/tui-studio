@@ -20,6 +20,9 @@ interface CanvasState {
   snapToGrid: boolean;
   gridSize: number; // Cell size
 
+  // Preview
+  monochrome: boolean; // force no-color canvas rendering, to sanity-check layout/semantics
+
   // Actions
   setCanvasSize: (width: number, height: number) => void;
   setSizeMode: (mode: CanvasSizeMode) => void;
@@ -29,6 +32,7 @@ interface CanvasState {
   toggleGrid: () => void;
   toggleSnapToGrid: () => void;
   setGridSize: (size: number) => void;
+  toggleMonochrome: () => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set) => ({
@@ -42,6 +46,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   showGrid: true,
   snapToGrid: false,
   gridSize: 1,
+  monochrome: false,
 
   // Set canvas size
   setCanvasSize: (width, height) => {
@@ -91,5 +96,10 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   // Set grid size
   setGridSize: (size) => {
     set({ gridSize: Math.max(1, size) });
+  },
+
+  // Toggle monochrome preview
+  toggleMonochrome: () => {
+    set((state) => ({ monochrome: !state.monochrome }));
   },
 }));

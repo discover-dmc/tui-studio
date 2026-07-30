@@ -359,6 +359,7 @@ const ComponentRenderer = memo(
     canvasHeight,
   }: ComponentRendererProps) {
     const themeStore = useThemeStore();
+    const monochrome = useCanvasStore((s) => s.monochrome);
 
     // Live-animate the Spinner preview on canvas, cycling through the preset's
     // real frames at its real interval. This is purely a preview concern —
@@ -380,7 +381,7 @@ const ComponentRenderer = memo(
 
     // Helper to convert ANSI color name to hex using component's theme
     const getColor = (color?: string): string | undefined => {
-      if (!color) return undefined;
+      if (!color || monochrome) return undefined;
       // If it's already a hex color, return it
       if (color.startsWith('#')) return color;
       // Otherwise, look it up in the component's theme ANSI colors
@@ -393,7 +394,7 @@ const ComponentRenderer = memo(
     // one hard-stop band per character column (horizontal) or row (vertical).
     const buildCliGradientCss = (): string | undefined => {
       const g = node.style.backgroundGradient;
-      if (!g || g.stops.length < 2 || !layout) return undefined;
+      if (!g || g.stops.length < 2 || !layout || monochrome) return undefined;
       const angle = ((g.angle % 360) + 360) % 360;
       const horizontal = (angle >= 45 && angle < 135) || (angle >= 225 && angle < 315);
       const count = horizontal ? layout.width : layout.height;
@@ -452,7 +453,7 @@ const ComponentRenderer = memo(
         brightMagenta: 'text-pink-400',
         brightCyan: 'text-cyan-400',
       };
-      const getColorClass = (color: string) => colorMap[color] || 'text-foreground';
+      const getColorClass = (color: string) => (monochrome ? 'text-foreground' : colorMap[color] || 'text-foreground');
 
       switch (node.type) {
         case 'Text': {

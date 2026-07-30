@@ -454,10 +454,26 @@ citations and the validated (already-correct) findings.
   with the seven recurring layout archetypes (Persistent Multi-Panel,
   Miller Columns, Drill-Down Stack, Widget Dashboard, IDE Three-Panel,
   Overlay/Popup, Header+Scrollable-List) instead of always starting blank.
-- [ ] **Monochrome-first preview mode**: an explicit "preview with no
-  color" toggle to sanity-check that layout/semantics survive without
-  color, not just palette swaps — an accessibility check none of the
-  existing color-mode controls currently do.
+- [x] **Monochrome-first preview mode** (2026-07-30): a toolbar toggle
+  (`Contrast` icon, next to the grid toggle) that forces the canvas
+  preview to render with no designer-chosen color at all — borders,
+  layout, and text stay fully visible so you can sanity-check that meaning
+  survives without color, not just that the palette swapped. New
+  `canvasStore.monochrome` boolean + `toggleMonochrome()`, mirroring the
+  existing `showGrid`/`toggleGrid` pattern exactly. Implementation is a
+  2-line change at the actual choke points: `Canvas.tsx`'s `getColor()`
+  (used by every text/background/border color resolution in
+  `ComponentRenderer`) returns `undefined` when monochrome is on, so every
+  call site's existing `|| 'inherit'`/`|| 'hsl(var(--foreground))'`
+  fallback already does the right thing with no per-component-type changes
+  needed; `getColorClass()` (the separate Tailwind-class path used only by
+  Checkbox/Radio's colored dot) gets the same short-circuit; and
+  `buildCliGradientCss()` is gated off too so gradients don't leak through
+  as color. Browser-verified: toggling on removes the StatusBar's blue
+  background and the Gauge/Log's tinted borders while every box-drawing
+  character, label, and position stays identical; toggling off restores
+  color exactly. No new component or exporter work — this is a canvas-only
+  preview aid, not an export feature.
 
 ## Skill track — `skills/tui-design-mcpmarket`
 
