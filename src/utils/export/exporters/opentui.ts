@@ -117,6 +117,16 @@ function genNode(node: ComponentNode, indent: number, colorMode: ExportColorMode
       return `${sp}<input placeholder={${JSON.stringify(placeholder)}} onInput={${onInput}} />\n`;
     }
 
+    case 'TextArea': {
+      // <textarea> is a real, documented @opentui/react intrinsic (distinct
+      // from <input>) — but its React-binding prop docs explicitly say the
+      // "Construct API [is] Not available yet", so only `placeholder` is set
+      // here (the one prop confirmed by the React docs); value/onChange
+      // aren't guessed at.
+      const placeholder = (node.props.placeholder as string) || '';
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}<textarea placeholder={${JSON.stringify(placeholder)}} />\n`;
+    }
+
     case 'Select': {
       const options = (node.props.options as string[]) || ['Option 1'];
       const opts = options

@@ -436,9 +436,38 @@ citations and the validated (already-correct) findings.
   `esbuild` (OpenTUI/Ink) all clean on the new variants. Browser-verified
   live: Ratatui + ANSI-256 mode in the Export panel renders
   `Color::Indexed(7)`/`Color::Indexed(4)` for the sample tree's white/blue.
-- [ ] **`TextArea` component**: no multiline editable text input exists
-  today (`TextInput` is explicitly single-line) — needed for commit-message
-  boxes, chat compose fields, etc.
+- [x] **`TextArea` component** (2026-07-30): full new-`ComponentType`
+  checklist — multiline editable text input, `value`/`placeholder`/
+  `width`/`height` props, real per-framework verification (not a uniform
+  hand-roll): Textual's real `TextArea(text=..., placeholder=...)` with its
+  real `TextArea.Changed` message; Tview's real `NewTextArea().SetText(text,
+  false)`/`.SetPlaceholder()`/`.SetChangedFunc(func())`; Blessed's real
+  `textarea` widget (distinct from `textbox`, genuinely multiline/
+  scrollable) wired to its real `submit` event; OpenTUI's real `<textarea>`
+  intrinsic — but its React-bindings prop docs explicitly say "Construct
+  API not available yet", so only the confirmed `placeholder` prop is set,
+  value/onChange left as a comment rather than guessed. Ratatui, BubbleTea,
+  and Ink have no multiline edit widget at all (core Ratatui, this
+  exporter's static BubbleTea, and no official Ink package respectively),
+  so all three hand-roll a static multi-line preview with a pointer
+  comment (`tui-textarea` / `bubbles/textarea` / a community package).
+  Found and fixed a real bug surfaced by this component: reused `tailLines`
+  (built for Log's tail-anchored "always show the newest lines" semantics)
+  for TextArea's initial hand-rolled version, which pushed real content
+  down with blank padding lines inserted *above* it — backwards for a
+  buffer meant to be read from the top. Added `headLines` (same signature,
+  pads at the bottom instead) to `constants/assets.ts` and switched every
+  hand-rolled TextArea render (Canvas.tsx, the ANSI renderer, Ratatui,
+  BubbleTea, Ink) to it. Verified for real: `cargo build`, `go test`/
+  `go build`+`go vet`, `node --check` plus a live pty run of the new
+  `blessed.textarea` widget (clean init, no runtime error), `esbuild`, and
+  Textual's real headless `run_test()` mount all clean. Browser-verified
+  end to end: added a TextArea from the palette, saw the placeholder
+  render muted on the canvas, set a 3-line value and watched it render
+  correctly with no crash in the canvas, the ANSI preview, and the
+  Text/ANSI export tab, and confirmed the Textual Code tab shows the real
+  `TextArea("First line\nSecond line\nThird line", placeholder=...)` with
+  its `on_text_area_changed` dispatch.
 - [x] **Multi-select `List` variant** (2026-07-30): opt-in `multiSelect`
   prop (default `false`) plus per-item `checked: boolean`. PropertyPanel's
   `ListItemsEditor` gained a "Multi-select" toggle and a per-item checkbox;

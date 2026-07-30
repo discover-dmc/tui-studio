@@ -191,6 +191,19 @@ function genNode(
       ];
       break;
 
+    case 'TextArea':
+      // blessed's real textarea widget (distinct from textbox — multiline,
+      // scrollable) rather than a hand-rolled box.
+      widget = 'textarea';
+      extraOpts = [
+        `mouse: true`,
+        `keys: true`,
+        `inputOnFocus: true`,
+        `scrollable: true`,
+        `value: ${js((node.props.value as string) || '')}`,
+      ];
+      break;
+
     case 'Checkbox': {
       widget = 'checkbox';
       extraOpts = [
@@ -398,6 +411,7 @@ function appendEventBindings(varName: string, node: ComponentNode, ctx: Ctx): vo
       bind('press', node.events.onClick);
       break;
     case 'TextInput':
+    case 'TextArea':
       bind('submit', node.events.onChange);
       break;
     case 'Checkbox':

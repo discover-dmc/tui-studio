@@ -1,6 +1,6 @@
 import type { ComponentNode } from '../../../types';
 import { escRust } from '../escape';
-import { SPINNER_PRESETS, getSeparatorChar, tailLines, renderStatusBar } from '../../../constants/assets';
+import { SPINNER_PRESETS, getSeparatorChar, tailLines, headLines, renderStatusBar } from '../../../constants/assets';
 import {
   type ExportColorMode,
   ansi16IndexOfName,
@@ -102,6 +102,7 @@ function collectUsedWidgets(node: ComponentNode, used: Set<string>): void {
       used.add('Sparkline');
       break;
     case 'Log':
+    case 'TextArea':
       used.add('Line');
       break;
     case 'List':
@@ -370,6 +371,19 @@ function generateRatatuiNode(
     const height = typeof node.props.height === 'number' ? node.props.height : 6;
     const visible = tailLines(lines, height);
     let widget = `Paragraph::new(vec![${visible.map((l) => `Line::from(${escRust(l)})`).join(', ')}]).style(${ratatuiStyle(node, colorMode)})`;
+    if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
+    return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
+  }
+
+  if (node.type === 'TextArea') {
+    // Ratatui core has no multiline text-edit widget — consider the
+    // tui-textarea crate for a real interactive editor. This renders a
+    // static multi-line preview the same way Log does.
+    const value = (node.props.value as string) || '';
+    const placeholder = (node.props.placeholder as string) || '';
+    const height = typeof node.props.height === 'number' ? node.props.height : 5;
+    const lines = headLines((value || placeholder).split('\n'), height);
+    let widget = `Paragraph::new(vec![${lines.map((l) => `Line::from(${escRust(l)})`).join(', ')}]).style(${ratatuiStyle(node, colorMode)})`;
     if (node.style.border) widget += `.block(${ratatuiBlock(node, colorMode)})`;
     return `${sp}frame.render_widget(${widget}, ${areaVar});\n`;
   }

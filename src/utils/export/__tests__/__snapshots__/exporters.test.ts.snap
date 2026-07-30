@@ -167,9 +167,24 @@ const search = blessed.textbox({
 
 search.on("submit", handleSearchChange);
 
-const opt = blessed.checkbox({
+const notes = blessed.textarea({
   parent: controls,
   top: 3,
+  left: 0,
+  width: 1,
+  height: 3,
+  mouse: true,
+  keys: true,
+  inputOnFocus: true,
+  scrollable: true,
+  value: "Line one\\nLine two",
+});
+
+notes.on("submit", handleNotesChange);
+
+const opt = blessed.checkbox({
+  parent: controls,
+  top: 6,
   left: 0,
   width: 1,
   height: 1,
@@ -184,7 +199,7 @@ opt.on("uncheck", handleOptChange);
 
 const r1 = blessed.radiobutton({
   parent: controls,
-  top: 4,
+  top: 7,
   left: 0,
   width: 1,
   height: 1,
@@ -199,7 +214,7 @@ r1.on("uncheck", handleR1Change);
 
 const dark = blessed.box({
   parent: controls,
-  top: 5,
+  top: 8,
   left: 0,
   width: 1,
   height: 1,
@@ -208,7 +223,7 @@ const dark = blessed.box({
 
 const sel = blessed.box({
   parent: controls,
-  top: 6,
+  top: 9,
   left: 0,
   width: 1,
   height: 1,
@@ -217,7 +232,7 @@ const sel = blessed.box({
 
 const load = blessed.box({
   parent: controls,
-  top: 7,
+  top: 10,
   left: 0,
   width: 1,
   height: 1,
@@ -226,7 +241,7 @@ const load = blessed.box({
 
 const prog = blessed.box({
   parent: controls,
-  top: 8,
+  top: 11,
   left: 0,
   width: 24,
   height: 1,
@@ -235,7 +250,7 @@ const prog = blessed.box({
 
 const cPU = blessed.box({
   parent: controls,
-  top: 9,
+  top: 12,
   left: 0,
   width: 24,
   height: 1,
@@ -244,7 +259,7 @@ const cPU = blessed.box({
 
 const trend = blessed.box({
   parent: controls,
-  top: 10,
+  top: 13,
   left: 0,
   width: 10,
   height: 1,
@@ -253,7 +268,7 @@ const trend = blessed.box({
 
 const output = blessed.log({
   parent: controls,
-  top: 11,
+  top: 14,
   left: 0,
   width: 20,
   height: 3,
@@ -264,7 +279,7 @@ const output = blessed.log({
 
 const footer = blessed.box({
   parent: controls,
-  top: 14,
+  top: 17,
   left: 0,
   width: 1,
   height: 1,
@@ -273,7 +288,7 @@ const footer = blessed.box({
 
 const crumb = blessed.box({
   parent: controls,
-  top: 15,
+  top: 18,
   left: 0,
   width: 1,
   height: 1,
@@ -282,7 +297,7 @@ const crumb = blessed.box({
 
 const div = blessed.line({
   parent: controls,
-  top: 17,
+  top: 20,
   left: 0,
   width: 1,
   height: 1,
@@ -330,6 +345,10 @@ function handleFileSelect() {
 }
 
 function handleFzfKeys() {
+  // TODO: implement
+}
+
+function handleNotesChange() {
   // TODO: implement
 }
 
@@ -458,11 +477,12 @@ func (m model) View() string {
 	body := lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("1")).Render("▶ [x] • main.rs  1\\n  [ ] • lib.rs  2"), "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested", "PID            │ CPU           \\n───────────────┼───────────────\\n123            │ 45%           \\n456            │ 2%            ", "  ⌂ Home  ^H")
 	// onClick ("handleOk") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleSearchChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
+	// onChange ("handleNotesChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleOptChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleR1Change") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleDarkChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
 	// onChange ("handleSelChange") not wired: this is a static View(), rebuild with a real tea.Model/Update() to handle it
-	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", "[✓] Enable"), lipgloss.JoinHorizontal(lipgloss.Top, "(●) Choice A", "[ON ] Dark mode"), lipgloss.JoinHorizontal(lipgloss.Top, "Two ▼", "[====] Working"), lipgloss.JoinHorizontal(lipgloss.Top, "[==========>      ] 67%", lipgloss.NewStyle().Width(24).Render("████████CPU 42%░░░░░░░░░")), lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(10).Render("▁▂▂▄▃▆▅▇▆█"), lipgloss.NewStyle().Width(20).Height(3).Render("Starting up...\\nConnected\\n200 OK")), lipgloss.JoinHorizontal(lipgloss.Top, "^Q Quit  ^S Save", "Home / Docs"), lipgloss.JoinHorizontal(lipgloss.Top, "", "════════════════════"))
+	controls := lipgloss.JoinVertical(lipgloss.Left, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Bold(true).Reverse(true).Render(" OK "), lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color("1")).Render(" Cancel ")), lipgloss.JoinHorizontal(lipgloss.Top, "type \\"here\\"..._", lipgloss.NewStyle().Height(3).Render("Line one\\nLine two\\n")), lipgloss.JoinHorizontal(lipgloss.Top, "[✓] Enable", "(●) Choice A"), lipgloss.JoinHorizontal(lipgloss.Top, "[ON ] Dark mode", "Two ▼"), lipgloss.JoinHorizontal(lipgloss.Top, "[====] Working", "[==========>      ] 67%"), lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(24).Render("████████CPU 42%░░░░░░░░░"), lipgloss.NewStyle().Width(10).Render("▁▂▂▄▃▆▅▇▆█")), lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(20).Height(3).Render("Starting up...\\nConnected\\n200 OK"), "^Q Quit  ^S Save"), lipgloss.JoinHorizontal(lipgloss.Top, "Home / Docs", ""), "════════════════════")
 	empty := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Render("")
 	screen := lipgloss.JoinVertical(lipgloss.Left, header, body, controls, empty)
 	return screen
@@ -580,6 +600,12 @@ function App() {
         <Text bold inverse>  OK  </Text>
         <Text color="red" bold inverse>  Cancel  </Text>
         <TextInput value={""} placeholder={"type \\"here\\"..."} onChange={() => handleSearchChange()} />
+        {/* onChange ("handleNotesChange") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
+        <Box flexDirection="column">
+          <Text key={0}>Line one</Text>
+          <Text key={1}>Line two</Text>
+          <Text key={2}></Text>
+        </Box>
         {/* onChange ("handleOptChange") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
         <Text>{/* checked={true} */} ✓ Enable</Text>
         {/* onChange ("handleR1Change") not wired — no prop for this on a plain <Text>/<Box>; see useInput for real keyboard handling */}
@@ -696,38 +722,42 @@ function App() {
         </box>
         <box style={{ flexDirection: "row" }}>
           <input placeholder={"type \\"here\\"..."} onInput={() => handleSearchChange()} />
+          {/* onChange ("handleNotesChange") not wired — no documented prop for this at the React-bindings layer */}
+          <textarea placeholder={"Enter notes..."} />
+        </box>
+        <box style={{ flexDirection: "row" }}>
           {/* onChange ("handleOptChange") not wired — no documented prop for this at the React-bindings layer */}
           <text>[✓] Enable</text>
-        </box>
-        <box style={{ flexDirection: "row" }}>
           {/* onChange ("handleR1Change") not wired — no documented prop for this at the React-bindings layer */}
           <text>(●) Choice A</text>
+        </box>
+        <box style={{ flexDirection: "row" }}>
           {/* onChange ("handleDarkChange") not wired — no documented prop for this at the React-bindings layer */}
           <text>[ON ] Dark mode</text>
-        </box>
-        <box style={{ flexDirection: "row" }}>
           {/* onChange ("handleSelChange") not wired — no documented prop for this at the React-bindings layer */}
           <select options={[{ name: "One", description: "", value: "one" }, { name: "Two", description: "", value: "two" }]} />
+        </box>
+        <box style={{ flexDirection: "row" }}>
           <text>[====] Working</text>
-        </box>
-        <box style={{ flexDirection: "row" }}>
           <text>[==========&gt;      ] 67%</text>
-          <text>████████CPU 42%░░░░░░░░░</text>
         </box>
         <box style={{ flexDirection: "row" }}>
+          <text>████████CPU 42%░░░░░░░░░</text>
           <text>▁▂▂▄▃▆▅▇▆█</text>
+        </box>
+        <box style={{ flexDirection: "row" }}>
           <scrollbox style={{ width: 20, height: 3 }}>
             <text>Starting up...</text>
             <text>Connected</text>
             <text>200 OK</text>
           </scrollbox>
-        </box>
-        <box style={{ flexDirection: "row" }}>
           <text>^Q Quit  ^S Save</text>
-          <text>Home / Docs</text>
         </box>
         <box style={{ flexDirection: "row" }}>
+          <text>Home / Docs</text>
           <box style={{ flexGrow: 1 }} />
+        </box>
+        <box style={{ flexDirection: "row" }}>
           <text>════════════════════</text>
         </box>
       </box>
@@ -856,7 +886,7 @@ fn ui(frame: &mut Frame) {
             frame.render_widget(List::new(vec![ListItem::new("▶ ⌂ Home  ^H")]).style(Style::default()), chunks_chunks_area_1_[3]);
         let grid_rows_chunks_area_2_ = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
+            .constraints([Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)])
             .split(chunks_area[2]);
         let grid_cols_chunks_area_2__0 = Layout::default()
             .direction(Direction::Horizontal)
@@ -869,42 +899,47 @@ fn ui(frame: &mut Frame) {
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[1]);
             frame.render_widget(Paragraph::new("type \\"here\\"..._").style(Style::default()), grid_cols_chunks_area_2__1[0]);
-            frame.render_widget(Paragraph::new("[✓] Enable").style(Style::default()), grid_cols_chunks_area_2__1[1]);
+            frame.render_widget(Paragraph::new(vec![Line::from("Line one"), Line::from("Line two"), Line::from("")]).style(Style::default()), grid_cols_chunks_area_2__1[1]);
         let grid_cols_chunks_area_2__2 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[2]);
-            frame.render_widget(Paragraph::new("(●) Choice A").style(Style::default()), grid_cols_chunks_area_2__2[0]);
-            frame.render_widget(Paragraph::new("[OFF] Dark mode").style(Style::default()), grid_cols_chunks_area_2__2[1]);
+            frame.render_widget(Paragraph::new("[✓] Enable").style(Style::default()), grid_cols_chunks_area_2__2[0]);
+            frame.render_widget(Paragraph::new("(●) Choice A").style(Style::default()), grid_cols_chunks_area_2__2[1]);
         let grid_cols_chunks_area_2__3 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[3]);
-            frame.render_widget(Paragraph::new("Two ▼").style(Style::default()), grid_cols_chunks_area_2__3[0]);
-            frame.render_widget(Paragraph::new("[====] Working").style(Style::default()), grid_cols_chunks_area_2__3[1]);
+            frame.render_widget(Paragraph::new("[OFF] Dark mode").style(Style::default()), grid_cols_chunks_area_2__3[0]);
+            frame.render_widget(Paragraph::new("Two ▼").style(Style::default()), grid_cols_chunks_area_2__3[1]);
         let grid_cols_chunks_area_2__4 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[4]);
-            frame.render_widget(Gauge::default().ratio(0.670).style(Style::default()), grid_cols_chunks_area_2__4[0]);
-            frame.render_widget(Gauge::default().ratio(0.420).label("CPU 42%").style(Style::default()), grid_cols_chunks_area_2__4[1]);
+            frame.render_widget(Paragraph::new("[====] Working").style(Style::default()), grid_cols_chunks_area_2__4[0]);
+            frame.render_widget(Gauge::default().ratio(0.670).style(Style::default()), grid_cols_chunks_area_2__4[1]);
         let grid_cols_chunks_area_2__5 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[5]);
-            frame.render_widget(Sparkline::default().data(&[1, 3, 2, 5, 4, 8, 6, 9, 7, 10]).style(Style::default()), grid_cols_chunks_area_2__5[0]);
-            frame.render_widget(Paragraph::new(vec![Line::from("Starting up..."), Line::from("Connected"), Line::from("200 OK")]).style(Style::default()), grid_cols_chunks_area_2__5[1]);
+            frame.render_widget(Gauge::default().ratio(0.420).label("CPU 42%").style(Style::default()), grid_cols_chunks_area_2__5[0]);
+            frame.render_widget(Sparkline::default().data(&[1, 3, 2, 5, 4, 8, 6, 9, 7, 10]).style(Style::default()), grid_cols_chunks_area_2__5[1]);
         let grid_cols_chunks_area_2__6 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[6]);
-            frame.render_widget(Paragraph::new("^Q Quit  ^S Save").style(Style::default()), grid_cols_chunks_area_2__6[0]);
-            frame.render_widget(Paragraph::new("Home / Docs").style(Style::default()), grid_cols_chunks_area_2__6[1]);
+            frame.render_widget(Paragraph::new(vec![Line::from("Starting up..."), Line::from("Connected"), Line::from("200 OK")]).style(Style::default()), grid_cols_chunks_area_2__6[0]);
+            frame.render_widget(Paragraph::new("^Q Quit  ^S Save").style(Style::default()), grid_cols_chunks_area_2__6[1]);
         let grid_cols_chunks_area_2__7 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Fill(1), Constraint::Fill(1)])
             .split(grid_rows_chunks_area_2_[7]);
-            frame.render_widget(Paragraph::new("═".repeat(grid_cols_chunks_area_2__7[1].width as usize)).style(Style::default()), grid_cols_chunks_area_2__7[1]);
+            frame.render_widget(Paragraph::new("Home / Docs").style(Style::default()), grid_cols_chunks_area_2__7[0]);
+        let grid_cols_chunks_area_2__8 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Fill(1), Constraint::Fill(1)])
+            .split(grid_rows_chunks_area_2_[8]);
+            frame.render_widget(Paragraph::new("═".repeat(grid_cols_chunks_area_2__8[0].width as usize)).style(Style::default()), grid_cols_chunks_area_2__8[0]);
         let block_chunks_area_3_ = Block::new().borders(Borders::ALL).border_type(BorderType::Plain).title("Empty");
         let inner_chunks_area_3_ = block_chunks_area_3_.inner(chunks_area[3]);
         frame.render_widget(block_chunks_area_3_, chunks_area[3]);
@@ -996,7 +1031,7 @@ exports[`exportToCode snapshots > textual: kitchen-sink tree 1`] = `
 from textual import events
 from textual.containers import Grid, Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Checkbox, DataTable, Footer, Input, LoadingIndicator, OptionList, ProgressBar, RadioButton, RichLog, Rule, Select, SelectionList, Sparkline, Static, Switch, Tabs, Tree
+from textual.widgets import Button, Checkbox, DataTable, Footer, Input, LoadingIndicator, OptionList, ProgressBar, RadioButton, RichLog, Rule, Select, SelectionList, Sparkline, Static, Switch, Tabs, TextArea, Tree
 
 
 class ConfirmModal(ModalScreen):
@@ -1035,11 +1070,15 @@ class MyApp(App):
     }
 
     #controls {
-        grid-size: 2 8;
+        grid-size: 2 9;
     }
 
     #ok {
         color: ansi_red;
+    }
+
+    #notes {
+        height: 3;
     }
 
     #prog {
@@ -1092,6 +1131,7 @@ class MyApp(App):
             yield Button("OK")
             yield Button("Cancel", id="ok")
             yield Input(placeholder="type \\"here\\"...")
+            yield TextArea("Line one\\nLine two", placeholder="Enter notes...", id="notes")
             yield Checkbox("Enable", value=True)
             yield RadioButton("Choice A", value=True)
             with Horizontal():
@@ -1151,6 +1191,9 @@ class MyApp(App):
     def on_selection_list_selected_changed(self, event: SelectionList.SelectedChanged) -> None:
         self.handleFileSelect()
 
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        self.handleNotesChange()
+
     def on_key(self, event: events.Key) -> None:
         self.handleFzfKeys()
         self.handleTableKeys()
@@ -1162,6 +1205,9 @@ class MyApp(App):
         pass  # TODO: implement
 
     def handleFzfKeys(self) -> None:
+        pass  # TODO: implement
+
+    def handleNotesChange(self) -> None:
         pass  # TODO: implement
 
     def handleOk(self) -> None:
@@ -1301,7 +1347,7 @@ func main() {
 	body.AddItem(nav2, 0, 1, false)
 	root.AddItem(body, 0, 1, false)
 	controls := tview.NewGrid()
-	controls.SetRows(0, 0, 0, 0, 0, 0, 0, 0)
+	controls.SetRows(0, 0, 0, 0, 0, 0, 0, 0, 0)
 	controls.SetColumns(0, 0)
 	oK := tview.NewButton(tview.Escape("OK"))
 	oK.SetSelectedFunc(handleOk)
@@ -1313,59 +1359,64 @@ func main() {
 	search.SetPlaceholder(tview.Escape("type \\"here\\"..."))
 	search.SetChangedFunc(func(text string) { handleSearchChange() })
 	controls.AddItem(search, 1, 0, 1, 1, 0, 0, false)
+	notes := tview.NewTextArea()
+	notes.SetPlaceholder(tview.Escape("Enter notes..."))
+	notes.SetText(tview.Escape("Line one\\nLine two"), false)
+	notes.SetChangedFunc(func() { handleNotesChange() })
+	controls.AddItem(notes, 1, 1, 1, 1, 0, 0, false)
 	opt := tview.NewCheckbox()
 	opt.SetLabel(tview.Escape("Enable "))
 	opt.SetChecked(true)
 	opt.SetCheckedString(tview.Escape("X"))
 	opt.SetUncheckedString(tview.Escape(" "))
 	opt.SetChangedFunc(func(checked bool) { handleOptChange() })
-	controls.AddItem(opt, 1, 1, 1, 1, 0, 0, false)
+	controls.AddItem(opt, 2, 0, 1, 1, 0, 0, false)
 	r1 := tview.NewCheckbox()
 	r1.SetLabel(tview.Escape("Choice A "))
 	r1.SetChecked(true)
 	r1.SetCheckedString(tview.Escape("●"))
 	r1.SetUncheckedString(tview.Escape("○"))
 	r1.SetChangedFunc(func(checked bool) { handleR1Change() })
-	controls.AddItem(r1, 2, 0, 1, 1, 0, 0, false)
+	controls.AddItem(r1, 2, 1, 1, 1, 0, 0, false)
 	dark := tview.NewCheckbox()
 	dark.SetLabel(tview.Escape("Dark mode "))
 	dark.SetChecked(true)
 	dark.SetCheckedString(tview.Escape(" ON "))
 	dark.SetUncheckedString(tview.Escape(" OFF "))
 	dark.SetChangedFunc(func(checked bool) { handleDarkChange() })
-	controls.AddItem(dark, 2, 1, 1, 1, 0, 0, false)
+	controls.AddItem(dark, 3, 0, 1, 1, 0, 0, false)
 	sel := tview.NewDropDown()
 	sel.SetOptions([]string{tview.Escape("One"), tview.Escape("Two")}, nil)
 	sel.SetCurrentOption(1)
 	sel.SetSelectedFunc(func(text string, index int) { handleSelChange() })
-	controls.AddItem(sel, 3, 0, 1, 1, 0, 0, false)
+	controls.AddItem(sel, 3, 1, 1, 1, 0, 0, false)
 	load := tview.NewTextView()
 	load.SetText(tview.Escape("[====] Working")) // static frame; drive with a time.Ticker + app.QueueUpdateDraw for a live spinner
-	controls.AddItem(load, 3, 1, 1, 1, 0, 0, false)
+	controls.AddItem(load, 4, 0, 1, 1, 0, 0, false)
 	prog := tview.NewTextView()
 	prog.SetText(tview.Escape("[==========>      ] 67%")) // tview has no built-in progress bar; update this text as work completes
-	controls.AddItem(prog, 4, 0, 1, 1, 0, 0, false)
+	controls.AddItem(prog, 4, 1, 1, 1, 0, 0, false)
 	cPU := tview.NewTextView()
 	cPU.SetText(tview.Escape("████████CPU 42%░░░░░░░░░")) // tview has no built-in gauge; update this text as the value changes
-	controls.AddItem(cPU, 4, 1, 1, 1, 0, 0, false)
+	controls.AddItem(cPU, 5, 0, 1, 1, 0, 0, false)
 	trend := tview.NewTextView()
 	trend.SetText(tview.Escape("▁▂▂▄▃▆▅▇▆█")) // tview has no built-in sparkline; update this text as data changes
-	controls.AddItem(trend, 5, 0, 1, 1, 0, 0, false)
+	controls.AddItem(trend, 5, 1, 1, 1, 0, 0, false)
 	output := tview.NewTextView()
 	output.SetScrollable(true)
 	output.SetText(tview.Escape("Starting up...\\nConnected\\n200 OK"))
 	output.ScrollToEnd()
-	controls.AddItem(output, 5, 1, 1, 1, 0, 0, false)
+	controls.AddItem(output, 6, 0, 1, 1, 0, 0, false)
 	footer := tview.NewTextView()
 	footer.SetText(tview.Escape("^Q Quit  ^S Save"))
-	controls.AddItem(footer, 6, 0, 1, 1, 0, 0, false)
+	controls.AddItem(footer, 6, 1, 1, 1, 0, 0, false)
 	crumb := tview.NewTextView()
 	crumb.SetText(tview.Escape("Home / Docs"))
-	controls.AddItem(crumb, 6, 1, 1, 1, 0, 0, false)
-	controls.AddItem(tview.NewBox(), 7, 0, 1, 1, 0, 0, false)
+	controls.AddItem(crumb, 7, 0, 1, 1, 0, 0, false)
+	controls.AddItem(tview.NewBox(), 7, 1, 1, 1, 0, 0, false)
 	div := tview.NewTextView()
 	div.SetText(tview.Escape("════════════════════"))
-	controls.AddItem(div, 7, 1, 1, 1, 0, 0, false)
+	controls.AddItem(div, 8, 0, 1, 1, 0, 0, false)
 	root.AddItem(controls, 0, 1, false)
 	empty := tview.NewFlex()
 	empty.SetDirection(tview.FlexRow)
@@ -1409,6 +1460,10 @@ func handleFileSelect() {
 }
 
 func handleFzfKeys() {
+	// TODO: implement
+}
+
+func handleNotesChange() {
 	// TODO: implement
 }
 

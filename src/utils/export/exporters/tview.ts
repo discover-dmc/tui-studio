@@ -221,6 +221,20 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       return varName;
     }
 
+    case 'TextArea': {
+      // Real tview.TextArea (distinct from the single-line InputField above).
+      const varName = ident(node.name, ctx);
+      ctx.stmts.push(`${varName} := tview.NewTextArea()`);
+      ctx.stmts.push(`${varName}.SetPlaceholder(${tviewText((node.props.placeholder as string) || '')})`);
+      if (node.props.value) ctx.stmts.push(`${varName}.SetText(${tviewText(node.props.value as string)}, false)`);
+      if (node.events.onChange) {
+        ctx.handlerStubs.add(node.events.onChange);
+        ctx.stmts.push(`${varName}.SetChangedFunc(func() { ${node.events.onChange}() })`);
+      }
+      applyBoxStyle(varName, node, ctx);
+      return varName;
+    }
+
     case 'Checkbox': {
       const varName = ident(node.name, ctx);
       ctx.stmts.push(`${varName} := tview.NewCheckbox()`);

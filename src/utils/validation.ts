@@ -134,6 +134,7 @@ export function validateComponentNode(node: ComponentNode): string[] {
 export function canHaveChildren(type: ComponentType): boolean {
   const noChildrenTypes: ComponentType[] = [
     'TextInput',
+    'TextArea',
     'Button',
     'Checkbox',
     'Radio',

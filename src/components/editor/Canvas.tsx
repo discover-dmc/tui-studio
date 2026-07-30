@@ -21,6 +21,7 @@ import {
   renderSparkline,
   renderStatusBar,
   tailLines,
+  headLines,
   getSeparatorChar,
 } from '../../constants/assets';
 import { THEMES } from '../../stores/themeStore';
@@ -496,6 +497,23 @@ const ComponentRenderer = memo(
               [{(node.props.placeholder as string) || '___________'}]
             </span>
           );
+        case 'TextArea': {
+          const value = (node.props.value as string) || '';
+          const placeholder = (node.props.placeholder as string) || '';
+          const lines = (value || placeholder).split('\n');
+          const visible = headLines(lines, Math.max(1, layout.height));
+          return (
+            <div
+              className={`font-mono text-xs whitespace-pre leading-tight w-full h-full ${
+                !value ? 'text-muted-foreground' : ''
+              }`}
+            >
+              {visible.map((l, i) => (
+                <div key={i}>{l.length > layout.width ? l.slice(0, layout.width) : l}</div>
+              ))}
+            </div>
+          );
+        }
         case 'Select': {
           const value = (node.props.value as string) || '';
           const options = (node.props.options as string[]) || [];

@@ -196,6 +196,23 @@ export function tailLines(lines: string[], height: number, width?: number): stri
 }
 
 /**
+ * Like tailLines, but anchored to the start (for buffers you read top-down,
+ * e.g. TextArea) rather than the end (tailLines' log/tail-f semantics) —
+ * shows the first N lines and pads any remaining rows at the bottom instead
+ * of pushing real content down with blank lines above it.
+ */
+export function headLines(lines: string[], height: number, width?: number): string[] {
+  const visible = lines.slice(0, Math.max(1, height));
+  const blankLine = width !== undefined ? ' '.repeat(width) : '';
+  const padBottom = Array(Math.max(0, height - visible.length)).fill(blankLine);
+  const body =
+    width !== undefined
+      ? visible.map((l) => (l.length > width ? l.slice(0, width) : l.padEnd(width)))
+      : visible;
+  return [...body, ...padBottom];
+}
+
+/**
  * Render a StatusBar's key/label hints as one gap-separated line
  * (e.g. "^Q Quit  ^S Save  ^H Help"). Shared by every exporter except
  * Textual, which has a real Footer+BINDINGS mechanism instead.

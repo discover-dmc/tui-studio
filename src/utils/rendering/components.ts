@@ -12,6 +12,7 @@ import {
   renderSparkline,
   renderStatusBar,
   tailLines,
+  headLines,
   getSeparatorChar,
 } from '../../constants/assets';
 
@@ -55,6 +56,9 @@ export function renderComponent(
       break;
     case 'TextInput':
       content = renderTextInput(node, width, height);
+      break;
+    case 'TextArea':
+      content = renderTextArea(node, width, height);
       break;
     case 'Checkbox':
       content = renderCheckbox(node, width, height);
@@ -373,6 +377,17 @@ function renderLog(node: ComponentNode, width: number, height: number): string[]
     : { width, height };
 
   return tailLines(lines, contentArea.height, contentArea.width);
+}
+
+function renderTextArea(node: ComponentNode, width: number, height: number): string[] {
+  const value = (node.props.value as string) || '';
+  const placeholder = (node.props.placeholder as string) || '';
+  const lines = (value || placeholder).split('\n');
+  const contentArea = node.style.border
+    ? getContentArea(width, height, { style: 'single' })
+    : { width, height };
+
+  return headLines(lines, contentArea.height, contentArea.width);
 }
 
 function renderStatusBarComponent(node: ComponentNode, width: number, height: number): string[] {

@@ -6,6 +6,7 @@ import {
   renderSparkline,
   renderStatusBar,
   tailLines,
+  headLines,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -108,6 +109,18 @@ function generateInkNode(node: ComponentNode, indent: number, colorMode: ExportC
       // uses the real package, not a hand-rolled <Text>, unlike most others).
       const onChange = node.events.onChange ? `() => ${node.events.onChange}()` : '() => {}';
       return `${sp}<TextInput value={${value}} placeholder={${placeholder}} onChange={${onChange}} />\n`;
+    }
+
+    case 'TextArea': {
+      // No official multiline-input package (ink-text-input is single-line);
+      // consider a community package like ink-multiline-input for a real
+      // editable one. Static multi-line preview, same shape as Log above.
+      const value = (node.props.value as string) || '';
+      const placeholder = (node.props.placeholder as string) || '';
+      const height = typeof node.props.height === 'number' ? node.props.height : 5;
+      const lines = headLines((value || placeholder).split('\n'), height);
+      const rows = lines.map((l, i) => `${sp}  <Text key={${i}}>${escJsx(l)}</Text>`).join('\n');
+      return `${eventComment(sp, node.events.onChange, 'onChange')}${sp}<Box${inkBoxProps(node, colorMode)} flexDirection="column">\n${rows}\n${sp}</Box>\n`;
     }
 
     case 'Checkbox': {

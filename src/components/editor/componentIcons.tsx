@@ -23,6 +23,7 @@ import {
   Navigation,
   PanelTop,
   SeparatorHorizontal,
+  AlignLeft,
 } from 'lucide-react';
 import type { ComponentType } from '../../types';
 
@@ -48,6 +49,8 @@ export function getComponentIcon(type: ComponentType) {
       return <MousePointerClick {...iconProps} />;
     case 'TextInput':
       return <Type {...iconProps} />;
+    case 'TextArea':
+      return <AlignLeft {...iconProps} />;
     case 'Checkbox':
       return <CheckSquare {...iconProps} />;
     case 'Radio':

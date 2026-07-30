@@ -9,6 +9,7 @@ export type ComponentType =
   | 'Separator'
   // Input
   | 'TextInput'
+  | 'TextArea'
   | 'Button'
   | 'Checkbox'
   | 'Radio'

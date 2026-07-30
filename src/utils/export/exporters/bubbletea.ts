@@ -7,6 +7,7 @@ import {
   renderSparkline,
   renderStatusBar,
   tailLines,
+  headLines,
   getSeparatorChar,
 } from '../../../constants/assets';
 import {
@@ -170,6 +171,16 @@ function genNode(node: ComponentNode, ctx: Ctx): string {
       eventComment(ctx, node.events.onChange, 'onChange');
       const value = ((node.props.value as string) || (node.props.placeholder as string) || '') + '_';
       return styled(node, escGoStr(value), ctx);
+    }
+
+    case 'TextArea': {
+      // consider charmbracelet/bubbles/textarea for a live multiline editor
+      eventComment(ctx, node.events.onChange, 'onChange');
+      const value = (node.props.value as string) || '';
+      const placeholder = (node.props.placeholder as string) || '';
+      const height = typeof node.props.height === 'number' ? node.props.height : 5;
+      const lines = headLines((value || placeholder).split('\n'), height);
+      return styled(node, escGoStr(lines.join('\n')), ctx);
     }
 
     case 'Checkbox': {

@@ -20,6 +20,7 @@ const HANDLER_METHODS: Record<string, { method: string; eventType: string }> = {
     method: 'on_selection_list_selected_changed',
     eventType: 'SelectionList.SelectedChanged',
   },
+  textArea: { method: 'on_text_area_changed', eventType: 'TextArea.Changed' },
 };
 
 interface Ctx {
@@ -59,6 +60,7 @@ export function exportToTextual(root: ComponentNode): string {
       select: new Set(),
       listSelect: new Set(),
       selectionListChanged: new Set(),
+      textArea: new Set(),
       key: new Set(),
     },
   };
@@ -247,6 +249,15 @@ function genNode(node: ComponentNode, ctx: Ctx, indent: number): string {
       const value = node.props.value ? `, value=${py(node.props.value, '')}` : '';
       if (node.events.onChange) ctx.handlers.input.add(node.events.onChange);
       return `${sp}yield Input(placeholder=${py(node.props.placeholder, '')}${value}${idArg(id)})\n`;
+    }
+
+    case 'TextArea': {
+      ctx.widgets.add('TextArea');
+      const id = registerStyles(node, ctx);
+      const value = (node.props.value as string) || '';
+      const placeholder = (node.props.placeholder as string) || '';
+      if (node.events.onChange) ctx.handlers.textArea.add(node.events.onChange);
+      return `${sp}yield TextArea(${py(value, '')}, placeholder=${py(placeholder, '')}${idArg(id)})\n`;
     }
 
     case 'Checkbox': {

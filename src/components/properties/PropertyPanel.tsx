@@ -536,6 +536,37 @@ function ComponentProps({ component }: { component: import('../../types').Compon
         </div>
       )}
 
+      {/* TextArea Properties */}
+      {component.type === 'TextArea' && (
+        <>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Placeholder
+            </label>
+            <input
+              type="text"
+              value={(component.props.placeholder as string) || ''}
+              onChange={(e) =>
+                componentStore.updateProps(component.id, { placeholder: e.target.value })
+              }
+              className="w-full px-1.5 py-0.5 bg-input border border-border/50 rounded text-[11px] focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[9px] text-muted-foreground block mb-0.5 uppercase tracking-wide">
+              Value
+            </label>
+            <textarea
+              value={(component.props.value as string) || ''}
+              onChange={(e) => componentStore.updateProps(component.id, { value: e.target.value })}
+              rows={5}
+              placeholder="Multiline text..."
+              className="w-full px-2 py-1 bg-input border border-border/50 rounded text-[11px] font-mono resize-none focus:border-primary focus:outline-none"
+            />
+          </div>
+        </>
+      )}
+
       {/* Checkbox Properties */}
       {component.type === 'Checkbox' && (
         <>

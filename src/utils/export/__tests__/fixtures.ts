@@ -185,6 +185,15 @@ export function kitchenSinkTree(): ComponentNode {
           { onChange: 'handleSearchChange' }
         ),
         node(
+          'TextArea',
+          'Notes',
+          { value: 'Line one\nLine two', placeholder: 'Enter notes...', height: 3 },
+          [],
+          {},
+          {},
+          { onChange: 'handleNotesChange' }
+        ),
+        node(
           'Checkbox',
           'Opt',
           { label: 'Enable', checked: true },

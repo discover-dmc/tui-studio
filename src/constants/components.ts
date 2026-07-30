@@ -148,6 +148,32 @@ export const COMPONENT_LIBRARY: Record<ComponentType, ComponentDefinition> = {
     },
   },
 
+  TextArea: {
+    type: 'TextArea',
+    name: 'Text Area',
+    description: 'Multiline editable text input',
+    icon: 'AlignLeft',
+    category: 'input',
+    defaultProps: {
+      placeholder: 'Enter text...',
+      value: '',
+      width: 30,
+      height: 5,
+    },
+    defaultLayout: {
+      type: 'none',
+    },
+    defaultStyle: {
+      color: 'white',
+      border: true,
+      borderStyle: 'single',
+      borderColor: 'white',
+    },
+    defaultEvents: {
+      onChange: 'handleChange',
+    },
+  },
+
   Button: {
     type: 'Button',
     name: 'Button',
