@@ -479,7 +479,7 @@ function renderList(node: ComponentNode, width: number, height: number): string[
     const checkbox = multiSelect ? `[${items[i].checked ? 'x' : ' '}] ` : '';
     const prefix = `${checkbox}${items[i].icon || '•'} `;
     const text = `${prefix}${truncateText(items[i].label || 'Item', contentArea.width - prefix.length)}`;
-    lines.push(text.padEnd(contentArea.width));
+    lines.push(text.slice(0, contentArea.width).padEnd(contentArea.width));
   }
 
   while (lines.length < contentArea.height) {

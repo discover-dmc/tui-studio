@@ -36,8 +36,13 @@ export function calculateFlexboxLayout(
     flexBasis: 'auto',
     width: child.props.width,
     height: child.props.height,
-    minWidth: 1,
-    minHeight: 1,
+    // A real, user-settable constraint (ComponentProps.minWidth/minHeight) —
+    // not a hardcoded 1, which made resolveWidth/resolveHeight's `|| 10`/`|| 3`
+    // fallback dead code and let un-sized children (e.g. a Table with no
+    // explicit width/height) collapse to 1x1, going negative once its own
+    // border was subtracted.
+    minWidth: typeof child.props.minWidth === 'number' ? child.props.minWidth : undefined,
+    minHeight: typeof child.props.minHeight === 'number' ? child.props.minHeight : undefined,
   }));
 
   // Collect items into flex lines

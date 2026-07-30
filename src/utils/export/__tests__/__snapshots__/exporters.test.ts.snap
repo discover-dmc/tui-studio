@@ -28,7 +28,7 @@ const header = blessed.box({
   parent: screen,
   top: 0,
   left: 0,
-  width: 1,
+  width: 10,
   height: 5,
   border: { type: 'line' },
   label: " Header ",
@@ -39,7 +39,7 @@ const title = blessed.box({
   parent: header,
   top: 0,
   left: 0,
-  width: 1,
+  width: 3,
   height: 1,
   content: "Say \\"hi\\" to <all>",
   style: { fg: "#7dcfff", bold: true },
@@ -48,7 +48,7 @@ const title = blessed.box({
 const nav = blessed.box({
   parent: header,
   top: 0,
-  left: 3,
+  left: 5,
   width: 29,
   height: 3,
   content: "  Dashboard  {bold}[ Agent ]{/bold}",
@@ -59,7 +59,7 @@ const body = blessed.box({
   parent: screen,
   top: 5,
   left: 0,
-  width: 1,
+  width: 10,
   height: 5,
 });
 
@@ -67,8 +67,8 @@ const files = blessed.list({
   parent: body,
   top: 0,
   left: 0,
-  width: 1,
-  height: 1,
+  width: 2,
+  height: 3,
   border: { type: 'line' },
   label: " Files ",
   mouse: true,
@@ -85,18 +85,18 @@ files.on("keypress", handleFzfKeys);
 const explorer = blessed.box({
   parent: body,
   top: 0,
-  left: 1,
-  width: 1,
-  height: 1,
+  left: 2,
+  width: 2,
+  height: 3,
   content: "Root\\n  ├─ Child 1\\n  ├─ Child 2\\n    ├─ Nested",
 });
 
 const stats = blessed.listtable({
   parent: body,
   top: 0,
-  left: 2,
-  width: 1,
-  height: 1,
+  left: 4,
+  width: 2,
+  height: 3,
   rows: [["PID", "CPU"], ["123", "45%"], ["456", "2%"]],
   align: 'left',
   keys: true,
@@ -109,9 +109,9 @@ stats.on("keypress", handleTableKeys);
 const nav2 = blessed.list({
   parent: body,
   top: 0,
-  left: 3,
-  width: 1,
-  height: 1,
+  left: 6,
+  width: 2,
+  height: 3,
   mouse: true,
   keys: true,
   items: ["⌂ Home  ^H"],
@@ -123,7 +123,7 @@ const controls = blessed.box({
   parent: screen,
   top: 10,
   left: 0,
-  width: 1,
+  width: 10,
   height: 5,
 });
 
@@ -131,7 +131,7 @@ const oK = blessed.button({
   parent: controls,
   top: 0,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: " OK ",
   mouse: true,
@@ -143,9 +143,9 @@ oK.on("press", handleOk);
 
 const oK2 = blessed.button({
   parent: controls,
-  top: 1,
+  top: 3,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: " Cancel ",
   mouse: true,
@@ -155,9 +155,9 @@ const oK2 = blessed.button({
 
 const search = blessed.textbox({
   parent: controls,
-  top: 2,
+  top: 6,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   mouse: true,
   keys: true,
@@ -169,9 +169,9 @@ search.on("submit", handleSearchChange);
 
 const notes = blessed.textarea({
   parent: controls,
-  top: 3,
+  top: 9,
   left: 0,
-  width: 1,
+  width: 10,
   height: 3,
   mouse: true,
   keys: true,
@@ -184,9 +184,9 @@ notes.on("submit", handleNotesChange);
 
 const opt = blessed.checkbox({
   parent: controls,
-  top: 6,
+  top: 12,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   mouse: true,
   checked: true,
@@ -199,9 +199,9 @@ opt.on("uncheck", handleOptChange);
 
 const r1 = blessed.radiobutton({
   parent: controls,
-  top: 7,
+  top: 15,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   mouse: true,
   checked: true,
@@ -214,34 +214,34 @@ r1.on("uncheck", handleR1Change);
 
 const dark = blessed.box({
   parent: controls,
-  top: 8,
+  top: 18,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: "[ON ] Dark mode",
 });
 
 const sel = blessed.box({
   parent: controls,
-  top: 9,
+  top: 21,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: "Two ▼",
 });
 
 const load = blessed.box({
   parent: controls,
-  top: 10,
+  top: 24,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: "[====] Working",
 });
 
 const prog = blessed.box({
   parent: controls,
-  top: 11,
+  top: 27,
   left: 0,
   width: 24,
   height: 1,
@@ -250,7 +250,7 @@ const prog = blessed.box({
 
 const cPU = blessed.box({
   parent: controls,
-  top: 12,
+  top: 30,
   left: 0,
   width: 24,
   height: 1,
@@ -259,7 +259,7 @@ const cPU = blessed.box({
 
 const trend = blessed.box({
   parent: controls,
-  top: 13,
+  top: 33,
   left: 0,
   width: 10,
   height: 1,
@@ -268,7 +268,7 @@ const trend = blessed.box({
 
 const output = blessed.log({
   parent: controls,
-  top: 14,
+  top: 36,
   left: 0,
   width: 20,
   height: 3,
@@ -279,37 +279,37 @@ const output = blessed.log({
 
 const footer = blessed.box({
   parent: controls,
-  top: 17,
+  top: 39,
   left: 0,
-  width: 1,
-  height: 1,
+  width: 10,
+  height: 3,
   content: "^Q Quit  ^S Save",
 });
 
 const crumb = blessed.box({
   parent: controls,
-  top: 18,
+  top: 42,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: "Home / Docs",
 });
 
 const notice = blessed.box({
   parent: controls,
-  top: 19,
+  top: 45,
   left: 0,
-  width: 1,
-  height: 1,
+  width: 10,
+  height: 3,
   content: "✓ Saved successfully",
 });
 
 const div = blessed.line({
   parent: controls,
-  top: 21,
+  top: 51,
   left: 0,
-  width: 1,
-  height: 1,
+  width: 10,
+  height: 3,
   orientation: "horizontal",
   type: 'bg',
   ch: "═",
@@ -319,7 +319,7 @@ const empty = blessed.box({
   parent: screen,
   top: 15,
   left: 0,
-  width: 1,
+  width: 10,
   height: 5,
   border: { type: 'line' },
   label: " Empty ",
@@ -329,7 +329,7 @@ const confirm = blessed.box({
   parent: screen,
   top: 20,
   left: 0,
-  width: 1,
+  width: 10,
   height: 5,
   border: { type: 'line' },
   label: " Confirm ",
@@ -340,7 +340,7 @@ const msg = blessed.box({
   parent: confirm,
   top: -1,
   left: -1,
-  width: 1,
+  width: 10,
   height: 1,
   content: "Sure?",
 });
@@ -395,7 +395,7 @@ const title = blessed.box({
   parent: screen,
   top: 0,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: "Hello",
 });
@@ -1552,7 +1552,7 @@ const banner = blessed.box({
   parent: screen,
   top: 0,
   left: 0,
-  width: 1,
+  width: 10,
   height: 8,
   style: { bg: "#ff0000" },
 });
@@ -1561,15 +1561,15 @@ const centeredRow = blessed.box({
   parent: screen,
   top: 8,
   left: 0,
-  width: 1,
+  width: 10,
   height: 8,
 });
 
 const a = blessed.box({
   parent: centeredRow,
   top: 0,
-  left: 0,
-  width: 1,
+  left: 0.5,
+  width: 3,
   height: 1,
   content: "A",
   style: { fg: "#800" },
@@ -1578,8 +1578,8 @@ const a = blessed.box({
 const b = blessed.box({
   parent: centeredRow,
   top: 0,
-  left: 4,
-  width: 1,
+  left: 6.5,
+  width: 3,
   height: 1,
   content: "B",
   style: { fg: "brightGreen" },
@@ -1589,7 +1589,7 @@ const spacedColumn = blessed.box({
   parent: screen,
   top: 16,
   left: 0,
-  width: 1,
+  width: 10,
   height: 8,
 });
 
@@ -1597,7 +1597,7 @@ const c = blessed.box({
   parent: spacedColumn,
   top: 0,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: "C",
 });
@@ -1606,7 +1606,7 @@ const d = blessed.box({
   parent: spacedColumn,
   top: 4,
   left: 0,
-  width: 1,
+  width: 10,
   height: 1,
   content: "D",
 });

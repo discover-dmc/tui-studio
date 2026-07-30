@@ -144,13 +144,6 @@ export function applyAddComponent(
   const id = generateComponentId();
   const newComponent: ComponentNode = { ...componentData, id, children: [] };
 
-  if (['Box', 'Grid'].includes(parent.type)) {
-    if (typeof parent.props.height === 'number') parent.props.height = 'auto';
-    if (typeof parent.props.width === 'number' && parent.layout.direction !== 'column') {
-      parent.props.width = 'auto';
-    }
-  }
-
   if (index !== undefined) parent.children.splice(index, 0, newComponent);
   else parent.children.push(newComponent);
 

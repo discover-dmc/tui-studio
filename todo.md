@@ -53,6 +53,61 @@ Repo setup: fork `discover-dmc/tui-studio` is `origin`; `jalonsogo/tui-studio` i
   required fields and validates `node.type` against real `COMPONENT_LIBRARY` keys.
   `openTuiFile` now rejects malformed trees with the existing alert instead of crashing.
   Verified against good/malformed fixtures (bad type, non-array children, malformed child).
+- [x] **3 real layout-engine bugs found via first real MCP dogfooding** (2026-07-30):
+  surfaced building an actual dashboard (tracklistify project) through the Phase
+  1-4 MCP tools, not synthetic testing — an agent naturally declares explicit
+  sizes and nests data widgets in ways the human drag-and-drop UI rarely
+  exercises, since palette-added components always carry a literal `'auto'`
+  width/height from `COMPONENT_LIBRARY` defaults.
+  1. **Crash**: nesting a data widget (e.g. `Table`) with no explicit
+     width/height inside a `Box` crashed `render_preview` with `RangeError:
+     Invalid count value: -1`. Root cause, confirmed via direct repro (real
+     stack trace landing on `renderTable`
+     [components.ts:507](src/utils/rendering/components.ts:507)):
+     [flexbox.ts](src/utils/layout/flexbox.ts)'s `calculateFlexboxLayout`
+     hardcoded `minWidth: 1, minHeight: 1` on every flex item, which made
+     `resolveWidth`/`resolveHeight`'s existing `item.minWidth || 10` /
+     `|| 3` fallback dead code (1 is truthy) — an unsized child collapsed to
+     1x1, then its own border subtraction went negative. Fixed by reading the
+     real, already-typed-but-previously-unused `ComponentProps.minWidth`/
+     `minHeight` fields instead of the hardcoded 1, letting the intended
+     10/3 fallback actually fire. Confirmed via `npx vitest run` that the
+     repro no longer throws; 3 pre-existing Blessed snapshot tests changed
+     (every unsized element's baked-in `width`/`height` literal moved from
+     the broken 1/1 to the intended 10/3, with cascading position shifts) —
+     reviewed each diff, all consistent with the fix, updated via `-u`.
+     Real-toolchain re-verified (`node --check` on all 4 Blessed variants).
+  2. **Silent data loss**: `add_component`'s explicit `height` override on a
+     `Box` got silently reset to `'auto'` the moment any child was added
+     into it — a pre-existing "auto-grow an empty container to fit its
+     first child" heuristic in
+     [treeUtils.ts](src/utils/treeUtils.ts)'s `applyAddComponent` that fires
+     on *every* add, not just the first, clobbering deliberate sizing.
+     Removed entirely rather than narrowed to "first child only," since
+     that would've still broken the exact reported case (an agent setting
+     an explicit height then immediately populating it) — the app's
+     existing Layout Warning system (overflow/negative-space) is the right
+     place to surface a too-small container, not a silent implicit resize.
+  3. **Cosmetic gap**: `renderList` was missing the final
+     `.slice(0, contentArea.width)` clamp that `renderTable` already has —
+     hardened for consistency, though the *confirmed* mechanism behind the
+     reported "content overflows the border" symptom is deeper (see below).
+  **Also identified, not yet fixed** — a real, systemic gap: `visibleLength`
+  ([ansi.ts](src/utils/rendering/ansi.ts)) is `stripAnsi(text).length`, i.e.
+  every code point counts as exactly 1 terminal column. Confirmed via direct
+  repro that this is likely the true cause of the reported List/Table
+  right-edge overrun: wide/double-width characters (many CJK ideographs,
+  common icon/symbol glyphs) occupy 2 real terminal columns but count as 1
+  in every width calculation across `wrapText`/`truncateText`/`padText`/
+  `CharCanvas` — internally self-consistent (sTUIdio's own model treats 1
+  code point = 1 cell), but visually overflows once rendered in a real
+  terminal that respects East Asian Width. Properly fixing this means
+  threading real per-character display-width (a `wcwidth`/`string-width`-
+  style calculation, likely a new small dependency) through every
+  width-fitting function and the `CharCanvas` model itself — a systemic
+  change touching most of the rendering pipeline and worth its own scoped
+  pass rather than a bolt-on patch. Sized as a candidate wishlist item, not
+  acted on here.
 
 ## P1 — Export parity & quality
 
