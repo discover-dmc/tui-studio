@@ -6,8 +6,10 @@
 
 import { useComponentStore } from '../stores/componentStore';
 import { useUIStore } from '../stores/uiStore';
+import { useCanvasStore } from '../stores/canvasStore';
 import { COMPONENT_LIBRARY } from '../constants/components';
 import { isValidComponentTree } from './validation';
+import { exportToText } from './export/textExporter';
 import type { ComponentNode, ComponentType } from '../types';
 
 const BRIDGE_URL = 'ws://127.0.0.1:5175';
@@ -32,6 +34,16 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
   switch (action) {
     case 'get_tree':
       return store.root;
+
+    case 'render_preview': {
+      const { format } = payload as { format?: 'text' | 'ansi' };
+      const canvas = useCanvasStore.getState();
+      return exportToText(store.root, {
+        format: format === 'ansi' ? 'ansi' : 'text',
+        width: canvas.width,
+        height: canvas.height,
+      });
+    }
 
     case 'list_component_types':
       return Object.values(COMPONENT_LIBRARY).map((def) => ({

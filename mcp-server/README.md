@@ -2,8 +2,11 @@
 
 Lets any MCP-capable model manipulate a live sTUIdio design directly — add,
 edit, move, and remove components — instead of only ever exporting once at
-the end. This is AI-integration Phase 1 (see `todo.md`); it's a foundation,
-not a full guardrail-guided workflow (that's Phase 2).
+the end. This is AI-integration Phase 1 + 3 (see `todo.md`) — the transport
+and the self-verification tool. For an agent to actually use this well,
+load the `.claude/skills/stuidio-agent/` skill (Phase 2) first — it covers
+the component vocabulary and the constraints a valid-but-wrong tree can
+still violate.
 
 ## How it works
 
@@ -37,6 +40,7 @@ MCP client --stdio--> mcp-server/index.mjs --ws(127.0.0.1:5175)--> sTUIdio tab
 | Tool | Purpose |
 | --- | --- |
 | `get_tree` | Read the current full component tree. |
+| `render_preview` | Render the current design to text/ANSI — the same output the app's own Export panel produces — so you can inspect your result and self-correct. |
 | `list_component_types` | List every available component type. |
 | `get_component_schema` | Get one type's default props/layout/style/events. |
 | `add_component` | Add a new component under an existing parent. |

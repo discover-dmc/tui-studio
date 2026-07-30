@@ -74,7 +74,10 @@ function tool(name, config, handler) {
   server.registerTool(name, config, async (args) => {
     try {
       const result = await handler(args ?? {});
-      return { content: [{ type: 'text', text: JSON.stringify(result ?? null) }] };
+      // render_preview returns a raw string meant to be read as-is; everything
+      // else is structured data that needs stringifying.
+      const text = typeof result === 'string' ? result : JSON.stringify(result ?? null);
+      return { content: [{ type: 'text', text }] };
     } catch (err) {
       return {
         content: [{ type: 'text', text: `Error: ${err.message}` }],
@@ -90,6 +93,17 @@ tool(
   'get_tree',
   { title: 'Get component tree', description: 'Returns the current full sTUIdio component tree as JSON.', inputSchema: {} },
   () => callBrowser('get_tree', {})
+);
+
+tool(
+  'render_preview',
+  {
+    title: 'Render preview',
+    description:
+      'Renders the current design to text — the same output the app\'s own Export panel Preview/Text tab produces. Call this after making changes to see the actual result and self-correct, instead of relying on get_tree alone.',
+    inputSchema: { format: z.enum(['text', 'ansi']).optional() },
+  },
+  ({ format }) => callBrowser('render_preview', { format: format ?? 'text' })
 );
 
 tool(

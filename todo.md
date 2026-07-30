@@ -433,14 +433,29 @@ testable, matching this project's "finish a section before moving on" habit:
   was generated directly from `COMPONENT_LIBRARY` via a throwaway script
   rather than copied by hand, so all 27 real types/categories/descriptions
   are accurate as of this commit.
-- [ ] **Phase 3 — self-verification loop**: a read-only `render_preview` (or
-  `get_ansi_preview`) tool returning the existing ANSI/text-export output
-  (`src/utils/rendering/components.ts` — already built, just needs exposing)
-  for the current tree, so the agent can inspect its own result and correct
-  course without a human relaying a screenshot. This is the same
-  "design → build → see → fix" loop Hyperbliss's `ghostty-automator`
-  provides for hand-written TUI code, applied instead to sTUIdio's own tree
-  state — cheaper to build here since the render pipeline already exists.
+- [x] **Phase 3 — self-verification loop** (2026-07-30): new read-only
+  `render_preview` MCP tool (`format: 'text' | 'ansi'`, default `'text'`)
+  returning the exact same output the app's own Export panel Preview/Text
+  tab produces, so the agent can inspect its own result and correct course
+  without a human relaying a screenshot — the same "design → build → see →
+  fix" loop Hyperbliss's `ghostty-automator` provides for hand-written TUI
+  code, applied to sTUIdio's own tree state instead. Cheap to build since
+  the render pipeline already existed: reused `exportToText`
+  (`src/utils/export/textExporter.ts`, which itself calls `renderTree` →
+  the real `layoutEngine` + `CharCanvas`/`renderComponent` pipeline) as-is
+  — no new rendering path. Uses `canvasStore`'s width/height (the same
+  dimensions the human-facing Export panel already renders against), not
+  `root.props`. `mcp-server/index.mjs`'s generic tool-response wrapper
+  needed one small change: a string result (this tool) is returned as raw
+  text; every other tool's structured object result is still
+  `JSON.stringify`'d as before.
+  Verified for real: `npx tsc -b`/`npm run lint`/`npm run build`/
+  `node --check mcp-server/index.mjs` all clean; with the bridge connected
+  to a live tab holding a real tree (Box containing a Text node), a
+  throwaway MCP test client's `render_preview` output was compared
+  byte-for-byte against the same tab's own Export panel "Plain Text" tab
+  output (via `get_page_text`) — identical, confirming this is a faithful
+  passthrough of the existing renderer, not a new one.
 - [ ] **Phase 4 — dry-run / diff preview**: a tool that returns the
   would-be tree diff for a mutation without committing it (mirrors how
   coding agents show a diff before writing a file), so a model can preview
