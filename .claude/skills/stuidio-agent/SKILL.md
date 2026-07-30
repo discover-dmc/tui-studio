@@ -3,16 +3,18 @@ name: stuidio-agent
 description: >
   Use this skill when an MCP client is connected to sTUIdio's agent bridge
   (mcp-server/, AI-integration Phase 1) and asked to design, edit, or extend
-  a TUI layout through its 9 tools (get_tree, render_preview,
-  list_component_types, get_component_schema, add_component, update_props,
-  update_layout, move_component, remove_component — the last 5 support a
-  dryRun flag for a diff preview without committing). Covers the component
-  vocabulary, the turn-based tool workflow, and the hard structural
-  constraints a structurally-valid tree can still violate (which containers
-  really nest children vs. configure via props, absolute vs. flexbox/grid
-  layout) so a model builds an idiomatic design, not just one that passes
-  validation. Companion to the tui-studio skill, which covers editing
-  sTUIdio's own codebase instead of using it.
+  a TUI layout through its 16 tools: get_bridge_status, get_tree,
+  render_preview, get_layout_warnings, list_component_types,
+  get_component_schema, list_templates, apply_template, add_component,
+  update_props, update_layout, move_component, remove_component,
+  duplicate_component, group_components, ungroup_components (the mutating
+  ones support a dryRun flag for a diff preview without committing). Covers
+  the component vocabulary, the turn-based tool workflow, and the hard
+  structural constraints a structurally-valid tree can still violate (which
+  containers really nest children vs. configure via props, absolute vs.
+  flexbox/grid layout) so a model builds an idiomatic design, not just one
+  that passes validation. Companion to the tui-studio skill, which covers
+  editing sTUIdio's own codebase instead of using it.
 ---
 
 # Using sTUIdio as an agent
@@ -24,6 +26,10 @@ look wrong or won't export cleanly — the guidance below closes that gap.
 
 ## Before you touch anything
 
+- If any tool call fails unexpectedly, call `get_bridge_status` before
+  anything else — it works even with no browser connected, and reports
+  *why* (a port conflict, a disconnected tab, a timeout) instead of you
+  guessing from a bare "no browser tab connected" error.
 - Tool calls are pull/turn-based, not a live feed — call `get_tree` at the
   start of every turn. A human may have edited the design since your last
   turn; never assume your last-seen tree is still current.
@@ -36,7 +42,10 @@ look wrong or won't export cleanly — the guidance below closes that gap.
   made-up id gets you a clear error, not a silent no-op — read errors and
   retry rather than assuming a call succeeded.
 - Call `render_preview` after a batch of changes to see the actual rendered
-  result (text or ANSI) instead of only reasoning from raw tree JSON.
+  result (text or ANSI) instead of only reasoning from raw tree JSON. Call
+  `get_layout_warnings` too — it's the structured, no-eyeballing-required
+  version of "did I just cause an overflow or a negative-space layout,"
+  backed by the exact same detection as the human UI's own warning banner.
 - Every change rides sTUIdio's real undo/redo history. A human collaborator
   can undo your edit with Cmd/Ctrl+Z exactly like their own — you don't need
   to build your own safety net.
@@ -105,17 +114,22 @@ look wrong or won't export cleanly — the guidance below closes that gap.
 2. `list_component_types` / `get_component_schema` — discover before using
    an unfamiliar type.
 3. One mutation at a time (`add_component`, `update_props`,
-   `update_layout`, `move_component`, `remove_component`) — each returns a
-   clear error on a bad id/type so you can self-correct within the turn
-   instead of compounding a mistake. Before a risky one (removing a subtree,
-   restyling broadly), pass `dryRun: true` — same tool, same arguments —
-   to get a unified diff of the would-be result without committing
-   anything, then decide whether to run it for real.
-4. Starting a screen from scratch — reach for one of the seven canonical
-   layouts (`references/layout-patterns.md`) instead of an arbitrary one.
+   `update_layout`, `move_component`, `remove_component`,
+   `duplicate_component`, `group_components`, `ungroup_components`) — each
+   returns a clear error on a bad id/type so you can self-correct within the
+   turn instead of compounding a mistake. Before a risky one (removing a
+   subtree, restyling broadly), pass `dryRun: true` — same tool, same
+   arguments — to get a unified diff of the would-be result without
+   committing anything, then decide whether to run it for real.
+4. Starting a screen from scratch — call `list_templates` and `apply_template`
+   (also supports `dryRun`) to start from one of the seven canonical layouts
+   (`references/layout-patterns.md`) instead of building one node-by-node.
 5. Adding keyboard navigation to a `List`/`Table`/`Tree` — use a real
    convention (`references/keybinding-conventions.md`) rather than
    inventing one.
+6. After a batch of changes — `render_preview` and `get_layout_warnings`
+   before moving on, to catch a visual or structural problem in the same
+   turn you introduced it.
 
 ## On-demand references
 

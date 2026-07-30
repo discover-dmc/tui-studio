@@ -19,6 +19,8 @@ const PORT = 5175;
 
 const wss = new WebSocketServer({ host: '127.0.0.1', port: PORT });
 let activeSocket = null;
+let connectedSince = null;
+let lastError = null; // { message, code, at } — last WS-level error, for get_bridge_status
 const pending = new Map(); // id -> { resolve, reject, timer }
 
 // A second instance (another MCP client reconnect, a stray health check, a
@@ -28,6 +30,7 @@ const pending = new Map(); // id -> { resolve, reject, timer }
 // still register and respond, they just report "no browser tab connected"
 // until the port frees up, since this instance can never receive one.
 wss.on('error', (err) => {
+  lastError = { message: err.message, code: err.code ?? null, at: new Date().toISOString() };
   if (err.code === 'EADDRINUSE') {
     console.error(
       `sTUIdio bridge: port ${PORT} is already in use (likely another mcp-server ` +
@@ -41,6 +44,7 @@ wss.on('error', (err) => {
 
 wss.on('connection', (socket) => {
   activeSocket = socket;
+  connectedSince = new Date().toISOString();
   console.error(`sTUIdio bridge: browser tab connected (${wss.clients.size} total)`);
 
   socket.on('message', (raw) => {
@@ -59,7 +63,10 @@ wss.on('connection', (socket) => {
   });
 
   socket.on('close', () => {
-    if (activeSocket === socket) activeSocket = null;
+    if (activeSocket === socket) {
+      activeSocket = null;
+      connectedSince = null;
+    }
     console.error('sTUIdio bridge: browser tab disconnected');
   });
 });
@@ -68,17 +75,18 @@ wss.on('connection', (socket) => {
 function callBrowser(action, payload, timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
     if (!activeSocket || activeSocket.readyState !== activeSocket.OPEN) {
-      reject(
-        new Error(
-          'No sTUIdio browser tab connected — open the app and enable Agent Bridge in Settings.'
-        )
-      );
+      const message =
+        'No sTUIdio browser tab connected — open the app and enable Agent Bridge in Settings.';
+      lastError = { message, code: 'NOT_CONNECTED', at: new Date().toISOString() };
+      reject(new Error(message));
       return;
     }
     const id = randomUUID();
     const timer = setTimeout(() => {
       pending.delete(id);
-      reject(new Error('Browser tab did not respond in time.'));
+      const message = 'Browser tab did not respond in time.';
+      lastError = { message, code: 'TIMEOUT', at: new Date().toISOString() };
+      reject(new Error(message));
     }, timeoutMs);
     pending.set(id, { resolve, reject, timer });
     activeSocket.send(JSON.stringify({ id, action, payload }));
@@ -115,9 +123,57 @@ const dryRun = () =>
     );
 
 tool(
+  'get_bridge_status',
+  {
+    title: 'Get bridge status',
+    description:
+      'Reports the agent bridge\'s own connection health — whether a browser tab is connected, since when, and the last transport-level error (port conflicts, timeouts, disconnects). Answers "why did my last call fail?" without guessing. Handled locally — never fails due to no browser being connected.',
+    inputSchema: {},
+  },
+  () => ({
+    connected: !!activeSocket && activeSocket.readyState === activeSocket.OPEN,
+    port: PORT,
+    connectedSince,
+    lastError,
+  })
+);
+
+tool(
   'get_tree',
   { title: 'Get component tree', description: 'Returns the current full sTUIdio component tree as JSON.', inputSchema: {} },
   () => callBrowser('get_tree', {})
+);
+
+tool(
+  'get_layout_warnings',
+  {
+    title: 'Get layout warnings',
+    description:
+      'Returns every component with a layout warning (overflow past its parent, negative computed space) — the same detection that powers the app\'s own "N Layout Warnings" banner. Check this after a mutation instead of only visually parsing render_preview.',
+    inputSchema: {},
+  },
+  () => callBrowser('get_layout_warnings', {})
+);
+
+tool(
+  'list_templates',
+  {
+    title: 'List starter templates',
+    description: 'Lists the 7 canonical starter layouts already built into the app\'s "New from Template" gallery.',
+    inputSchema: {},
+  },
+  () => callBrowser('list_templates', {})
+);
+
+tool(
+  'apply_template',
+  {
+    title: 'Apply starter template',
+    description:
+      'Replaces the current tree with one of the 7 starter templates (see list_templates). Supports dryRun.',
+    inputSchema: { id: z.string(), dryRun: dryRun() },
+  },
+  (args) => callBrowser('apply_template', args)
 );
 
 tool(
@@ -213,6 +269,44 @@ tool(
     inputSchema: { id: z.string(), dryRun: dryRun() },
   },
   ({ id, dryRun: isDryRun }) => callBrowser('remove_component', { id, dryRun: isDryRun })
+);
+
+tool(
+  'duplicate_component',
+  {
+    title: 'Duplicate component',
+    description: 'Duplicates a component (and its children) as a new sibling right after the original. Supports dryRun.',
+    inputSchema: { id: z.string(), dryRun: dryRun() },
+  },
+  (args) => callBrowser('duplicate_component', args)
+);
+
+tool(
+  'group_components',
+  {
+    title: 'Group components',
+    description:
+      'Wraps existing components (which must share the same parent) in a new Box, in their current document order. Supports dryRun.',
+    inputSchema: {
+      ids: z.array(z.string()).min(1),
+      name: z.string().optional(),
+      props: record(),
+      layout: record(),
+      style: record(),
+      dryRun: dryRun(),
+    },
+  },
+  (args) => callBrowser('group_components', args)
+);
+
+tool(
+  'ungroup_components',
+  {
+    title: 'Ungroup components',
+    description: 'Removes the given container(s), promoting their children to the container\'s own parent in place. Supports dryRun.',
+    inputSchema: { ids: z.array(z.string()).min(1), dryRun: dryRun() },
+  },
+  (args) => callBrowser('ungroup_components', args)
 );
 
 const transport = new StdioServerTransport();

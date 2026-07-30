@@ -563,6 +563,55 @@ testable, matching this project's "finish a section before moving on" habit:
   already stale from Phase 3's `render_preview` addition — fixed both at
   once) to document `dryRun` and `render_preview` in the recommended turn
   loop.
+- [x] **MCP tool-surface completeness pass** (2026-07-30, from real
+  dogfooding feedback after Phases 1-4): 7 new tools, taking the surface
+  from 9 to 16. Not part of the original 5-phase plan — an addendum from
+  actually using the thing.
+  1. `get_layout_warnings` — exposes `layoutEngine.getNodesWithWarnings()`/
+     `getDebugInfo()` (the exact detection behind the human UI's "N Layout
+     Warnings" banner) so an agent gets a structured overflow/negative-space
+     signal instead of eyeballing `render_preview`'s text output — directly
+     relevant to the 3 layout bugs found in the same dogfooding session.
+  2. `duplicate_component` / `group_components` / `ungroup_components` —
+     the 3 remaining `componentStore` actions Phase 1 hadn't mapped yet.
+     Refactored the same way Phase 4 refactored the other 5: pure functions
+     (`applyDuplicateComponent`/`applyGroupComponents`/
+     `applyUngroupComponents`, new in `treeUtils.ts`) that both the real
+     store actions and each tool's `dryRun` path call — one implementation,
+     not two.
+  3. `list_templates` / `apply_template` — expose the 7 starter layouts
+     (`src/constants/templates.ts`, item 7 above) directly; the guardrail
+     skill previously only pointed an agent at the human gallery to look
+     at, not invoke.
+  4. `get_bridge_status` — answers "can read errors be a tool?" literally:
+     `{connected, port, connectedSince, lastError}`, handled entirely
+     server-side in `mcp-server/index.mjs` (not routed through
+     `callBrowser`, so it works even with zero browser connected — that's
+     the point). `lastError` is populated from three sources: the
+     WebSocketServer's own `error` event (port collisions), and
+     `callBrowser`'s own NOT_CONNECTED/TIMEOUT rejections.
+  All mutating additions (`duplicate_component`/`group_components`/
+  `ungroup_components`/`apply_template`) support the same `dryRun: true`
+  pattern as Phase 4.
+  Verified for real: `npx tsc -b`/`npm run lint`/`npm run build`/
+  `npx vitest run` (all 75 tests) clean; `node --check mcp-server/index.mjs`
+  clean. Since the real `stuidio` MCP connection was live with two active
+  browser tabs during this work, verification split across two safe paths
+  rather than touching that session: (a) a throwaway MCP client spawning a
+  *separate* instance (which gracefully fails to bind port 5175 thanks to
+  the earlier WebSocketServer fix) confirmed all 16 tools list correctly,
+  and confirmed `get_bridge_status` correctly reports the port-collision
+  `lastError` before any call and the `NOT_CONNECTED` `lastError` after a
+  failed `get_tree` — proving it would have made the earlier real incident
+  self-diagnosable; (b) a direct vitest exercise of the new pure functions,
+  `TEMPLATES[].build()`, and `layoutEngine` confirmed
+  `applyDuplicateComponent`/`applyGroupComponents` (including the
+  same-parent-required rejection)/`applyUngroupComponents` and
+  `get_layout_warnings`'s overflow detection all behave correctly — the
+  exact code paths `mcpBridge.ts` calls. Updated
+  `.claude/skills/stuidio-agent/SKILL.md` (tool count 9→16, new turn-loop
+  steps for `get_bridge_status`/`get_layout_warnings`/`apply_template`) and
+  `mcp-server/README.md`'s tool table accordingly.
 - [ ] **Phase 5 — conflict surfacing for concurrent human/agent edits**:
   the open question from the original idea — decide how a human's live
   edit and an agent's in-flight turn are reconciled (last-write-wins with a

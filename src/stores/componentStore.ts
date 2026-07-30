@@ -12,8 +12,10 @@ import {
   applyUpdateProps,
   applyUpdateLayout,
   applyMoveComponent,
+  applyDuplicateComponent,
+  applyGroupComponents,
+  applyUngroupComponents,
 } from '../utils/treeUtils';
-import { generateComponentId } from '../utils/idGenerator';
 
 interface ComponentState {
   // Tree
@@ -136,92 +138,36 @@ export const useComponentStore = create<ComponentState>((set, get) => ({
 
   // Duplicate component
   duplicateComponent: (id) => {
-    const { root } = get();
-    if (!root) return null;
-
-    // Clone tree FIRST
-    const newRoot = cloneNode(root);
-
-    // Find component and parent in the NEW tree
-    const component = findNodeById(newRoot, id);
-    const parent = findParentNode(newRoot, id);
-    if (!component || !parent) return null;
-
-    const cloned = cloneNode(component);
-    cloned.id = generateComponentId();
-    cloned.name = `${cloned.name} Copy`;
-
-    // Assign new IDs to all descendants
-    function reassignIds(node: ComponentNode) {
-      node.id = generateComponentId();
-      node.children.forEach(reassignIds);
-    }
-    cloned.children.forEach(reassignIds);
-
-    // Insert after original
-    const index = parent.children.findIndex((c) => c.id === id);
-    parent.children.splice(index + 1, 0, cloned);
+    const result = applyDuplicateComponent(get().root, id);
+    if (!result) return null;
 
     set({
-      root: newRoot,
-      components: flattenTree(newRoot),
+      root: result.root,
+      components: flattenTree(result.root),
     });
 
     get().saveHistory();
-    return cloned.id;
+    return result.id;
   },
 
   // Group multiple components into a new Box
   groupComponents: (ids, boxData) => {
-    const { root } = get();
-    if (!root || ids.length === 0) return null;
+    const result = applyGroupComponents(get().root, ids, boxData);
+    if (!result) return null;
 
-    const newRoot = cloneNode(root);
-
-    // All ids must share the same parent
-    const parents = ids.map((id) => findParentNode(newRoot, id));
-    const parentId = parents[0]?.id;
-    if (!parentId || parents.some((p) => p?.id !== parentId)) return null;
-
-    const parent = findNodeById(newRoot, parentId)!;
-
-    // Insert Box at the earliest position of the selected nodes
-    const indices = ids.map((id) => parent.children.findIndex((c) => c.id === id));
-    const insertIndex = Math.min(...indices);
-
-    // Extract selected nodes in document order
-    const ordered = parent.children.filter((c) => ids.includes(c.id));
-    parent.children = parent.children.filter((c) => !ids.includes(c.id));
-
-    const newBox: ComponentNode = { ...boxData, id: generateComponentId(), children: ordered };
-    parent.children.splice(insertIndex, 0, newBox);
-
-    set({ root: newRoot, components: flattenTree(newRoot) });
+    set({ root: result.root, components: flattenTree(result.root) });
     get().saveHistory();
-    return newBox.id;
+    return result.id;
   },
 
   // Ungroup containers: promote children to parent, remove containers
   ungroupComponents: (ids) => {
-    const { root } = get();
-    if (!root || ids.length === 0) return [];
+    const result = applyUngroupComponents(get().root, ids);
+    if (!result) return [];
 
-    const newRoot = cloneNode(root);
-    const allChildIds: string[] = [];
-
-    for (const id of ids) {
-      const node = findNodeById(newRoot, id);
-      const parent = findParentNode(newRoot, id);
-      if (!node || !parent) continue;
-
-      const index = parent.children.findIndex((c) => c.id === id);
-      allChildIds.push(...node.children.map((c) => c.id));
-      parent.children.splice(index, 1, ...node.children);
-    }
-
-    set({ root: newRoot, components: flattenTree(newRoot) });
+    set({ root: result.root, components: flattenTree(result.root) });
     get().saveHistory();
-    return allChildIds;
+    return result.childIds;
   },
 
   // Update props

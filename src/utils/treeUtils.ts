@@ -212,3 +212,80 @@ export function applyMoveComponent(
 
   return newRoot;
 }
+
+/** Mirrors componentStore's duplicateComponent. Returns null if id doesn't resolve. */
+export function applyDuplicateComponent(
+  root: ComponentNode | null,
+  id: string
+): { root: ComponentNode; id: string } | null {
+  if (!root) return null;
+  const newRoot = cloneNode(root);
+
+  const component = findNodeById(newRoot, id);
+  const parent = findParentNode(newRoot, id);
+  if (!component || !parent) return null;
+
+  const cloned = cloneNode(component);
+  cloned.id = generateComponentId();
+  cloned.name = `${cloned.name} Copy`;
+
+  function reassignIds(node: ComponentNode) {
+    node.id = generateComponentId();
+    node.children.forEach(reassignIds);
+  }
+  cloned.children.forEach(reassignIds);
+
+  const index = parent.children.findIndex((c) => c.id === id);
+  parent.children.splice(index + 1, 0, cloned);
+
+  return { root: newRoot, id: cloned.id };
+}
+
+/** Mirrors componentStore's groupComponents. Returns null if ids don't share a parent. */
+export function applyGroupComponents(
+  root: ComponentNode | null,
+  ids: string[],
+  boxData: Omit<ComponentNode, 'id' | 'children'>
+): { root: ComponentNode; id: string } | null {
+  if (!root || ids.length === 0) return null;
+  const newRoot = cloneNode(root);
+
+  const parents = ids.map((id) => findParentNode(newRoot, id));
+  const parentId = parents[0]?.id;
+  if (!parentId || parents.some((p) => p?.id !== parentId)) return null;
+
+  const parent = findNodeById(newRoot, parentId)!;
+
+  const indices = ids.map((id) => parent.children.findIndex((c) => c.id === id));
+  const insertIndex = Math.min(...indices);
+
+  const ordered = parent.children.filter((c) => ids.includes(c.id));
+  parent.children = parent.children.filter((c) => !ids.includes(c.id));
+
+  const newBox: ComponentNode = { ...boxData, id: generateComponentId(), children: ordered };
+  parent.children.splice(insertIndex, 0, newBox);
+
+  return { root: newRoot, id: newBox.id };
+}
+
+/** Mirrors componentStore's ungroupComponents. Returns null if none of the ids resolve. */
+export function applyUngroupComponents(
+  root: ComponentNode | null,
+  ids: string[]
+): { root: ComponentNode; childIds: string[] } | null {
+  if (!root || ids.length === 0) return null;
+  const newRoot = cloneNode(root);
+  const allChildIds: string[] = [];
+
+  for (const id of ids) {
+    const node = findNodeById(newRoot, id);
+    const parent = findParentNode(newRoot, id);
+    if (!node || !parent) continue;
+
+    const index = parent.children.findIndex((c) => c.id === id);
+    allChildIds.push(...node.children.map((c) => c.id));
+    parent.children.splice(index, 1, ...node.children);
+  }
+
+  return { root: newRoot, childIds: allChildIds };
+}

@@ -9,14 +9,19 @@ import { useComponentStore } from '../stores/componentStore';
 import { useUIStore } from '../stores/uiStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { COMPONENT_LIBRARY } from '../constants/components';
+import { TEMPLATES } from '../constants/templates';
 import { isValidComponentTree } from './validation';
 import { exportToText } from './export/textExporter';
+import { layoutEngine } from './layout';
 import {
   applyAddComponent,
   applyUpdateProps,
   applyUpdateLayout,
   applyMoveComponent,
   applyRemoveComponent,
+  applyDuplicateComponent,
+  applyGroupComponents,
+  applyUngroupComponents,
 } from './treeUtils';
 import type { ComponentNode, ComponentType } from '../types';
 
@@ -83,6 +88,29 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
         defaultStyle: def.defaultStyle,
         defaultEvents: def.defaultEvents ?? {},
       };
+    }
+
+    case 'get_layout_warnings': {
+      const canvas = useCanvasStore.getState();
+      layoutEngine.calculateLayout(store.root, canvas.width, canvas.height);
+      return layoutEngine
+        .getNodesWithWarnings()
+        .map((nodeId) => layoutEngine.getDebugInfo(nodeId))
+        .filter((info): info is NonNullable<typeof info> => !!info);
+    }
+
+    case 'list_templates':
+      return TEMPLATES.map((t) => ({ id: t.id, name: t.name, description: t.description }));
+
+    case 'apply_template': {
+      const { id, dryRun } = payload as { id: string; dryRun?: boolean };
+      const template = TEMPLATES.find((t) => t.id === id);
+      if (!template) throw new Error(`Unknown template id: ${id}`);
+      const built = template.build();
+      if (dryRun) return diffTrees(store.root, built);
+      store.setRoot(built);
+      assertTreeStillValid();
+      return { ok: true };
     }
 
     case 'add_component': {
@@ -172,6 +200,67 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
       store.removeComponent(id);
       assertTreeStillValid();
       return { ok: true };
+    }
+
+    case 'duplicate_component': {
+      const { id, dryRun } = payload as { id: string; dryRun?: boolean };
+      if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      if (dryRun) {
+        const result = applyDuplicateComponent(store.root, id);
+        return diffTrees(store.root, result?.root ?? store.root);
+      }
+      const newId = store.duplicateComponent(id);
+      if (!newId) throw new Error('Duplicate failed.');
+      assertTreeStillValid();
+      return { id: newId };
+    }
+
+    case 'group_components': {
+      const { ids, name, props, layout, style, dryRun } = payload as {
+        ids: string[];
+        name?: string;
+        props?: Record<string, unknown>;
+        layout?: Record<string, unknown>;
+        style?: Record<string, unknown>;
+        dryRun?: boolean;
+      };
+      for (const cid of ids) {
+        if (!store.getComponent(cid)) throw new Error(`No component with id: ${cid}`);
+      }
+      const def = COMPONENT_LIBRARY.Box;
+      const boxData: Omit<ComponentNode, 'id' | 'children'> = {
+        type: 'Box',
+        name: name || def.name,
+        props: { ...def.defaultProps, ...props },
+        layout: { ...def.defaultLayout, ...layout },
+        style: { ...def.defaultStyle, ...style },
+        events: { ...def.defaultEvents },
+        locked: false,
+        hidden: false,
+        collapsed: false,
+      };
+      if (dryRun) {
+        const result = applyGroupComponents(store.root, ids, boxData);
+        return diffTrees(store.root, result?.root ?? store.root);
+      }
+      const newId = store.groupComponents(ids, boxData);
+      if (!newId) throw new Error('Group failed — every id must share the same parent.');
+      assertTreeStillValid();
+      return { id: newId };
+    }
+
+    case 'ungroup_components': {
+      const { ids, dryRun } = payload as { ids: string[]; dryRun?: boolean };
+      for (const cid of ids) {
+        if (!store.getComponent(cid)) throw new Error(`No component with id: ${cid}`);
+      }
+      if (dryRun) {
+        const result = applyUngroupComponents(store.root, ids);
+        return diffTrees(store.root, result?.root ?? store.root);
+      }
+      const childIds = store.ungroupComponents(ids);
+      assertTreeStillValid();
+      return { childIds };
     }
 
     default:
