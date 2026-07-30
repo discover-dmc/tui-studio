@@ -1,5 +1,5 @@
 ---
-name: stuidio-agent
+name: stuidio-skill
 description: >
   Use this skill when an MCP client is connected to sTUIdio's agent bridge
   (mcp-server/, AI-integration Phase 1) and asked to design, edit, or extend

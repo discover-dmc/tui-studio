@@ -4,7 +4,7 @@ Lets any MCP-capable model manipulate a live sTUIdio design directly — add,
 edit, move, and remove components — instead of only ever exporting once at
 the end. This is AI-integration Phases 1, 3, and 4 (see `todo.md`) — the
 transport, the self-verification tool, and dry-run previews. For an agent
-to actually use this well, load the `.claude/skills/stuidio-agent/` skill
+to actually use this well, load the `.claude/skills/stuidio-skill/` skill
 (Phase 2) first — it covers the component vocabulary and the constraints a
 valid-but-wrong tree can still violate.
 

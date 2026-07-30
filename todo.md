@@ -468,7 +468,7 @@ testable, matching this project's "finish a section before moving on" habit:
   the same collision no longer crashes (clean log, no stack trace), and
   confirmed `claude mcp list` reports `stuidio: ✔ Connected` afterward.
 - [x] **Phase 2 — guardrail skill for the *consuming* model** (2026-07-30):
-  new `.claude/skills/stuidio-agent/` (sibling to `.claude/skills/tui-studio/`,
+  new `.claude/skills/stuidio-skill/` (sibling to `.claude/skills/tui-studio/`,
   companion — that one covers editing this codebase, this one covers
   *using* the Phase 1 MCP tools). Mirrors `gfargo/tui-design-skill`'s proven
   shape: a compact top-level `SKILL.md` (component vocabulary generated from
@@ -497,7 +497,7 @@ testable, matching this project's "finish a section before moving on" habit:
   nested under them — their real content is `props.items`/`columns`+`rows`,
   not the `children` array. Also documents the absolute-root/flexbox-inside
   layout split from Phase 1's own `add_component` handling. Verified by
-  invoking the `Skill` tool and confirming `stuidio-agent` is discovered
+  invoking the `Skill` tool and confirming `stuidio-skill` is discovered
   with its frontmatter description surfaced correctly; the component table
   was generated directly from `COMPONENT_LIBRARY` via a throwaway script
   rather than copied by hand, so all 27 real types/categories/descriptions
@@ -559,7 +559,7 @@ testable, matching this project's "finish a section before moving on" habit:
   changes)`; a real (non-dry-run) `update_props` immediately after commits
   normally; Cmd+Z on the live tab correctly undid only the real change,
   confirming the preceding dry runs left no history entries. Also updated
-  `.claude/skills/stuidio-agent/SKILL.md` (frontmatter tool count/list was
+  `.claude/skills/stuidio-skill/SKILL.md` (frontmatter tool count/list was
   already stale from Phase 3's `render_preview` addition — fixed both at
   once) to document `dryRun` and `render_preview` in the recommended turn
   loop.
@@ -609,7 +609,7 @@ testable, matching this project's "finish a section before moving on" habit:
   same-parent-required rejection)/`applyUngroupComponents` and
   `get_layout_warnings`'s overflow detection all behave correctly — the
   exact code paths `mcpBridge.ts` calls. Updated
-  `.claude/skills/stuidio-agent/SKILL.md` (tool count 9→16, new turn-loop
+  `.claude/skills/stuidio-skill/SKILL.md` (tool count 9→16, new turn-loop
   steps for `get_bridge_status`/`get_layout_warnings`/`apply_template`) and
   `mcp-server/README.md`'s tool table accordingly.
 - [ ] **Phase 5 — conflict surfacing for concurrent human/agent edits**:
