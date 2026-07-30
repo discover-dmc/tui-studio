@@ -338,20 +338,104 @@ per-component breakdown and verification notes.
 
 Lower-confidence or exploratory ideas, not yet sized or committed to a priority tier.
 
-- [ ] **Expose TUIStudio to AI agents/LLMs for live co-creation** (raised 2026-07-29): let an
-  agent manipulate the design directly (add/edit/query components) alongside the human, not
-  just via one-shot export. Viable — the component tree is already a clean JSON structure
-  (`ComponentNode`) mutated through a small, well-defined action API on `componentStore`
-  (`addComponent`, `updateProps`, `updateLayout`, `moveComponent`, `removeComponent`, plus
-  existing undo/redo history as a safety net), and `.tui` save/open already round-trips the
-  whole tree. The natural shape: an MCP server whose tools map ~1:1 onto those existing store
-  actions, bridged to the live browser tab over a small local WebSocket (the app has no
-  backend today — this bridge would be the first one). Main open question, not a blocker:
-  MCP tool calls are pull/turn-based (agent asks, gets state, acts), not a push feed, so
-  "co-creation" in practice looks like turn-taking — the agent catches up on human edits by
-  calling a `get_tree`-style tool each turn, rather than seeing them the instant they happen.
-  Not sized or scoped yet; needs its own design pass (transport bridge, tool surface, and a
-  decision on how conflicting human/agent edits are surfaced) before estimating.
+### AI integration — let any capable model design TUIs via API
+
+Raised 2026-07-29, fleshed out 2026-07-29 into achievable phases after
+researching how existing LLM-facing TUI tooling keeps a model on-track
+(`gfargo/tui-design-skill`'s reference-loaded-on-demand structure; Hyperbliss's
+`ghostty-automator` screen-state-introspection loop — see `docs/design_anal.md`
+and `.claude/skills/tui-studio/SKILL.md`). Goal: an agent — not just this one,
+any capable model via a documented API — can manipulate an sTUIdio design
+directly (add/edit/query components) alongside or instead of a human, not
+just via one-shot export. Viable today: the component tree is already a
+clean JSON structure (`ComponentNode`) mutated through a small, well-defined
+action API on `componentStore` (`addComponent`, `updateProps`, `updateLayout`,
+`moveComponent`, `removeComponent`, plus existing undo/redo history as a
+safety net), and `.tui` save/open already round-trips the whole tree.
+`isValidComponentTree` (`src/utils/validation.ts`) already exists as a
+ready-made guardrail. Phased so each phase is independently shippable and
+testable, matching this project's "finish a section before moving on" habit:
+
+- [ ] **Phase 1 — MCP server + transport bridge**: an MCP server whose tools
+  map ~1:1 onto existing `componentStore` actions (`add_component`,
+  `update_props`, `update_layout`, `move_component`, `remove_component`,
+  `get_tree`, `list_component_types`, `get_component_schema`), bridged to the
+  live browser tab over a small local WebSocket (the app has no backend
+  today — this bridge would be the first one). MCP tool calls are
+  pull/turn-based (agent asks, gets state, acts), not a push feed, so
+  "co-creation" in practice is turn-taking — the agent catches up on human
+  edits by calling `get_tree` each turn, not by watching them happen live.
+  Every mutating tool validates through `isValidComponentTree` before
+  committing and rides the existing undo/redo stack — no new safety
+  mechanism needed, reuse what's there.
+- [ ] **Phase 2 — guardrail skill for the *consuming* model**: a companion
+  skill (siblings to `.claude/skills/tui-studio/`) that any capable model
+  loads to *use* sTUIdio's MCP tools correctly, not just to hack on this
+  codebase. Mirrors `gfargo/tui-design-skill`'s proven shape — a compact
+  top-level file (component vocabulary, the tool surface from Phase 1, and
+  hard constraints) plus on-demand reference docs (per-framework export
+  idioms — reuse the idiom map already written in
+  `.claude/skills/tui-studio/SKILL.md`; the seven canonical layout patterns
+  and keybinding conventions from `docs/design_anal.md`) so a model builds
+  designs that match real-world TUI conventions instead of merely
+  structurally-valid trees.
+- [ ] **Phase 3 — self-verification loop**: a read-only `render_preview` (or
+  `get_ansi_preview`) tool returning the existing ANSI/text-export output
+  (`src/utils/rendering/components.ts` — already built, just needs exposing)
+  for the current tree, so the agent can inspect its own result and correct
+  course without a human relaying a screenshot. This is the same
+  "design → build → see → fix" loop Hyperbliss's `ghostty-automator`
+  provides for hand-written TUI code, applied instead to sTUIdio's own tree
+  state — cheaper to build here since the render pipeline already exists.
+- [ ] **Phase 4 — dry-run / diff preview**: a tool that returns the
+  would-be tree diff for a mutation without committing it (mirrors how
+  coding agents show a diff before writing a file), so a model can preview
+  a risky change (e.g. `remove_component` on a subtree, bulk restyle)
+  before applying it. Layers on top of Phase 1's action API — no new store
+  mechanism, just a "compute, don't commit" path through the same reducers.
+- [ ] **Phase 5 — conflict surfacing for concurrent human/agent edits**:
+  the open question from the original idea — decide how a human's live
+  edit and an agent's in-flight turn are reconciled (last-write-wins with a
+  visible toast, an optimistic-lock version counter on `get_tree`/mutations,
+  or a simple "agent turn" mode toggle that pauses human edits while the
+  agent is active). Needs its own design pass before estimating; the other
+  four phases don't block on this being resolved first.
+
+### Design gaps found via competitive analysis
+
+Sourced from `docs/design_anal.md` (2026-07-29) — a survey of
+[awesometui.com](https://awesometui.com)'s 2026 Award winners (btop,
+lazygit, glow, micro, opencode) cross-referenced against published TUI
+design guidance. Each gap was verified against sTUIdio's actual source
+before being listed here — see `docs/design_anal.md` for the file/line
+citations and the validated (already-correct) findings.
+
+- [ ] **Add an ansi256 tier to the 7 code exporters**: the standalone
+  Text/ANSI export path already supports `ansi16`/`ansi256`/`trueColor`, but
+  `ExportColorMode` (code exporters) only has `truecolor`/`ansi16` — no
+  middle tier for generated framework code.
+- [ ] **`TextArea` component**: no multiline editable text input exists
+  today (`TextInput` is explicitly single-line) — needed for commit-message
+  boxes, chat compose fields, etc.
+- [ ] **Multi-select `List` variant**: `List` only tracks a single
+  `selectedIndex`; no per-item checked state for lazygit-style
+  multi-selection (e.g. staging several files at once).
+- [ ] **Notification/Toast component**: a non-blocking, self-dismissing
+  status message, distinct from the existing blocking `Modal` — the
+  async-feedback pattern top TUIs use so the UI never has to freeze just to
+  report "saved" or "connection lost."
+- [ ] **Keybinding-convention preset in PropertyPanel**: not a new
+  component — a dropdown for nav-capable components (List/Table/Tree) that
+  offers the near-universal `j`/`k`/`/`/`?`/`Esc` vocabulary (fzf, lazygit,
+  helix) as a one-click preset instead of hand-typing `EventHandlers`.
+- [ ] **"New from template" starter gallery**: seed the canvas-creation flow
+  with the seven recurring layout archetypes (Persistent Multi-Panel,
+  Miller Columns, Drill-Down Stack, Widget Dashboard, IDE Three-Panel,
+  Overlay/Popup, Header+Scrollable-List) instead of always starting blank.
+- [ ] **Monochrome-first preview mode**: an explicit "preview with no
+  color" toggle to sanity-check that layout/semantics survive without
+  color, not just palette swaps — an accessibility check none of the
+  existing color-mode controls currently do.
 
 ## Skill track — `skills/tui-design-mcpmarket`
 
