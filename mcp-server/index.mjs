@@ -21,6 +21,24 @@ const wss = new WebSocketServer({ host: '127.0.0.1', port: PORT });
 let activeSocket = null;
 const pending = new Map(); // id -> { resolve, reject, timer }
 
+// A second instance (another MCP client reconnect, a stray health check, a
+// manually-started copy per the README) colliding on this port must not take
+// the whole MCP stdio connection down with it — an unhandled 'error' event
+// on an EventEmitter is fatal by default. Degrade instead: the MCP tools
+// still register and respond, they just report "no browser tab connected"
+// until the port frees up, since this instance can never receive one.
+wss.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `sTUIdio bridge: port ${PORT} is already in use (likely another mcp-server ` +
+        'instance already running) — this MCP connection stays up, but its own ' +
+        'bridge can\'t bind, so tool calls will report "no browser tab connected."'
+    );
+  } else {
+    console.error(`sTUIdio bridge: WebSocket server error: ${err.message}`);
+  }
+});
+
 wss.on('connection', (socket) => {
   activeSocket = socket;
   console.error(`sTUIdio bridge: browser tab connected (${wss.clients.size} total)`);

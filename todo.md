@@ -398,6 +398,20 @@ testable, matching this project's "finish a section before moving on" habit:
   tab, with every step confirmed via the actual rendered canvas and Layers
   panel; Cmd+Z on the live tab correctly undid the agent's last mutation,
   proving it rode the real history stack.
+  **Fix (2026-07-30, found via real `claude mcp add stuidio -- node
+  mcp-server/index.mjs` usage, not synthetic testing):** the `WebSocketServer`
+  had no `error` handler, so a second instance colliding on port 5175 (a
+  reconnect, a health check, a manually-started copy while the MCP-client-
+  spawned one is already running) threw an unhandled `EADDRINUSE` and killed
+  the whole process — including its already-established MCP stdio
+  connection, surfacing to the client as `MCP error -32000: Connection
+  closed`. Reproduced directly (`node mcp-server/index.mjs` while another
+  instance already held the port — confirmed the exact crash + stack trace),
+  fixed by adding `wss.on('error', ...)` so a bind failure logs a clear
+  message and degrades (tool calls report "no browser tab connected" instead
+  of the connection dying) rather than taking the process down. Re-verified
+  the same collision no longer crashes (clean log, no stack trace), and
+  confirmed `claude mcp list` reports `stuidio: ✔ Connected` afterward.
 - [x] **Phase 2 — guardrail skill for the *consuming* model** (2026-07-30):
   new `.claude/skills/stuidio-agent/` (sibling to `.claude/skills/tui-studio/`,
   companion — that one covers editing this codebase, this one covers
