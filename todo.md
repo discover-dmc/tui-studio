@@ -356,18 +356,48 @@ safety net), and `.tui` save/open already round-trips the whole tree.
 ready-made guardrail. Phased so each phase is independently shippable and
 testable, matching this project's "finish a section before moving on" habit:
 
-- [ ] **Phase 1 — MCP server + transport bridge**: an MCP server whose tools
-  map ~1:1 onto existing `componentStore` actions (`add_component`,
-  `update_props`, `update_layout`, `move_component`, `remove_component`,
-  `get_tree`, `list_component_types`, `get_component_schema`), bridged to the
-  live browser tab over a small local WebSocket (the app has no backend
-  today — this bridge would be the first one). MCP tool calls are
-  pull/turn-based (agent asks, gets state, acts), not a push feed, so
-  "co-creation" in practice is turn-taking — the agent catches up on human
-  edits by calling `get_tree` each turn, not by watching them happen live.
-  Every mutating tool validates through `isValidComponentTree` before
-  committing and rides the existing undo/redo stack — no new safety
-  mechanism needed, reuse what's there.
+- [x] **Phase 1 — MCP server + transport bridge** (2026-07-30): an MCP
+  server whose 8 tools map ~1:1 onto existing `componentStore` actions
+  (`add_component`, `update_props`, `update_layout`, `move_component`,
+  `remove_component`, `get_tree`, `list_component_types`,
+  `get_component_schema`), bridged to the live browser tab over a small
+  local WebSocket (the app had no backend before this — first one). MCP
+  tool calls are pull/turn-based (agent asks, gets state, acts), not a push
+  feed, so "co-creation" in practice is turn-taking — the agent catches up
+  on human edits by calling `get_tree` each turn, not by watching them
+  happen live.
+  New standalone process `mcp-server/index.mjs` (plain ESM, no build step —
+  `node mcp-server/index.mjs`, identical invocation on Windows/macOS/Linux):
+  spawned over stdio by an MCP client (`McpServer` +
+  `StdioServerTransport` from `@modelcontextprotocol/sdk`, version verified
+  against the real published npm package — `1.30.0` — rather than assumed),
+  and opens a `ws` WebSocket server on `127.0.0.1:5175` (loopback only, pure
+  JS, no native addons) for the browser tab to connect to. New
+  `src/utils/mcpBridge.ts` is the browser side — same module-level
+  singleton, non-hook `getState()` pattern as `autosave.ts`/`fileOps.ts` —
+  dispatching each incoming action to the real `componentStore` actions
+  (not a new mutation path), building new nodes the same way `App.tsx`'s
+  `handleAddComponent` already does (`COMPONENT_LIBRARY[type]` defaults
+  merged with overrides). Every mutating call resolves `id`/`parentId`
+  first for a clear error instead of the store's silent no-op, then runs
+  `isValidComponentTree` on the resulting tree as a defensive backstop —
+  `undo()` + error if it somehow fails — and every change rides the
+  existing undo/redo stack, no new safety mechanism. New "Agent Bridge"
+  toggle in Settings (reuses the existing Light/Dark toggle-switch markup),
+  persisted the same way `toolbarDocked` already persists, auto-reconnects
+  on load if left enabled.
+  Verified for real, not just typechecked: `npx tsc -b`/`npm run
+  lint`/`npm run build` clean; a throwaway MCP `Client` +
+  `StdioClientTransport` test script confirmed the real protocol handshake,
+  all 8 tools listed, and a clean "No sTUIdio browser tab connected" error
+  when none is; with the Vite dev server running and Agent Bridge enabled
+  in Settings (confirmed "Connected" in the UI), the same test script drove
+  `get_tree` → `add_component` → `update_props` → `add_component` →
+  `move_component` → `get_tree` → `remove_component` → an intentionally bad
+  `add_component` (unknown type, confirmed clean error) against the live
+  tab, with every step confirmed via the actual rendered canvas and Layers
+  panel; Cmd+Z on the live tab correctly undid the agent's last mutation,
+  proving it rode the real history stack.
 - [ ] **Phase 2 — guardrail skill for the *consuming* model**: a companion
   skill (siblings to `.claude/skills/tui-studio/`) that any capable model
   loads to *use* sTUIdio's MCP tools correctly, not just to hack on this

@@ -13,6 +13,7 @@ const CommandPalette = lazy(() =>
 import { useComponentStore, useSelectionStore, useThemeStore, useUIStore } from './stores';
 import { openTuiFile } from './utils/fileOps';
 import { initAutosave, loadAutosave } from './utils/autosave';
+import { initAgentBridge } from './utils/mcpBridge';
 import { COMPONENT_LIBRARY } from './constants/components';
 import type { ComponentType } from './types';
 
@@ -61,6 +62,9 @@ function App() {
 
   // Debounce-persist the tree to localStorage so a refresh doesn't lose work
   useEffect(() => initAutosave(), []);
+
+  // Reconnect the AI agent bridge if the user last left it enabled
+  useEffect(() => initAgentBridge(), []);
 
   // Restore the last autosave, or initialize a default Screen root, on first load
   useEffect(() => {

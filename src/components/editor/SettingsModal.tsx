@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, FolderOpen, Sun, Moon } from 'lucide-react';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
-import { useThemeStore } from '../../stores';
+import { useThemeStore, useUIStore } from '../../stores';
 import { THEMES } from '../../stores/themeStore';
 import {
   ACCENT_PRESETS,
@@ -15,10 +15,20 @@ import {
   isDirectoryPickerSupported,
 } from '../../utils/downloadManager';
 import { ColorPicker } from '../properties/ColorPicker';
+import { connectAgentBridge, disconnectAgentBridge } from '../../utils/mcpBridge';
+
+const AGENT_BRIDGE_STATUS_LABEL = {
+  disconnected: 'Disconnected',
+  connecting: 'Connecting…',
+  connected: 'Connected',
+};
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   useEscapeKey(onClose);
   const themeStore = useThemeStore();
+  const agentBridgeEnabled = useUIStore((s) => s.agentBridgeEnabled);
+  const setAgentBridgeEnabled = useUIStore((s) => s.setAgentBridgeEnabled);
+  const agentBridgeStatus = useUIStore((s) => s.agentBridgeStatus);
 
   const [accentPreset, setAccentPresetState] = useState<AccentPreset>(
     (localStorage.getItem('settings-accent-preset') as AccentPreset) || 'tuigreen'
@@ -42,6 +52,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     setCustomColor(hex);
     setAccentPresetState('custom');
     applyAccentColor('custom', hex);
+  };
+
+  const handleToggleAgentBridge = () => {
+    const next = !agentBridgeEnabled;
+    setAgentBridgeEnabled(next);
+    if (next) connectAgentBridge();
+    else disconnectAgentBridge();
   };
 
   const handleSelectFolder = async () => {
@@ -94,6 +111,37 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             </span>
             <Moon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           </div>
+        </div>
+
+        {/* AI Agent Bridge */}
+        <div className="mb-6">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+            Agent Bridge
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={agentBridgeEnabled}
+              onClick={handleToggleAgentBridge}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors cursor-pointer focus:outline-none ${
+                agentBridgeEnabled ? 'bg-primary' : 'bg-input'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${
+                  agentBridgeEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <span className="text-sm">Let an MCP-connected model edit this design</span>
+          </div>
+          {agentBridgeEnabled && (
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {AGENT_BRIDGE_STATUS_LABEL[agentBridgeStatus]} — expects{' '}
+              <code className="text-foreground">mcp-server/index.mjs</code> running on port 5175.
+            </p>
+          )}
         </div>
 
         {/* Download Folder */}

@@ -16,10 +16,20 @@ interface UIState {
   activeDialog: DialogName | null;
   openDialog: (name: DialogName) => void;
   closeDialog: () => void;
+
+  // AI integration Phase 1 — MCP agent bridge (src/utils/mcpBridge.ts)
+  agentBridgeEnabled: boolean;
+  setAgentBridgeEnabled: (enabled: boolean) => void;
+  agentBridgeStatus: 'disconnected' | 'connecting' | 'connected';
+  setAgentBridgeStatus: (status: 'disconnected' | 'connecting' | 'connected') => void;
 }
 
 const savedDocked =
   typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('toolbar-docked') || 'false') : false;
+const savedAgentBridgeEnabled =
+  typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem('agent-bridge-enabled') || 'false')
+    : false;
 
 export const useUIStore = create<UIState>((set) => ({
   toolbarDocked: savedDocked,
@@ -34,4 +44,12 @@ export const useUIStore = create<UIState>((set) => ({
   activeDialog: null,
   openDialog: (name) => set({ activeDialog: name }),
   closeDialog: () => set({ activeDialog: null }),
+
+  agentBridgeEnabled: savedAgentBridgeEnabled,
+  setAgentBridgeEnabled: (enabled) => {
+    localStorage.setItem('agent-bridge-enabled', JSON.stringify(enabled));
+    set({ agentBridgeEnabled: enabled });
+  },
+  agentBridgeStatus: 'disconnected',
+  setAgentBridgeStatus: (status) => set({ agentBridgeStatus: status }),
 }));
