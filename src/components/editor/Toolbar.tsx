@@ -16,6 +16,7 @@ import { AboutModal } from './AboutModal';
 import { HelpModal } from './HelpModal';
 import { ChangelogModal } from './ChangelogModal';
 import { SettingsModal } from './SettingsModal';
+import { TemplateGalleryModal } from './TemplateGalleryModal';
 import { applyAccentColor, type AccentPreset } from '../../utils/accentColor';
 
 export function Toolbar() {
@@ -201,6 +202,9 @@ export function Toolbar() {
 
       {/* Settings Modal */}
       {activeDialog === 'settings' && <SettingsModal onClose={closeDialog} />}
+
+      {/* Template Gallery Modal */}
+      {activeDialog === 'templates' && <TemplateGalleryModal onClose={closeDialog} />}
     </>
   );
 }

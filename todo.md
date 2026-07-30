@@ -602,10 +602,46 @@ citations and the validated (already-correct) findings.
   defined` at runtime) before it was fixed; after the fix, a follow-up
   headless run additionally simulated a real keypress (`pilot.press("j")`)
   to confirm `on_key`'s dispatch to two named handlers executes cleanly.
-- [ ] **"New from template" starter gallery**: seed the canvas-creation flow
-  with the seven recurring layout archetypes (Persistent Multi-Panel,
-  Miller Columns, Drill-Down Stack, Widget Dashboard, IDE Three-Panel,
-  Overlay/Popup, Header+Scrollable-List) instead of always starting blank.
+- [x] **"New from template" starter gallery** (2026-07-30): seeds the
+  canvas-creation flow with the seven recurring layout archetypes
+  (Persistent Multi-Panel, Miller Columns, Drill-Down Stack, Widget
+  Dashboard, IDE Three-Panel, Overlay/Popup, Header+Scrollable-List)
+  instead of always starting blank. New `src/constants/templates.ts`
+  exports `TEMPLATES`, each a `{id, name, description, build}` — `build()`
+  returns a full `ComponentNode` tree (a `Screen` root with `id: 'root'`,
+  matching the real convention several places key off of, e.g.
+  `ComponentTree`'s `isRoot` check and `useComponentDrag`'s root-drag
+  guard) reusing existing component types and their real default props,
+  laid out to tile the 80x24 canvas via absolute positioning on top-level
+  panels and flexbox flow inside each. New `TemplateGalleryModal.tsx`
+  (same modal styling as `SaveDialog`/`ChangelogModal`) lists all seven
+  with name + description; picking one calls `componentStore.setRoot()`
+  (already undo-tracked, so no blocking confirm dialog needed — a native
+  `window.confirm` was tried first but dropped since automated/headless
+  contexts auto-dismiss it and it clashed with the app's styled dialogs).
+  Wired into both entry points components normally use: `AppMenu`'s File
+  submenu ("New from Template") and `CommandPalette` (same label, new
+  `LayoutTemplate` icon). New `'templates'` `DialogName` variant.
+  Verified live in-browser for all 7 templates, not just typecheck: opened
+  each from both the menu and the command palette, confirmed correct tree
+  structure in the Layers panel and correct canvas rendering, zero console
+  errors, zero layout-engine warnings. This caught two real bugs along the
+  way (fixed, not worked around): (1) the Overlay/Popup template's
+  Confirm/Cancel buttons used `width: 'auto'` inside a flexbox row, which
+  `flexbox.ts`'s auto-width fallback resolves to `minWidth || 10` →
+  effectively near-zero width for two adjacent buttons, so their rendered
+  labels overlapped — fixed by giving both buttons an explicit
+  `width: 10`, matching every other leaf in these templates. (2) a
+  pre-existing gap in `Canvas.tsx`'s `ComponentRenderer`: `'Modal'` had no
+  case in the render-content switch, so it fell through to the `default:`
+  branch which prints the raw `node.type` as literal text — every Modal
+  with a border was rendering the word "Modal" inside itself. Never
+  surfaced before because no prior flow built a bordered Modal with real
+  children on the live canvas. Fixed by adding `case 'Modal':` to the
+  `return null` group alongside `Box`/`Grid`/`Spacer`/`Screen` (Modal is a
+  container — its children already render via the normal recursive path).
+  `npx tsc -b`, `npm run lint`, and `npm run build` all clean after the
+  fix. Preview server stopped after verification.
 - [x] **Monochrome-first preview mode** (2026-07-30): a toolbar toggle
   (`Contrast` icon, next to the grid toggle) that forces the canvas
   preview to render with no designer-chosen color at all — borders,

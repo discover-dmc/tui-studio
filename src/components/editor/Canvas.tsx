@@ -955,6 +955,7 @@ const ComponentRenderer = memo(
         case 'Grid':
         case 'Spacer':
         case 'Screen':
+        case 'Modal':
           return null;
         default:
           return <span className="font-mono">{node.type}</span>;

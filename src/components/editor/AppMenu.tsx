@@ -66,6 +66,10 @@ export function AppMenu() {
         label: 'File',
         submenu: [
           {
+            label: 'New from Template',
+            action: () => openDialogAndClose('templates'),
+          },
+          {
             label: 'Open',
             shortcut: `${mod}O`,
             action: () => {

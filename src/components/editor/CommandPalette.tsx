@@ -12,6 +12,7 @@ import {
   Info,
   Sun,
   Moon,
+  LayoutTemplate,
 } from 'lucide-react';
 import { useThemeStore, useUIStore } from '../../stores';
 import { COMPONENT_LIBRARY } from '../../constants/components';
@@ -57,6 +58,17 @@ export function CommandPalette({ isOpen, onClose, onAddComponent }: CommandPalet
     })),
 
     // Actions (after divider in UI)
+    {
+      id: 'templates',
+      label: 'New from Template',
+      description: 'Start from a starter layout archetype',
+      icon: LayoutTemplate,
+      action: () => {
+        openDialog('templates');
+        onClose();
+      },
+      category: 'action',
+    },
     {
       id: 'save',
       label: 'Save',

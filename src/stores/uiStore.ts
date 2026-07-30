@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 
-export type DialogName = 'save' | 'export' | 'about' | 'help' | 'changelog' | 'settings';
+export type DialogName = 'save' | 'export' | 'about' | 'help' | 'changelog' | 'settings' | 'templates';
 
 interface UIState {
   toolbarDocked: boolean;
