@@ -456,12 +456,44 @@ testable, matching this project's "finish a section before moving on" habit:
   byte-for-byte against the same tab's own Export panel "Plain Text" tab
   output (via `get_page_text`) — identical, confirming this is a faithful
   passthrough of the existing renderer, not a new one.
-- [ ] **Phase 4 — dry-run / diff preview**: a tool that returns the
-  would-be tree diff for a mutation without committing it (mirrors how
-  coding agents show a diff before writing a file), so a model can preview
-  a risky change (e.g. `remove_component` on a subtree, bulk restyle)
-  before applying it. Layers on top of Phase 1's action API — no new store
-  mechanism, just a "compute, don't commit" path through the same reducers.
+- [x] **Phase 4 — dry-run / diff preview** (2026-07-30): all 5 mutating MCP
+  tools (`add_component`, `update_props`, `update_layout`, `move_component`,
+  `remove_component`) now accept an optional `dryRun: true` — computes the
+  would-be tree and returns a unified diff (via the `diff` npm package's
+  `createPatch`, verified against its real current API before use — v9.0.0)
+  without committing anything, mirroring how coding agents show a diff
+  before writing a file.
+  Built exactly as scoped — "no new store mechanism, just a compute-don't-
+  commit path through the same reducers" — via a real refactor, not a
+  parallel reimplementation: the mutation logic inside `componentStore.ts`'s
+  `addComponent`/`removeComponent`/`updateProps`/`updateLayout`/
+  `moveComponent` actions was factored out into 5 pure functions
+  (`applyAddComponent` etc., new in `src/utils/treeUtils.ts`) that take the
+  current root and return a would-be new root without touching the store.
+  The store actions now call these same pure functions, then `set()` +
+  `saveHistory()` — identical behavior, single source of truth. The
+  dry-run path in `src/utils/mcpBridge.ts` calls the exact same pure
+  functions and just never calls `set()`, so a dry run has zero footprint:
+  no store mutation, no undo/redo entry, nothing visible in the live tab.
+  Rejected the alternative of commit-then-`undo()`: it would flash the
+  change on screen for a frame and leave a stray entry in the redo stack —
+  a real side effect, not a true dry run.
+  Verified for real: `npx tsc -b`/`npm run lint`/`npm run build`/
+  `npx vitest run` (all 75 existing tests, none touching componentStore
+  directly but exercising code paths that depend on it, still pass — no
+  behavior regression from the refactor) all clean. A throwaway MCP test
+  client confirmed, against a live tab: a dry-run `update_props` returns a
+  correct diff and leaves the tree completely unchanged (checked via a
+  follow-up `get_tree`); a dry-run `remove_component` on a `Box` with a
+  child shows the full subtree removal in the diff while the `Box` remains
+  present afterward; a dry-run with no actual change returns `(no
+  changes)`; a real (non-dry-run) `update_props` immediately after commits
+  normally; Cmd+Z on the live tab correctly undid only the real change,
+  confirming the preceding dry runs left no history entries. Also updated
+  `.claude/skills/stuidio-agent/SKILL.md` (frontmatter tool count/list was
+  already stale from Phase 3's `render_preview` addition — fixed both at
+  once) to document `dryRun` and `render_preview` in the recommended turn
+  loop.
 - [ ] **Phase 5 — conflict surfacing for concurrent human/agent edits**:
   the open question from the original idea — decide how a human's live
   edit and an agent's in-flight turn are reconciled (last-write-wins with a

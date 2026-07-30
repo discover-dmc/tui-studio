@@ -2,7 +2,17 @@
 
 import { create } from 'zustand';
 import type { ComponentNode } from '../types';
-import { findNodeById, findParentNode, flattenTree, cloneNode } from '../utils/treeUtils';
+import {
+  findNodeById,
+  findParentNode,
+  flattenTree,
+  cloneNode,
+  applyAddComponent,
+  applyRemoveComponent,
+  applyUpdateProps,
+  applyUpdateLayout,
+  applyMoveComponent,
+} from '../utils/treeUtils';
 import { generateComponentId } from '../utils/idGenerator';
 
 interface ComponentState {
@@ -64,66 +74,22 @@ export const useComponentStore = create<ComponentState>((set, get) => ({
 
   // Add component
   addComponent: (parentId, componentData, index) => {
-    const { root } = get();
-    if (!root) {
-      return '';
-    }
-
-    // Clone tree FIRST to create new references
-    const newRoot = cloneNode(root);
-
-    // Find parent in the NEW tree
-    const parent = findNodeById(newRoot, parentId);
-    if (!parent) {
-      return '';
-    }
-
-    const id = generateComponentId();
-    const newComponent: ComponentNode = {
-      ...componentData,
-      id,
-      children: [],
-    };
-
-    // If parent is a container and has explicit height/width, change to auto so it fits children
-    if (['Box', 'Grid'].includes(parent.type)) {
-      if (typeof parent.props.height === 'number') {
-        parent.props.height = 'auto';
-      }
-      if (typeof parent.props.width === 'number' && parent.layout.direction !== 'column') {
-        parent.props.width = 'auto';
-      }
-    }
-
-    // Insert at index or append in the NEW tree
-    if (index !== undefined) {
-      parent.children.splice(index, 0, newComponent);
-    } else {
-      parent.children.push(newComponent);
-    }
+    const result = applyAddComponent(get().root, parentId, componentData, index);
+    if (!result) return '';
 
     set({
-      root: newRoot,
-      components: flattenTree(newRoot),
+      root: result.root,
+      components: flattenTree(result.root),
     });
 
     get().saveHistory();
-    return id;
+    return result.id;
   },
 
   // Remove component
   removeComponent: (id) => {
-    const { root } = get();
-    if (!root || root.id === id) return;
-
-    // Clone tree FIRST
-    const newRoot = cloneNode(root);
-
-    // Find parent in the NEW tree
-    const parent = findParentNode(newRoot, id);
-    if (!parent) return;
-
-    parent.children = parent.children.filter((child) => child.id !== id);
+    const newRoot = applyRemoveComponent(get().root, id);
+    if (!newRoot) return;
 
     set({
       root: newRoot,
@@ -157,34 +123,8 @@ export const useComponentStore = create<ComponentState>((set, get) => ({
 
   // Move component
   moveComponent: (id, newParentId, index) => {
-    const { root } = get();
-    if (!root || id === newParentId) return;
-
-    // Clone tree FIRST
-    const newRoot = cloneNode(root);
-
-    // Find component and remove from old parent in the NEW tree
-    const oldParent = findParentNode(newRoot, id);
-    if (!oldParent) return;
-
-    const componentIndex = oldParent.children.findIndex((c) => c.id === id);
-    if (componentIndex === -1) return;
-
-    const [component] = oldParent.children.splice(componentIndex, 1);
-
-    // Add to new parent in the NEW tree
-    const newParent = findNodeById(newRoot, newParentId);
-    if (!newParent) {
-      // Restore if new parent not found
-      oldParent.children.splice(componentIndex, 0, component);
-      return;
-    }
-
-    if (index !== undefined) {
-      newParent.children.splice(index, 0, component);
-    } else {
-      newParent.children.push(component);
-    }
+    const newRoot = applyMoveComponent(get().root, id, newParentId, index);
+    if (!newRoot) return;
 
     set({
       root: newRoot,
@@ -286,18 +226,8 @@ export const useComponentStore = create<ComponentState>((set, get) => ({
 
   // Update props
   updateProps: (id, props) => {
-    const { root } = get();
-    if (!root) return;
-
-    // Clone tree FIRST to create new references
-    const newRoot = cloneNode(root);
-
-    // Find component in the NEW tree
-    const component = findNodeById(newRoot, id);
-    if (!component) return;
-
-    // Mutate the NEW tree's component
-    component.props = { ...component.props, ...props };
+    const newRoot = applyUpdateProps(get().root, id, props);
+    if (!newRoot) return;
 
     set({
       root: newRoot,
@@ -309,18 +239,8 @@ export const useComponentStore = create<ComponentState>((set, get) => ({
 
   // Update layout
   updateLayout: (id, layout) => {
-    const { root } = get();
-    if (!root) return;
-
-    // Clone tree FIRST to create new references
-    const newRoot = cloneNode(root);
-
-    // Find component in the NEW tree
-    const component = findNodeById(newRoot, id);
-    if (!component) return;
-
-    // Mutate the NEW tree's component
-    component.layout = { ...component.layout, ...layout };
+    const newRoot = applyUpdateLayout(get().root, id, layout);
+    if (!newRoot) return;
 
     set({
       root: newRoot,

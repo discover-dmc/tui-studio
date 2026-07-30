@@ -3,15 +3,16 @@ name: stuidio-agent
 description: >
   Use this skill when an MCP client is connected to sTUIdio's agent bridge
   (mcp-server/, AI-integration Phase 1) and asked to design, edit, or extend
-  a TUI layout through its 8 tools (get_tree, list_component_types,
-  get_component_schema, add_component, update_props, update_layout,
-  move_component, remove_component). Covers the component vocabulary, the
-  turn-based tool workflow, and the hard structural constraints a
-  structurally-valid tree can still violate (which containers really nest
-  children vs. configure via props, absolute vs. flexbox/grid layout) so a
-  model builds an idiomatic design, not just one that passes validation.
-  Companion to the tui-studio skill, which covers editing sTUIdio's own
-  codebase instead of using it.
+  a TUI layout through its 9 tools (get_tree, render_preview,
+  list_component_types, get_component_schema, add_component, update_props,
+  update_layout, move_component, remove_component — the last 5 support a
+  dryRun flag for a diff preview without committing). Covers the component
+  vocabulary, the turn-based tool workflow, and the hard structural
+  constraints a structurally-valid tree can still violate (which containers
+  really nest children vs. configure via props, absolute vs. flexbox/grid
+  layout) so a model builds an idiomatic design, not just one that passes
+  validation. Companion to the tui-studio skill, which covers editing
+  sTUIdio's own codebase instead of using it.
 ---
 
 # Using sTUIdio as an agent
@@ -34,6 +35,8 @@ look wrong or won't export cleanly — the guidance below closes that gap.
 - Every mutating call resolves ids against the live tree first. A stale or
   made-up id gets you a clear error, not a silent no-op — read errors and
   retry rather than assuming a call succeeded.
+- Call `render_preview` after a batch of changes to see the actual rendered
+  result (text or ANSI) instead of only reasoning from raw tree JSON.
 - Every change rides sTUIdio's real undo/redo history. A human collaborator
   can undo your edit with Cmd/Ctrl+Z exactly like their own — you don't need
   to build your own safety net.
@@ -104,7 +107,10 @@ look wrong or won't export cleanly — the guidance below closes that gap.
 3. One mutation at a time (`add_component`, `update_props`,
    `update_layout`, `move_component`, `remove_component`) — each returns a
    clear error on a bad id/type so you can self-correct within the turn
-   instead of compounding a mistake.
+   instead of compounding a mistake. Before a risky one (removing a subtree,
+   restyling broadly), pass `dryRun: true` — same tool, same arguments —
+   to get a unified diff of the would-be result without committing
+   anything, then decide whether to run it for real.
 4. Starting a screen from scratch — reach for one of the seven canonical
    layouts (`references/layout-patterns.md`) instead of an arbitrary one.
 5. Adding keyboard navigation to a `List`/`Table`/`Tree` — use a real

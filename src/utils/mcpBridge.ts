@@ -4,12 +4,20 @@
 // the same action API the human UI already uses, so every agent edit rides
 // the existing undo/redo stack.
 
+import { createPatch } from 'diff';
 import { useComponentStore } from '../stores/componentStore';
 import { useUIStore } from '../stores/uiStore';
 import { useCanvasStore } from '../stores/canvasStore';
 import { COMPONENT_LIBRARY } from '../constants/components';
 import { isValidComponentTree } from './validation';
 import { exportToText } from './export/textExporter';
+import {
+  applyAddComponent,
+  applyUpdateProps,
+  applyUpdateLayout,
+  applyMoveComponent,
+  applyRemoveComponent,
+} from './treeUtils';
 import type { ComponentNode, ComponentType } from '../types';
 
 const BRIDGE_URL = 'ws://127.0.0.1:5175';
@@ -25,6 +33,14 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 function isComponentType(type: string): type is ComponentType {
   return type in COMPONENT_LIBRARY;
+}
+
+/** Unified diff (AI integration Phase 4) between the current tree and a would-be one — never committed. */
+function diffTrees(oldRoot: ComponentNode | null, newRoot: ComponentNode | null): string {
+  const oldJson = JSON.stringify(oldRoot, null, 2) + '\n';
+  const newJson = JSON.stringify(newRoot, null, 2) + '\n';
+  if (oldJson === newJson) return '(no changes)';
+  return createPatch('component-tree.json', oldJson, newJson);
 }
 
 /** Runs one bridge request against componentStore, returning its result or throwing a plain-text error. */
@@ -70,7 +86,7 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
     }
 
     case 'add_component': {
-      const { parentId, type, props, layout, style, events, index } = payload as {
+      const { parentId, type, props, layout, style, events, index, dryRun } = payload as {
         parentId: string;
         type: string;
         props?: Record<string, unknown>;
@@ -78,6 +94,7 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
         style?: Record<string, unknown>;
         events?: Record<string, string>;
         index?: number;
+        dryRun?: boolean;
       };
       if (!isComponentType(type)) throw new Error(`Unknown component type: ${type}`);
       if (!store.getComponent(parentId)) throw new Error(`No component with id: ${parentId}`);
@@ -96,44 +113,62 @@ function handleRequest({ action, payload }: BridgeRequest): unknown {
         collapsed: false,
       };
 
+      if (dryRun) {
+        const result = applyAddComponent(store.root, parentId, newComponent, index);
+        return diffTrees(store.root, result?.root ?? store.root);
+      }
+
       const id = store.addComponent(parentId, newComponent, index);
       assertTreeStillValid();
       return { id };
     }
 
     case 'update_props': {
-      const { id, props } = payload as { id: string; props: Record<string, unknown> };
+      const { id, props, dryRun } = payload as {
+        id: string;
+        props: Record<string, unknown>;
+        dryRun?: boolean;
+      };
       if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      if (dryRun) return diffTrees(store.root, applyUpdateProps(store.root, id, props));
       store.updateProps(id, props);
       assertTreeStillValid();
       return { ok: true };
     }
 
     case 'update_layout': {
-      const { id, layout } = payload as { id: string; layout: Record<string, unknown> };
+      const { id, layout, dryRun } = payload as {
+        id: string;
+        layout: Record<string, unknown>;
+        dryRun?: boolean;
+      };
       if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      if (dryRun) return diffTrees(store.root, applyUpdateLayout(store.root, id, layout));
       store.updateLayout(id, layout);
       assertTreeStillValid();
       return { ok: true };
     }
 
     case 'move_component': {
-      const { id, newParentId, index } = payload as {
+      const { id, newParentId, index, dryRun } = payload as {
         id: string;
         newParentId: string;
         index?: number;
+        dryRun?: boolean;
       };
       if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
       if (!store.getComponent(newParentId)) throw new Error(`No component with id: ${newParentId}`);
+      if (dryRun) return diffTrees(store.root, applyMoveComponent(store.root, id, newParentId, index));
       store.moveComponent(id, newParentId, index);
       assertTreeStillValid();
       return { ok: true };
     }
 
     case 'remove_component': {
-      const { id } = payload as { id: string };
+      const { id, dryRun } = payload as { id: string; dryRun?: boolean };
       if (!store.root || id === store.root.id) throw new Error('Cannot remove the root Screen.');
       if (!store.getComponent(id)) throw new Error(`No component with id: ${id}`);
+      if (dryRun) return diffTrees(store.root, applyRemoveComponent(store.root, id));
       store.removeComponent(id);
       assertTreeStillValid();
       return { ok: true };

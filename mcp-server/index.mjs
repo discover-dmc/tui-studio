@@ -88,6 +88,13 @@ function tool(name, config, handler) {
 }
 
 const record = () => z.record(z.string(), z.unknown()).optional();
+const dryRun = () =>
+  z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, computes the change but does not commit it — returns a unified diff of the would-be tree instead.'
+    );
 
 tool(
   'get_tree',
@@ -130,7 +137,7 @@ tool(
   'add_component',
   {
     title: 'Add component',
-    description: 'Adds a new component as a child of an existing node, using its library defaults merged with any overrides.',
+    description: 'Adds a new component as a child of an existing node, using its library defaults merged with any overrides. Supports dryRun.',
     inputSchema: {
       parentId: z.string(),
       type: z.string(),
@@ -139,6 +146,7 @@ tool(
       style: record(),
       events: record(),
       index: z.number().int().min(0).optional(),
+      dryRun: dryRun(),
     },
   },
   (args) => callBrowser('add_component', args)
@@ -148,8 +156,8 @@ tool(
   'update_props',
   {
     title: 'Update component props',
-    description: 'Merges the given props into an existing component.',
-    inputSchema: { id: z.string(), props: z.record(z.string(), z.unknown()) },
+    description: 'Merges the given props into an existing component. Supports dryRun.',
+    inputSchema: { id: z.string(), props: z.record(z.string(), z.unknown()), dryRun: dryRun() },
   },
   (args) => callBrowser('update_props', args)
 );
@@ -158,8 +166,8 @@ tool(
   'update_layout',
   {
     title: 'Update component layout',
-    description: 'Merges the given layout fields into an existing component.',
-    inputSchema: { id: z.string(), layout: z.record(z.string(), z.unknown()) },
+    description: 'Merges the given layout fields into an existing component. Supports dryRun.',
+    inputSchema: { id: z.string(), layout: z.record(z.string(), z.unknown()), dryRun: dryRun() },
   },
   (args) => callBrowser('update_layout', args)
 );
@@ -168,11 +176,12 @@ tool(
   'move_component',
   {
     title: 'Move component',
-    description: 'Moves an existing component to a new parent, optionally at a specific index.',
+    description: 'Moves an existing component to a new parent, optionally at a specific index. Supports dryRun.',
     inputSchema: {
       id: z.string(),
       newParentId: z.string(),
       index: z.number().int().min(0).optional(),
+      dryRun: dryRun(),
     },
   },
   (args) => callBrowser('move_component', args)
@@ -182,10 +191,10 @@ tool(
   'remove_component',
   {
     title: 'Remove component',
-    description: 'Removes a component (and its children) from the tree.',
-    inputSchema: { id: z.string() },
+    description: 'Removes a component (and its children) from the tree. Supports dryRun.',
+    inputSchema: { id: z.string(), dryRun: dryRun() },
   },
-  ({ id }) => callBrowser('remove_component', { id })
+  ({ id, dryRun: isDryRun }) => callBrowser('remove_component', { id, dryRun: isDryRun })
 );
 
 const transport = new StdioServerTransport();

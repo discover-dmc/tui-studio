@@ -2,11 +2,11 @@
 
 Lets any MCP-capable model manipulate a live sTUIdio design directly — add,
 edit, move, and remove components — instead of only ever exporting once at
-the end. This is AI-integration Phase 1 + 3 (see `todo.md`) — the transport
-and the self-verification tool. For an agent to actually use this well,
-load the `.claude/skills/stuidio-agent/` skill (Phase 2) first — it covers
-the component vocabulary and the constraints a valid-but-wrong tree can
-still violate.
+the end. This is AI-integration Phases 1, 3, and 4 (see `todo.md`) — the
+transport, the self-verification tool, and dry-run previews. For an agent
+to actually use this well, load the `.claude/skills/stuidio-agent/` skill
+(Phase 2) first — it covers the component vocabulary and the constraints a
+valid-but-wrong tree can still violate.
 
 ## How it works
 
@@ -51,6 +51,17 @@ MCP client --stdio--> mcp-server/index.mjs --ws(127.0.0.1:5175)--> sTUIdio tab
 
 Every mutating call rides sTUIdio's existing undo/redo history — Cmd/Ctrl+Z
 in the browser tab undoes an agent's change exactly like a human edit.
+
+### Dry runs
+
+`add_component`, `update_props`, `update_layout`, `move_component`, and
+`remove_component` all accept an optional `dryRun: true`. When set, the tool
+computes the change and returns a unified diff of the would-be tree — the
+same shape a code-editing tool shows before writing a file — without
+committing anything. Nothing is written to the store, no undo/redo entry is
+created, and a human watching the tab sees no change. Use this before a
+risky mutation (removing a subtree, restyling broadly) to preview the
+effect first.
 
 ## Limitations (Phase 1)
 
