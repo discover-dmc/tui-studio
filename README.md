@@ -1,6 +1,6 @@
-<img src="public/logo-tui-studio_light.svg" alt="TUIStudio" width="64" />
+<img src="public/logo-tui-studio_light.svg" alt="sTUIdio" width="64" />
 
-# TUIStudio
+# sTUIdio
 
 **Visual design tool for building Terminal User Interfaces**
 

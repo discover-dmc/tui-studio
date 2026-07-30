@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TUIStudio is a Figma-like visual editor for Terminal User Interfaces (TUIs). It lets developers design terminal UIs visually and export them as code for multiple frameworks (Ink, BubbleTea, Blessed, Textual, OpenTUI, Tview).
+sTUIdio is a Figma-like visual editor for Terminal User Interfaces (TUIs). It lets developers design terminal UIs visually and export them as code for multiple frameworks (Ink, BubbleTea, Blessed, Textual, OpenTUI, Tview).
 
 ## Commands
 

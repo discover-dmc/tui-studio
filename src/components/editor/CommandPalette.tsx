@@ -107,7 +107,7 @@ export function CommandPalette({ isOpen, onClose, onAddComponent }: CommandPalet
     },
     {
       id: 'about',
-      label: 'About TUIStudio',
+      label: 'About sTUIdio',
       description: 'Version info and links',
       icon: Info,
       action: () => {

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to TUIStudio are documented here.
+All notable changes to sTUIdio are documented here.
 
 ## [0.3.6] - 2026-02-22
 

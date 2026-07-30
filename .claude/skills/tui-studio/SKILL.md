@@ -1,7 +1,7 @@
 ---
 name: tui-studio
 description: >
-  Codebase map for TUIStudio itself — a Figma-like visual editor for Terminal
+  Codebase map for sTUIdio itself — a Figma-like visual editor for Terminal
   UIs that exports designs to Ink, BubbleTea, Blessed, Textual, OpenTUI, and
   Tview code. Use this skill when adding or modifying a ComponentType, editing
   an exporter under src/utils/export/exporters/, touching the .tui file format,
@@ -13,7 +13,7 @@ description: >
   this one covers this specific codebase's architecture.
 ---
 
-# TUI Studio (this codebase)
+# sTUIdio (this codebase)
 
 Reference for working inside `tui-studio` itself. See the repo's own
 `CLAUDE.md` for commands and the top-level architecture overview; this skill

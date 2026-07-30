@@ -16,11 +16,11 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
       >
         <img
           src={darkMode ? '/logo-tui-studio_dark.svg' : '/logo-tui-studio_light.svg'}
-          alt="TUIStudio"
+          alt="sTUIdio"
           className="w-16 h-16"
         />
         <div>
-          <h2 className="text-base font-semibold">TUIStudio</h2>
+          <h2 className="text-base font-semibold">sTUIdio</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">Terminal UI Design Tool</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">{__APP_VERSION__}</p>
         </div>

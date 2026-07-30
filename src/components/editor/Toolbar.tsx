@@ -46,13 +46,13 @@ export function Toolbar() {
           <div className="flex items-center gap-0.5">
             <img
               src={themeStore.darkMode ? '/logo-tui-studio_dark.svg' : '/logo-tui-studio_light.svg'}
-              alt="TUIStudio"
+              alt="sTUIdio"
               className="w-7 h-7"
             />
             <AppMenu />
           </div>
           <div>
-            <h1 className="text-sm font-semibold leading-none">TUIStudio</h1>
+            <h1 className="text-sm font-semibold leading-none">sTUIdio</h1>
             <div className="text-[10px] text-muted-foreground mt-0.5">Terminal UI Design Tool</div>
           </div>
         </div>
